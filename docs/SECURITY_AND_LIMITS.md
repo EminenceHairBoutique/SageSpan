@@ -90,7 +90,12 @@ the workflow status; approval evaluates the same latest attempts and refuses.
 | Browser: forged API approval as viewer → 403; Northline cannot open Patel; full Patel flow against the real engine | Passing (Playwright, 4 scenarios) |
 | SQL: tenant isolation, roles/workflow, immutability/chain, constraints, trust boundaries (58 assertions), canonical JSON parity (9) | **Executed 2026-11-05 on PostgreSQL 18.6** (embedded, no Docker) via `supabase/tests/run_sql_tests.py` with the Supabase/pgTAP shims: 6 migrations applied, 6/6 test files, 117 assertions. The same runner is the CI `database` job (`postgres:15`). `supabase test db` on the real stack has **not** been run. |
 
-The shim run proves the policies and functions on plain Postgres; the real-stack run (`supabase test db`, Docker) is still required before any deployment and must not be reported as done until it has run.
+| SQL (PR-002, PR-003a): coverage/reproducibility (43), workspaces and consent (74) | Executed 2026-11-06 on embedded PostgreSQL 16 via the runner: 8 migrations applied, 8/8 files. The runner now also fails a file whose `plan(n)` disagrees with the assertions run (real pgTAP behaviour); three pre-existing mismatches were corrected. |
+| Web: production identity resolution (firm actor from ACTIVE memberships only; personal actor from `my_workspace_access`; selectors ignored unless confirmed; grants = read-only scope, never an actor; unknown roles/domains dropped) | Passing (vitest, `src/auth/__tests__/identity.test.ts`, 10 tests, mocked post-RLS client) |
+| Browser: every `/app/*` route gates without Supabase configuration; the auth callback refuses foreign redirect targets | Passing (Playwright, `pr-003-identity.spec.ts`) |
+| Real stack: `supabase test db` (genuine pgTAP) + `supabase/realstack/run.mjs` (real GoTrue JWTs, PostgREST, RLS: two firms, three consumers, shared household limited to one domain, firm grant, expiry, revocation, refused direct writes, anon key alone) | **CI job `realstack` only.** Not runnable in the build sandbox (no Docker, no CLI download). Its first execution is on the PR-003 pull request; until it is green, nothing here is real-stack validated. |
+
+The shim run proves the policies and functions on plain Postgres; the real-stack run (`supabase test db` plus `supabase/realstack/run.mjs`) is the evidence that counts for deployment and must not be reported as done until the `realstack` CI job has run green.
 
 ## Release gates (from the founder documents)
 

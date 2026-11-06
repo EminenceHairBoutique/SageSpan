@@ -8,21 +8,29 @@
 | `migrations/0004_workflow_functions.sql` | SECURITY DEFINER workflow functions (`freeze_snapshot`, `resolve_conflict`, `document_exception`, `record_review`, `append_audit`), the transition matrix, and immutability triggers for snapshots, facts, reviews, check runs, packets and audit events. |
 | `migrations/0005_trust_boundaries.sql` | PR-001 hardening (forward-only, replaces functions in place): privilege inventory (revoke all, grant explicitly), column-level `households` grant plus the `app.workflow_fn` sentinel trigger, serialised audit chain (`audit_chain_heads`, `seq`, derived `actor_type`, event allow-list, `verify_audit_chain`), `canonical_json`/`sha256_canonical`, full freeze verification with required facts, `confirm_fact`, `record_check_run` against the rule-set registry, service-only document registration, write-once dispositions, approver matrix in `record_review`, `set_reconciliation_status` and `send_to_review` entry points. |
 | `migrations/0006_seed_rule_sets.sql` | **Generated** by `services/calculator/scripts/export_rule_sets_sql.py` from the Python rule registry: six rule sets (five PUBLISHED RMD sets, one DRAFT tax set) with checksums and 62 parameters. `tests/test_rule_set_seed.py` fails when it drifts. |
+| `migrations/0007_coverage_and_reproducibility.sql` | PR-002: `app.review_outcome`, snapshot payload v2, `policy_record`, `latest_check_runs`, `coverage_summary`, `clock_timestamp()` on check runs. |
+| `migrations/0008_workspaces_and_consent.sql` | PR-003a: `principals` (= `auth.users`), `workspaces` (PERSONAL / HOUSEHOLD / FIRM), `workspace_memberships` with share domains, `consent_grants` (to a person or a firm; expiring, revocable, versioned), per-workspace hashed event log, the personal record tables with one share domain each, `can_read_workspace_domain` / `my_workspace_access`, SECURITY DEFINER entry points (`require_principal`, `create_personal_workspace`, `invite_participant`, `accept_invitation`, `revoke_membership`, `grant_consent`, `revoke_consent`). RLS is ENABLE-not-FORCE like 0005. |
 | `tests/000_helpers.sql` | Test-only schema `tests`: users, JWT impersonation, `authenticate_service()`, `seed_household()`, `calc_request()` / `calc_response()` (synthetic receipts), `set_workflow()` (sentinel-wrapped). |
-| `tests/001`–`004` | Tenant isolation (12), roles and workflow (20), immutability and hash chain (10), constraints (8). |
-| `tests/005_trust_boundaries.test.sql` | The audit probes inverted into 58 assertions: every S-/N- finding in PR-001 scope as `throws_ok` with the expected SQLSTATE, plus the positive paths and the exact inventory of functions executable by `authenticated`. |
+| `tests/001`–`004` | Tenant isolation (12), roles and workflow (23), immutability and hash chain (11), constraints (8). |
+| `tests/005_trust_boundaries.test.sql` | The audit probes inverted into 71 assertions: every S-/N- finding in PR-001 scope as `throws_ok` with the expected SQLSTATE, plus the positive paths and the exact inventory of functions executable by `authenticated`. |
 | `tests/006_canonical_json.test.sql` | **Generated** by `services/calculator/scripts/export_canonical_sql_test.py` from `fixtures/synthetic/canonical`: proves `app.canonical_json` is byte-identical to the Python and TypeScript canonicalisers (9 assertions). |
+| `tests/007_*`, `tests/008_*` | PR-002 (43) and PR-003a (74: two firms, three consumers, invitation lifecycle, one-domain household sharing, firm grant, expiry, revocation, refused direct writes, event chain, N-04 inventory). |
+| `realstack/run.mjs` | **Real-stack harness** (Node, `@supabase/supabase-js`): creates synthetic users through GoTrue admin, signs them in for real JWTs and asserts allowed/denied PostgREST reads, RPC entry points and refused writes under RLS. Needs `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (`supabase status -o env`). Run by the CI `realstack` job after `supabase start`, `db reset` and `supabase test db`. |
 | `tests/probes/` | Exploratory probes (`run_probe.py <file.sql>`), including `advisor_equivalent.sql`, a local stand-in for the Supabase Security Advisor queries. Probes are evidence, not tests. |
 
 ## Running
 
-On the real stack (requires Docker; **not yet run for this repository**):
+On the real stack (requires Docker; **runs in the CI `realstack` job from PR-003 onward; never run from a developer machine for this repository yet**):
 
 ```bash
-supabase start
-supabase db reset       # applies migrations 0001–0006
-supabase test db        # runs tests/*.test.sql with pgTAP
+supabase start -x studio,imgproxy,logflare,vector,edge-runtime
+supabase db reset                                  # applies migrations 0001–0008
+supabase test db supabase/tests/00*.test.sql       # genuine pgTAP; plan counts are enforced
+eval "$(supabase status -o env)"
+SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" node supabase/realstack/run.mjs
 ```
+
+The service-role key is used only by the harness process; the web application never reads it.
 
 Without Docker, against any PostgreSQL 15–18 (this is what CI runs):
 
@@ -38,7 +46,9 @@ The runner looks for `initdb`/`pg_ctl` on `PATH` or in `SAGESPAN_PG_BIN`
 `tests/shim_pgtap.sql` (`plan`, `is`, `lives_ok`, `throws_ok`, `results_eq`,
 `finish`; failures raise instead of printing `not ok`), then every migration,
 then every `*.test.sql` in its own transaction. When the real pgTAP extension
-is available the shim is skipped.
+is available the shim is skipped. Under the shim the runner also fails a file
+whose `plan(n)` does not equal the number of assertions that ran, because real
+pgTAP does.
 
 ## Execution status
 
@@ -46,8 +56,12 @@ is available the shim is skipped.
   assertions** passed on PostgreSQL 18.6 (embedded, Windows) via the runner.
   CI's `database` job runs the same files on `postgres:15` (matching
   `config.toml` `db.major_version`).
-* The real Supabase stack (`supabase test db`) has still not been executed.
-  Until it has, RLS must not be described as production-proven.
+* 2026-11-06 (PR-002, PR-003a): 8 migrations, **8/8 files** on embedded PostgreSQL 16
+  via the runner. Three pre-existing `plan()` mismatches (002: 20→23, 003: 10→11,
+  005: 58→71) were corrected; they would have failed under real pgTAP.
+* The real Supabase stack (`supabase test db` + `realstack/run.mjs`) runs only in
+  the CI `realstack` job, first on the PR-003 pull request. Until that job is green,
+  RLS must not be described as production-proven.
 
 ## Decisions recorded in 0005
 

@@ -125,3 +125,21 @@ This matrix is **traceability, not a certification**. It does not mean every pos
 | N-04 inventory after 0007 (`policy_record`, `latest_check_runs`, `coverage_summary` added) | migration 0007 §8 | SQL 005 + 007 inventory assertions |
 | Demo state v4 (payload v2 snapshots, review outcomes) | `DEMO_STATE_VERSION`, `seed.json` | web suites |
 | Not done | real Supabase Auth/JWT/PostgREST/RLS run of 0007; professional sign-off | — |
+
+## G. PR-003a/b evidence (2026-11-06, `feat/pr-003-identity`)
+
+| Requirement (V5 §17.4, §21.1) | Evidence in tree | Suite |
+|---|---|---|
+| Principal = `auth.users`; identity derived from `auth.uid()` only; selectors never authority (S-01) | migration 0008 §2, §7 (`require_principal`), `apps/web/src/auth/identity.ts` (`resolveIdentity` ignores unconfirmed `org_id`/`workspace_id`), `supabase-server.ts` (`auth.getUser()`, never `getSession()`) | SQL 008 (strangers, `my_workspace_access` empty row); web `identity.test.ts` selector cases; realstack §3, §5 |
+| Firm membership never reaches a consumer workspace; only an ACTIVE, unexpired grant to the person or the firm does | `app.can_read_workspace_domain`, RLS on the six record tables + profile, `workspaces_select` | SQL 008 Dee before/after grant, F2 sees nothing; realstack §4 |
+| Shared household with limited permissions (one domain) | `invite_participant(domains[])`, membership `domains`, `can_read_workspace_domain` | SQL 008 Ben SAVINGS_GOALS-only; realstack §3 |
+| Expiration and revocation honoured immediately; revoked grant kept as versioned history | `consent_grants.expires_at/revoked_at/version`, `revoke_consent`, `consent_grants_guard` (scope immutable, no un-revoke) | SQL 008 expired grant inert, revoke → 0 rows, version 2; realstack §4 |
+| Memberships/grants mutate only through entry points (privilege first, sentinel second) | 0008 §6, §8 (`authenticated` SELECT only) | SQL 008 direct insert/update 42501; realstack §2 |
+| Owner-only writes; participants/grantees read-only; no DELETE for end users | RLS insert/update policies, no DELETE grant | SQL 008; realstack §3 |
+| Per-workspace append-only event log, linear and hash-linked (S-04 analogue) | `workspace_events`, `workspace_append_event`, immutability trigger | SQL 008 chain assertions; realstack §6 |
+| N-04 inventory after 0008 | 0008 §8; tests 005/007/008 | SQL inventory assertions (3 files) |
+| Real GoTrue JWT / PostgREST / RLS run with two firms, consumers, shared household, firm grant, expiry/revocation | `supabase/realstack/run.mjs`, CI job `realstack` (also runs real pgTAP via `supabase test db`) | **CI only** — cannot run in the build sandbox (no Docker); first run happens on this PR |
+| Honest production state: no demo data behind a login; store adapter absent and said so | `/app`, `ui/ProductionHome.tsx`, `ProductionGate.tsx` | e2e `pr-003-identity.spec.ts` |
+| Latent pgTAP defect fixed | tests 002/003/005 `plan()` corrected (20→23, 10→11, 58→71); `run_sql_tests.py` enforces plan == tests run | SQL harness 8/8 (negative control verified) |
+| Not done | Supabase store adapter (DATA-001), private storage/document registration, member-management UI, vector search (none exists), professional sign-off | — |
+

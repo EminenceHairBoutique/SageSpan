@@ -24,7 +24,7 @@ This matrix describes what the checked-out tree does. It is not a certification 
 | Retirement readiness gate (known / assumed / missing) | §4.1 | Implemented (synthetic) | `retirement/page.tsx`, `updateRetirementIntake` |
 | Retirement projection engine (gross-basis annual model) | §4.2, PLAN-001 / SCENARIO-001 | **Proposed** — no engine; UI says so | — |
 | Spending/recurring detection from transactions, transfer/refund de-duplication | §3.2, PERS-002d (needs transactions) | Proposed | — |
-| Household sharing with per-domain grants (model) / invitation acceptance, grants UI | §2.2, §21.1 | Model implemented (`workspace.ts`, `actorCanReadDomain`, tests); controls **Proposed** (PR-003) | — |
+| Household sharing with per-domain grants / invitation acceptance / consent to a person or firm / revocation | §2.2, §21.1, §17.4 | **Database controls implemented** (migration 0008: `invite_participant`, `accept_invitation`, `revoke_membership`, `grant_consent`, `revoke_consent`, `can_read_workspace_domain`); server identity resolution implemented (`auth/identity.ts`); consumer UI for these controls **Proposed** (needs the store adapter, DATA-001) | SQL `008_*` (74), web `identity.test.ts` (10), `supabase/realstack/run.mjs` (CI only) |
 | Connected bank/card/brokerage data | §10.3 | Proposed; gated G3 | — |
 | Personalised securities / tax / insurance advice (Tier 3) | §5.3, §10.2 | **Disabled in code** pending REG-001 | `ENABLED_TIERS = [0,1,2]` |
 | Money movement (Tier 4) | §5.3 | Out of scope | — |
@@ -46,10 +46,11 @@ This matrix describes what the checked-out tree does. It is not a certification 
 | Import → reconcile → freeze → RMD check → review → approval → packet (synthetic console) | §6, V3 | Implemented (synthetic), unchanged by V5 | existing suites; `assurance-flow.spec.ts` still passes |
 | PR-001 trust boundaries (migration 0005/0006, SQL suites, TS receipt verification) | §17.2 | Merged to `master` (#5); **not real-stack validated** | `supabase/tests/005_*`, `006_*` (run on embedded PostgreSQL 16 in the PR-002 session; CI `database` job on postgres:15) |
 | PR-002 coverage semantics (S-06/S-07/N-02): typed approval outcome, snapshot payload v2 with policy at freeze, latest-attempt retry semantics | §17.3 | Implemented on `feat/pr-002-coverage` (shim PostgreSQL 16 + CI postgres:15; **not real-stack validated**) | `supabase/migrations/0007_*`, `supabase/tests/007_*` (43 assertions), `packages/contracts/src/coverage.ts`, web `pr-002-coverage.test.ts` (10), e2e `pr-002-coverage.spec.ts` |
-| PR-003 production auth, store adapter, private storage, real RLS tests | §17.4 | **Blocked / open** | `/app` production gate |
+| PR-003a/b identity: principals, personal/household workspaces, consent grants, domain-scoped RLS; Supabase session resolution; `/app` sign-in/out | §17.4 | Implemented on `feat/pr-003-identity` (shim PostgreSQL 16; **real-stack evidence only from the CI `realstack` job**, not run locally) | `supabase/migrations/0008_*`, `supabase/tests/008_*`, `apps/web/src/auth/{identity,supabase-server,actor}.ts`, `server/auth-actions.ts`, e2e `pr-003-identity.spec.ts` |
+| PR-003 remainder: Supabase store adapter for domain reads/writes (DATA-001), private document storage, trusted document registration, member management UI | §17.4 | **Open** — `/app` shows the resolved identity and says the store is not wired | `ui/ProductionHome.tsx` |
 | Firm navigation: Review queue, Clients, Imports & evidence, Checks, Planning studio, AI plan review, Reviews & approvals, Firm settings | §7.2, DUAL-001 | Implemented (synthetic); Planning studio is a status page | `ui/console/ConsoleShell.tsx` |
 | AI plan review ("Analyze plan"): grounded findings, questions, draft memo; Accept / Edit / Dismiss / Request evidence as versioned feedback | §18, AI-000/AI-001 | Implemented (offline deterministic mock) | `apps/web/src/ai/*`, 28-case eval suite, e2e |
-| Client onboarding, client-to-firm consent grants, client portal | §6 (1), (8) | Proposed (PR-003) | — |
+| Client onboarding, client-to-firm consent grants, client portal | §6 (1), (8) | Grant model + DB entry points implemented (0008, firm reads only through an active grant); onboarding/portal UI Proposed (DATA-001) | SQL `008_*` firm-grant cases; realstack §4 |
 | Two permitted real import-format maps, firm insights, operational intelligence | §6, IMPORT-001, ASSURANCE-001 | Proposed | — |
 
 ## Shared intelligence layer (AI)
