@@ -23,10 +23,10 @@
 | Web Vitest (calculator up) | **130 passed, 4 skipped** (realstack file without env) |
 | Playwright | **20/20** |
 | Calculator pytest | not re-run (no calculator change) |
-| Real stack | CI `realstack` job on this PR — see §3a once it has run |
+| Real stack (CI `realstack`, PR #15 run `42241527406`, `a844c3d`) | **green on the first run**: genuine pgTAP **9 files, 310/310**, JWT/PostgREST harness **59/59**, repository vitest **4/4** (snapshot/run/decision/retirement round-trip, supersede, DB refusal of an unverified success, participant isolation) |
 
 ## 3a. Real-stack result
-_Filled in after the CI run._
+Run `42241527406` on `a844c3d`: all five jobs green. `supabase test db` 9 files / 310 assertions PASS (009 included), `realstack/run.mjs` 59/59, `supabase-repository.realstack.test.ts` 4/4. No iteration was needed: the shim's pgTAP-equivalent record comparison and C.UTF-8 cluster (added in PR-003c) caught the only real-stack-only failure class locally.
 
 ## 4. Coordination
 No files under `apps/web/src/ai/**`, `packages/contracts/src/ai/**`, `docs/ai/**` touched. The AI track's #13 is disjoint from this PR. Migration `0009` is now taken; the AI track takes `0010+` (CLAUDE.md note). `PersonalRepository.bundle()` now carries snapshots/runs/decisions for production, so an AI tool reading a `PersonalBundle` gets the receipted results (or their absence) identically in demo and production.
