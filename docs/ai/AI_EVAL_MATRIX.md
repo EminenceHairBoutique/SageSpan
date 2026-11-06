@@ -36,6 +36,8 @@
 
 **AI-CORE-001 (2026-11-06, `feat/ai-core-001-runtime`):** the 28 cases above run unchanged through the new bounded tool-loop runtime (`apps/web/src/ai/runtime/tool-loop.ts`) — 30/30 in the build environment. The runtime's own labelled cases AI-C01…AI-C16 (17 tests, `ai-core-toolloop.test.ts`) are catalogued in `docs/ai/AI_CORE_EVALUATION_PLAN.md` §2; they cover two-turn continuation, budgets before dispatch, strict tool arguments, injection through tool results, revoked consent between turns, snapshot drift, duplicate requests, forbidden retirement projections, REVIEWED_WITH_LIMITATIONS relabelling, oversized results, provider failures, provider resolution and record reproducibility. The default demo provider is now the two-turn mock; AI-C02/C02b pin that its validated report is `diffReports`-identical to the one-pass mock on the frozen fixtures.
 
+**AI-CORE-002a (2026-11-06, `feat/ai-core-002a-hosted-adapter`):** AI-H01…AI-H10 (10 tests, `ai-core-hosted.test.ts`) exercise the hosted adapter against a scripted fake vendor: gates, request shape and secret containment, two live turns through the runtime with `tool_use`/`tool_result` replay, denied-call replay, validator parity for a live `APPROVED` / invented amount / foreign id, typed vendor failures, token-ceiling and per-scope rate-limit fail-closed behaviour, live abstention, and no-secret-anywhere. `ai-hosted.live.test.ts` is the opt-in live benchmark (skipped without the gates; **never run in-repo**). See `docs/ai/AI_CORE_002_HOSTED_ADAPTER.md`.
+
 ## Acceptance (§18.4) — measured on this suite
 
 - All references in accepted findings resolve to allowed current evidence: **enforced by validator; asserted E01–E12, E24**.
@@ -53,4 +55,4 @@
 
 ## Promotion rule
 
-A model, prompt, tool-schema, validator or runtime change must (1) pass this suite **and** AI-C01…C16 unchanged, (2) produce a `diffReports` review on the frozen Patel/Okafor/Reyes/Castillo fixtures that a human accepts, and (3) record the decision here with date and reviewer. No automatic promotion.
+A model, prompt, tool-schema, validator, runtime or adapter change must (1) pass this suite, AI-C01…C16 **and** AI-H01…H10 unchanged, (2) produce a `diffReports` review on the frozen Patel/Okafor/Reyes/Castillo fixtures that a human accepts, and (3) record the decision here with date and reviewer. No automatic promotion.

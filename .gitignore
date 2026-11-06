@@ -48,3 +48,6 @@ supabase/.temp
 
 # archived parallel implementation (founder chose services/calculator on 2026-11-05)
 .archive/
+
+# AI-CORE-002a opt-in live benchmark reports (contain vendor output; never committed)
+apps/web/.ai-bench/

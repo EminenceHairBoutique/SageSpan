@@ -2,6 +2,9 @@ import { AI_ABSTAIN_STATUS, AI_REVIEW_SCHEMA_VERSION, AI_TOOLS, type AiAnalysisK
 import { formatMoney } from "@sagespan/contracts";
 import type { GroundingCheckRun, GroundingContext } from "./evidence-resolver";
 import { PROMPT_VERSION, SYSTEM_PROMPT_REVIEW_V1 } from "./prompts/review-v1";
+import { AnthropicMessagesPort } from "./providers/anthropic-messages";
+import { resolveHostedConfig } from "./providers/hosted-config";
+import { HostedProvider } from "./providers/hosted-provider";
 
 /**
  * Provider adapter boundary. The runtime calls `complete()` for the first turn
@@ -335,19 +338,26 @@ export interface ProviderResolution {
  * Select the provider for this process from SAGESPAN_AI_PROVIDER:
  *   (unset) | mock   → MockToolLoopProvider (default; bounded two-turn, offline)
  *   mock_onepass     → MockDeterministicProvider (AI-000 baseline, for regression comparison)
- *   hosted           → NOT ENABLED: port defined (providers/port.ts), no adapter, no vendor DPA (G3) → mock + note
+ *   hosted           → HostedProvider over the Anthropic Messages port ONLY when every gate in
+ *                      providers/hosted-config.ts holds (key, pinned model, synthetic acknowledgement,
+ *                      demo mode); otherwise the mock plus a note naming the missing gates (AI-CORE-002a)
  *   self_hosted      → NOT ENABLED: private serving is AI-CORE-005 → mock + note
  *   anything else    → mock + note
- * A live adapter requires server-side configuration AND a reviewed vendor
- * data-processing agreement (release gate G3). Neither exists in this build, so
- * configuration alone yields the mock plus an explicit note rather than a silent
- * "live" claim. The run records the provider that ran, never the one intended.
+ * Real-data processing by any live vendor is release gate G3 (PR-003 + vendor DPA) and is not
+ * reachable from configuration: the hosted gate requires SAGESPAN_DEMO_MODE=1. The run records
+ * the provider that ran, never the one intended.
  */
 export function resolveProvider(env: Record<string, string | undefined> = process.env): ProviderResolution {
   const configured = env.SAGESPAN_AI_PROVIDER?.trim();
   if (!configured || configured === "mock") return { provider: new MockToolLoopProvider(), note: null };
   if (configured === "mock_onepass") return { provider: new MockDeterministicProvider(), note: null };
-  if (configured === "hosted") return { provider: new MockToolLoopProvider(), note: `SAGESPAN_AI_PROVIDER="hosted" is set but no live adapter is implemented in this build: the hosted port exists (AI-CORE-002), no vendor data-processing agreement has been reviewed (gate G3). Using the deterministic mock.` };
+  if (configured === "hosted") {
+    const hosted = resolveHostedConfig(env);
+    if (hosted.enabled) {
+      return { provider: new HostedProvider(new AnthropicMessagesPort(hosted.config), hosted.config), note: `Live hosted model (${hosted.config.model}) on SYNTHETIC demo data only; no vendor data-processing agreement for real data has been reviewed (gate G3). Output is validated server-side like any other provider.` };
+    }
+    return { provider: new MockToolLoopProvider(), note: `SAGESPAN_AI_PROVIDER="hosted" but the hosted adapter is not enabled (${hosted.missing.join("; ")}). Live vendors on real data are gate G3. Using the deterministic mock.` };
+  }
   if (configured === "self_hosted") return { provider: new MockToolLoopProvider(), note: `SAGESPAN_AI_PROVIDER="self_hosted" is set but no live adapter is implemented in this build: private serving is AI-CORE-005 and has not been benchmarked or gated. Using the deterministic mock.` };
   return { provider: new MockToolLoopProvider(), note: `SAGESPAN_AI_PROVIDER="${configured}" is set but no live adapter is implemented in this build (vendor review gate G3 not passed). Using the deterministic mock.` };
 }

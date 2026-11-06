@@ -388,7 +388,7 @@ describe("AI-CORE-001 bounded tool loop", () => {
     expect(resolveProvider({ SAGESPAN_AI_PROVIDER: "mock_onepass" }).provider).toBeInstanceOf(MockDeterministicProvider);
     const hosted = resolveProvider({ SAGESPAN_AI_PROVIDER: "hosted" });
     expect(hosted.provider).toBeInstanceOf(MockToolLoopProvider);
-    expect(hosted.note).toMatch(/no live adapter is implemented/);
+    expect(hosted.note).toMatch(/hosted adapter is not enabled/);
     expect(hosted.note).toMatch(/G3/);
     const self = resolveProvider({ SAGESPAN_AI_PROVIDER: "self_hosted" });
     expect(self.provider).toBeInstanceOf(MockToolLoopProvider);
@@ -399,6 +399,7 @@ describe("AI-CORE-001 bounded tool loop", () => {
     expect(record.mode).toBe("MOCK_DETERMINISTIC");
     expect(record.runtime!.provider_descriptor.data_handling).toBe("IN_PROCESS_NO_EGRESS");
     expect(record.report!.limitations.join(" ")).toMatch(/hosted.*Using the deterministic mock/);
+    expect(hosted.note).not.toMatch(/sk-|key=/); // never echoes a secret
   });
 
   it("AI-C15 abstention is a first-class outcome: no report, no findings, no approval, and ignored tool requests", async () => {

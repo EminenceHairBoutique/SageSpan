@@ -24,8 +24,9 @@ import type { AiModelOutput, AiProviderDescriptor, AiToolResultEnvelope } from "
  *  - Server-side keys only. Nothing from this port is ever bundled for the browser.
  */
 export interface LiveProviderRequest {
-  /** Versioned schema of the structured output the model must return (ai-review-v1). */
+  /** Versioned schema of the structured output the model must return (ai-review-v1), and its JSON schema for native structured output. */
   output_schema_version: string;
+  output_json_schema: Record<string, unknown>;
   prompt_version: string;
   system_prompt: string;
   /** JSON-serialisable, minimal, authorised. Never raw documents beyond the resolver's snippets. */
