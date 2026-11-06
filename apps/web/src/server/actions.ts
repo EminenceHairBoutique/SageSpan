@@ -12,7 +12,7 @@ import { generatePacket } from "@/domain/evidence";
 import { freezeSnapshot } from "@/domain/freeze";
 import { applyColumnMapping, createImport } from "@/domain/imports";
 import { reconcileImport } from "@/domain/reconcile";
-import { addComment, approveReview, assignHousehold, confirmFact, dispositionDiscrepancy, documentException, recordAssumption, recordReview, resolveConflict, updatePolicy } from "@/domain/review";
+import { addComment, attemptApproval, assignHousehold, confirmFact, dispositionDiscrepancy, documentException, recordAssumption, recordReview, resolveConflict, updatePolicy } from "@/domain/review";
 import { getStore } from "@/domain/store";
 import { newId, nowIso } from "@/domain/ids";
 import type { ColumnMapping } from "@/import/csv-contract";
@@ -176,7 +176,7 @@ export async function recordReviewAction(_prev: ActionResult | null, formData: F
 
 export async function approveAction(_prev: ActionResult | null, formData: FormData): Res {
   return run((actor) => {
-    getStore().mutate((s) => approveReview(s, actor, str(formData, "household_id"), { rationale: str(formData, "rationale"), conflictAttestation: str(formData, "attestation") === "on" }));
+    attemptApproval(getStore(), actor, str(formData, "household_id"), { rationale: str(formData, "rationale"), conflictAttestation: str(formData, "attestation") === "on" });
     return undefined;
   });
 }

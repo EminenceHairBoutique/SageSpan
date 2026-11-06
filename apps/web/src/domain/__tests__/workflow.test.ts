@@ -11,7 +11,7 @@ import { evaluateGateFromBundle, freezeSnapshot } from "@/domain/freeze";
 import { createImport, suggestEntityMapping, applyColumnMapping } from "@/domain/imports";
 import { householdBundle, householdOrNull, listHouseholds } from "@/domain/queries";
 import { reconcileImport } from "@/domain/reconcile";
-import { addComment, approveReview, dispositionDiscrepancy, documentException, recordAssumption, recordReview, resolveConflict, updatePolicy } from "@/domain/review";
+import { addComment, approveReview, attemptApproval, dispositionDiscrepancy, documentException, recordAssumption, recordReview, resolveConflict, updatePolicy } from "@/domain/review";
 import { loadSeed } from "@/domain/seed";
 import { MemoryStore } from "@/domain/store";
 import * as calc from "@/provenance/calc-client";
@@ -39,7 +39,8 @@ vi.mock("@/provenance/calc-client", async () => {
     callRmdCheck: async (request: { snapshot_ref?: unknown; imported_comparison?: { import_value_ref: string } | null }, orgId: string) => {
       if (control.fail) throw new CalcServiceError("SERVICE_UNAVAILABLE", "Calculation service is unreachable (test)");
       const requestHash = await canonicalHash(request);
-      const response = structuredClone(expected) as typeof expected & { receipt: { request_hash: string; org_context: { org_id: string }; snapshot_ref: unknown }; discrepancy: { import_value_ref: string | null } };
+      type Loose = { receipt: { request_hash: string; org_context: { org_id: string }; snapshot_ref: unknown }; discrepancy: { import_value_ref: string | null } };
+      const response = structuredClone(expected) as unknown as Loose;
       response.receipt.request_hash = requestHash;
       response.receipt.org_context.org_id = orgId;
       response.receipt.snapshot_ref = request.snapshot_ref ?? null;
@@ -193,7 +194,7 @@ describe("Patel: conflict -> resolution -> freeze -> check -> review -> approval
     expect(packet.rule_sets.map((r) => r.rule_set_id)).toContain("rmd.uniform_lifetime_table");
     expect(packet.limitations.join(" ")).toMatch(/not an SEC examination certification/);
     expect(packet.not_checked.length).toBeGreaterThan(3);
-    expect(packet.reviews[0]?.decision).toBe("APPROVED");
+    expect(packet.reviews.map((r) => r.decision)).toEqual(["REVIEWED", "APPROVED"]);
     expect(packet.discrepancies[0]?.classification).toBe("SOURCE_CONFLICT");
     const html = renderPacketHtml(pkt);
     expect(html).toContain("Review evidence packet");
@@ -216,8 +217,9 @@ describe("Patel: conflict -> resolution -> freeze -> check -> review -> approval
     store.mutate((s) => recordReview(s, advisor, "hh_patel", "Reviewed the receipt and discrepancy."));
     const disc = store.read().discrepancies[0]!;
     store.mutate((s) => dispositionDiscrepancy(s, advisor, disc.id, "Attributable to plan input; advisor to re-run plan."));
-    expect(() => store.mutate((s) => approveReview(s, cco, "hh_patel", { rationale: RATIONALE, conflictAttestation: true }))).toThrow(/Separation of duties/);
+    expect(() => attemptApproval(store, cco, "hh_patel", { rationale: RATIONALE, conflictAttestation: true })).toThrow(/Separation of duties/);
     expect(store.read().audit_events.some((e) => e.event_type === "APPROVAL_DENIED")).toBe(true);
+    expect(statusOf(store, "hh_patel")).toBe("REVIEWED");
     expect(() => store.mutate((s) => updatePolicy(s, analyst, { separation_of_duties: false }))).toThrow(/Permission denied/);
     store.mutate((s) => updatePolicy(s, cco, { separation_of_duties: false }));
     const review = store.mutate((s) => approveReview(s, cco, "hh_patel", { rationale: RATIONALE, conflictAttestation: true }));

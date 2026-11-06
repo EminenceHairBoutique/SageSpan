@@ -6,7 +6,8 @@ import { isPrimaryEvidence, typedValue } from "./facts";
 import { applyGateToStatus } from "./reconcile";
 import { reopenForNewRevision } from "./freeze";
 import { newId, nowIso } from "./ids";
-import { householdBundle, requireHousehold } from "./queries";
+import { householdBundle, householdOrNull, requireHousehold } from "./queries";
+import type { Store } from "./store";
 
 const MIN_RATIONALE = 10;
 
@@ -196,7 +197,6 @@ export function approveReview(state: DataState, actor: Actor, householdId: strin
   assertCan(actor.role, "review.approve");
   const org = state.organizations.find((o) => o.id === actor.org_id)!;
   if (!org.policies.approver_roles.includes(actor.role)) {
-    appendAudit(state, { ...actorFields(actor), event_type: "APPROVAL_DENIED", entity_type: "household", entity_id: householdId, summary: `Approval denied: role ${actor.role} is not an approver role under firm policy` });
     throw new DomainError("NOT_AN_APPROVER", `Firm policy allows approval by ${org.policies.approver_roles.join(", ")} only.`);
   }
   const hh = requireHousehold(state, actor.org_id, householdId);
@@ -215,7 +215,6 @@ export function approveReview(state: DataState, actor: Actor, householdId: strin
     if (snap.created_by === actor.user_id) conflictsWith.push("froze the snapshot");
     if (runs.some((r) => r.executed_by === actor.user_id)) conflictsWith.push("ran the check");
     if (conflictsWith.length) {
-      appendAudit(state, { ...actorFields(actor), event_type: "APPROVAL_DENIED", entity_type: "snapshot", entity_id: snap.id, summary: `Approval denied by separation-of-duties policy: approver ${conflictsWith.join(" and ")}` });
       throw new DomainError("SEPARATION_OF_DUTIES", `Separation of duties: the approver cannot be the person who ${conflictsWith.join(" and ")}.`);
     }
   }
@@ -247,4 +246,26 @@ export function updatePolicy(state: DataState, actor: Actor, patch: { separation
     org.policies.approver_roles = allowed;
   }
   appendAudit(state, { ...actorFields(actor), event_type: "POLICY_UPDATED", entity_type: "organization", entity_id: org.id, summary: `Firm policy updated: SoD=${org.policies.separation_of_duties}, nonmaterial exceptions=${org.policies.allow_nonmaterial_exceptions}, approvers=${org.policies.approver_roles.join("/")}` });
+}
+
+const DENIAL_CODES = new Set(["PERMISSION_DENIED", "NOT_AN_APPROVER", "SEPARATION_OF_DUTIES", "ATTESTATION_REQUIRED", "OPEN_DISCREPANCIES", "CHECK_REQUIRED", "RATIONALE_REQUIRED"]);
+
+/**
+ * Approval attempt with durable denial logging. A denied approval raises
+ * inside the mutation (which is rolled back), so the APPROVAL_DENIED audit
+ * event is written in a separate, committed write before re-throwing.
+ */
+export function attemptApproval(store: Store, actor: Actor, householdId: string, input: ApprovalInput): Review {
+  try {
+    return store.mutate((s) => approveReview(s, actor, householdId, input));
+  } catch (e) {
+    const code = e instanceof DomainError ? e.code : e instanceof Error && e.name === "PermissionDeniedError" ? "PERMISSION_DENIED" : null;
+    if (code && DENIAL_CODES.has(code)) {
+      store.mutate((s) => {
+        if (!householdOrNull(s, actor.org_id, householdId)) return;
+        appendAudit(s, { ...actorFields(actor), event_type: "APPROVAL_DENIED", entity_type: "household", entity_id: householdId, summary: `Approval denied (${code}) for household ${householdId}; attempted by ${actor.role}`, payload: { code } });
+      });
+    }
+    throw e;
+  }
 }

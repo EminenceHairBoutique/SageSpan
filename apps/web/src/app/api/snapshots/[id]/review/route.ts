@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDemoActor } from "@/auth/actor";
 import { errorResult } from "@/domain/errors";
-import { approveReview, recordReview } from "@/domain/review";
+import { attemptApproval, recordReview } from "@/domain/review";
 import { getStore } from "@/domain/store";
 
 const Body = z.object({
@@ -26,7 +26,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const snap = state.snapshots.find((s) => s.id === id && s.org_id === actor.org_id);
   if (!snap) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Not found" } }, { status: 404 });
   try {
-    const review = store.mutate((s) => (parsed.data.decision === "APPROVED" ? approveReview(s, actor, snap.household_id, { rationale: parsed.data.rationale, conflictAttestation: parsed.data.conflict_attestation }) : recordReview(s, actor, snap.household_id, parsed.data.rationale)));
+    const review = parsed.data.decision === "APPROVED" ? attemptApproval(store, actor, snap.household_id, { rationale: parsed.data.rationale, conflictAttestation: parsed.data.conflict_attestation }) : store.mutate((s) => recordReview(s, actor, snap.household_id, parsed.data.rationale));
     return NextResponse.json({ review });
   } catch (e) {
     const r = errorResult(e);
