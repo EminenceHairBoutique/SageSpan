@@ -24,16 +24,15 @@ export function SubmitButton({ children, pendingLabel, variant = "primary", size
  * convenience only: the server re-derives the actor and re-validates every id
  * against the actor's organisation, so forged values are rejected there.
  */
-export function ActionForm<T>({ action, hidden, children, submitLabel, pendingLabel, variant, size, disabled, disabledReason, successMessage, className, inline, onSuccess }: { action: Action<T>; hidden?: Record<string, string>; children?: ReactNode; submitLabel: ReactNode; pendingLabel?: string; variant?: "primary" | "secondary" | "ghost" | "danger"; size?: "sm" | "md" | "lg"; disabled?: boolean; disabledReason?: string; successMessage?: string | ((data: T) => string); className?: string; inline?: boolean; onSuccess?: (data: T) => void }) {
+export function ActionForm<T>({ action, hidden, children, submitLabel, pendingLabel, variant, size, disabled, disabledReason, successMessage, className, inline }: { action: Action<T>; hidden?: Record<string, string>; children?: ReactNode; submitLabel: ReactNode; pendingLabel?: string; variant?: "primary" | "secondary" | "ghost" | "danger"; size?: "sm" | "md" | "lg"; disabled?: boolean; disabledReason?: string; successMessage?: string; className?: string; inline?: boolean }) {
   const [state, formAction] = useActionState(action, null);
   const router = useRouter();
   useEffect(() => {
-    if (state?.ok) {
-      router.refresh();
-      onSuccess?.(state.data);
-    }
+    if (state?.ok) router.refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
+  const dataMessage = state?.ok && state.data && typeof state.data === "object" && "message" in (state.data as object) ? String((state.data as { message?: unknown }).message ?? "") : "";
+  const shown = state?.ok ? (successMessage ?? state.message ?? dataMessage) : "";
   return (
     <form action={formAction} className={cx(inline ? "inline-flex flex-col gap-2" : "space-y-3", className)}>
       {hidden && Object.entries(hidden).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
@@ -49,9 +48,7 @@ export function ActionForm<T>({ action, hidden, children, submitLabel, pendingLa
           {state.message}
         </Alert>
       )}
-      {state?.ok && (successMessage || state.message) && (
-        <Alert tone="teal">{typeof successMessage === "function" ? successMessage(state.data) : (successMessage ?? state.message)}</Alert>
-      )}
+      {state?.ok && shown && <Alert tone="teal">{shown}</Alert>}
     </form>
   );
 }

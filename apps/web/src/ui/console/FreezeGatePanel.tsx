@@ -21,7 +21,7 @@ export function FreezeGatePanel({ gate, householdId, status, actor }: { gate: Fr
       }
       subtitle="Fail-closed: material conflicts or missing required facts block an immutable snapshot."
       actions={
-        <ActionForm action={freezeSnapshotAction} hidden={{ household_id: householdId }} submitLabel={<><Lock size={14} aria-hidden /> Freeze snapshot</>} pendingLabel="Freezing…" disabled={!ready || !canFreezeRole} disabledReason={disabledReason} successMessage={(d) => `Snapshot ${d.snapshotId} frozen. Run the independent check from the Checks tab.`} inline />
+        <ActionForm action={freezeSnapshotAction} hidden={{ household_id: householdId }} submitLabel={<><Lock size={14} aria-hidden /> Freeze snapshot</>} pendingLabel="Freezing…" disabled={!ready || !canFreezeRole} disabledReason={disabledReason} inline />
       }
     >
       {gate.blockers.length === 0 ? (

@@ -54,7 +54,7 @@ export async function resetDemoAction(): Res {
 }
 
 // ---------------------------------------------------------------- imports
-export async function uploadImportAction(_prev: ActionResult<{ importId: string }> | null, formData: FormData): Res<{ importId: string }> {
+export async function uploadImportAction(_prev: ActionResult<{ importId: string; message: string }> | null, formData: FormData): Res<{ importId: string; message: string }> {
   return run(async (actor) => {
     const householdId = str(formData, "household_id");
     const file = formData.get("file");
@@ -63,7 +63,7 @@ export async function uploadImportAction(_prev: ActionResult<{ importId: string 
     const vendorLabel = str(formData, "vendor_label").trim().slice(0, 120) || null;
     const bytes = new Uint8Array(await file.arrayBuffer());
     const { importRecord } = getStore().mutate((s) => createImport(s, actor, householdId, { filename: file.name, mimeType: file.type, bytes, sourceKind, vendorLabel }));
-    return { importId: importRecord.id };
+    return { importId: importRecord.id, message: `Import ${importRecord.id} created (${importRecord.import_status.toLowerCase().replace(/_/g, " ")}). Continue with mapping below.` };
   });
 }
 
@@ -81,7 +81,7 @@ export async function applyCsvMappingAction(_prev: ActionResult | null, formData
   });
 }
 
-export async function reconcileImportAction(_prev: ActionResult<{ conflicts: number; facts: number }> | null, formData: FormData): Res<{ conflicts: number; facts: number }> {
+export async function reconcileImportAction(_prev: ActionResult<{ conflicts: number; facts: number; message: string }> | null, formData: FormData): Res<{ conflicts: number; facts: number; message: string }> {
   return run((actor) => {
     const importId = str(formData, "import_id");
     const persons: Record<string, string> = {};
@@ -92,7 +92,7 @@ export async function reconcileImportAction(_prev: ActionResult<{ conflicts: num
       if (k.startsWith("account:")) accounts[k.slice(8)] = v;
     }
     const summary = getStore().mutate((s) => reconcileImport(s, actor, importId, { persons, accounts }));
-    return { conflicts: summary.conflictsOpened, facts: summary.factsCreated };
+    return { conflicts: summary.conflictsOpened, facts: summary.factsCreated, message: `Reconciled: ${summary.factsCreated} facts created, ${summary.conflictsOpened} conflict(s) opened, ${summary.corroborated} corroborated. See the Overview for the freeze gate.` };
   });
 }
 
@@ -127,21 +127,21 @@ export async function confirmFactAction(_prev: ActionResult | null, formData: Fo
 }
 
 // ---------------------------------------------------------------- snapshot / checks
-export async function freezeSnapshotAction(_prev: ActionResult<{ snapshotId: string }> | null, formData: FormData): Res<{ snapshotId: string }> {
+export async function freezeSnapshotAction(_prev: ActionResult<{ snapshotId: string; message: string }> | null, formData: FormData): Res<{ snapshotId: string; message: string }> {
   return run((actor) => {
     const snap = getStore().mutate((s) => freezeSnapshot(s, actor, str(formData, "household_id")));
-    return { snapshotId: snap.id };
+    return { snapshotId: snap.id, message: `Snapshot ${snap.id} (revision ${snap.revision}) frozen; content SHA-256 ${snap.content_sha256.slice(0, 16)}…. Run the independent check from the Checks tab.` };
   });
 }
 
-export async function runChecksAction(_prev: ActionResult<{ errors: number; runs: number }> | null, formData: FormData): Res<{ errors: number; runs: number }> {
+export async function runChecksAction(_prev: ActionResult<{ errors: number; runs: number; message: string }> | null, formData: FormData): Res<{ errors: number; runs: number; message: string }> {
   return run(async (actor) => {
     const outcome = await runRmdChecks(getStore(), actor, str(formData, "household_id"));
     if (outcome.errors.length) {
       const first = outcome.errors[0]!;
       throw Object.assign(new Error(`${first.message} (${first.code})`), { name: "CalcServiceError" });
     }
-    return { errors: outcome.errors.length, runs: outcome.runs.length };
+    return { errors: outcome.errors.length, runs: outcome.runs.length, message: `${outcome.runs.length} check run(s) completed and recorded with receipts.` };
   });
 }
 
@@ -181,10 +181,10 @@ export async function approveAction(_prev: ActionResult | null, formData: FormDa
   });
 }
 
-export async function generatePacketAction(_prev: ActionResult<{ packetId: string }> | null, formData: FormData): Res<{ packetId: string }> {
+export async function generatePacketAction(_prev: ActionResult<{ packetId: string; message: string }> | null, formData: FormData): Res<{ packetId: string; message: string }> {
   return run((actor) => {
     const pkt = getStore().mutate((s) => generatePacket(s, actor, str(formData, "household_id")));
-    return { packetId: pkt.id };
+    return { packetId: pkt.id, message: `Packet ${pkt.id} ready (export #${pkt.export_count}, sha256 ${pkt.sha256.slice(0, 16)}…). Download JSON or HTML from the export log.` };
   });
 }
 

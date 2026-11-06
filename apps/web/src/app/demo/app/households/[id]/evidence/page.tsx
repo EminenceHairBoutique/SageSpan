@@ -124,7 +124,7 @@ export default async function EvidencePage({ params }: { params: Promise<{ id: s
       </div>
       <div className="space-y-6">
         <Card title="Generate packet">
-          <ActionForm action={generatePacketAction} hidden={{ household_id: id }} submitLabel={<><Package size={14} aria-hidden /> {status === "EXPORTED" ? "Re-export packet" : "Generate evidence packet"}</>} pendingLabel="Generating…" disabled={!canGenerate} disabledReason={!can(actor.role, "packet.export") ? `Role ${actor.role} cannot export packets.` : `Available after APPROVED (currently ${status.replace(/_/g, " ").toLowerCase()}).`} successMessage={(d) => `Packet ${d.packetId} ready. Download JSON or HTML from the export log.`} />
+          <ActionForm action={generatePacketAction} hidden={{ household_id: id }} submitLabel={<><Package size={14} aria-hidden /> {status === "EXPORTED" ? "Re-export packet" : "Generate evidence packet"}</>} pendingLabel="Generating…" disabled={!canGenerate} disabledReason={!can(actor.role, "packet.export") ? `Role ${actor.role} cannot export packets.` : `Available after APPROVED (currently ${status.replace(/_/g, " ").toLowerCase()}).`} />
           <p className="mt-3 text-xs text-ink-muted">PDF is not bundled in this build because no reliable server-side renderer is configured; the HTML packet is print-ready (File → Print → Save as PDF).</p>
         </Card>
         {latest && (

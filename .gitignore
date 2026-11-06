@@ -45,3 +45,6 @@ Thumbs.db
 # supabase local
 supabase/.branches
 supabase/.temp
+
+# archived parallel implementation (founder chose services/calculator on 2026-11-05)
+.archive/

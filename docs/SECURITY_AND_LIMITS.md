@@ -38,7 +38,7 @@ implements. It is not a certification, an audit, or legal advice.
 | Web domain: snapshot immutability, new revision | Passing (vitest) |
 | Web domain: service unavailable → visible error, no local math | Passing (vitest) |
 | Calculation service: token required, tenant header required, body `org_id` rejected | Passing (pytest) |
-| Browser: forged API approval as viewer → 403; Northline cannot open Patel | See CLAUDE.md milestone log for the latest Playwright run |
+| Browser: forged API approval as viewer → 403; Northline cannot open Patel; full Patel flow against the real engine | Passing (Playwright, 4 scenarios, 2026-11-05) |
 | SQL: RLS tenant isolation, role/workflow, immutability, constraints | **Written, not executed** (Docker/Supabase stack unavailable on the build machine). Parsed with `pglast` for syntax only. |
 
 Never mark the SQL tests as passed until `supabase test db` has run.

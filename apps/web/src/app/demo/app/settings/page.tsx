@@ -8,7 +8,7 @@ import { CalcServiceError, fetchRuleSets } from "@/provenance/calc-client";
 import { resetDemoAction, updatePolicyAction } from "@/server/actions";
 import { ActionForm } from "@/ui/ActionForm";
 import { ResetDemoButton } from "@/ui/console/ResetDemoButton";
-import { Alert, Card, Chip, Td, Th, inputClasses } from "@/ui/primitives";
+import { Alert, Card, Chip, Td, Th } from "@/ui/primitives";
 
 export const dynamic = "force-dynamic";
 

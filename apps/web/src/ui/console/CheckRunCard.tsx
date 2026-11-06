@@ -9,7 +9,6 @@ export function CheckRunCard({ run, discrepancy, b }: { run: CheckRun; discrepan
   const acct = accountLabel(b, run.request_payload.account.account_ref);
   const owner = personLabel(b, run.request_payload.owner.person_ref);
   const receipt = r?.receipt;
-  const annual = r?.events.find((e) => e.event_type === "ANNUAL_RMD");
   const ipv = discrepancy?.imported_plan_value_id ? b.importedValues.find((v) => v.id === discrepancy.imported_plan_value_id) : null;
   return (
     <div className="rounded-card border border-line bg-surface shadow-card">

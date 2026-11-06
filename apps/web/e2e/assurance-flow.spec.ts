@@ -32,6 +32,7 @@ test("public site navigation and pricing calculator", async ({ page }) => {
   await expect(page.getByText("Proposed, illustrative, not yet offered")).toBeVisible();
   await expect(page.getByRole("cell", { name: "$2,150", exact: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: "$3,900", exact: true })).toBeVisible();
+  await page.waitForLoadState("networkidle"); // ensure the client calculator has hydrated
   await page.getByLabel("Active monitored households (number)").fill("1000");
   await expect(page.getByTestId("price-monthly")).toHaveText("$3,900");
   await page.getByLabel("Active monitored households (number)").fill("100");
@@ -56,7 +57,7 @@ test("Patel: conflict blocks freeze; resolve, document exception, freeze, check,
   await expect(page.getByText("Synthetic demonstration data")).toBeVisible();
   const freeze = page.getByRole("button", { name: /Freeze snapshot/ });
   await expect(freeze).toBeDisabled();
-  await expect(page.getByText(/custodian statement \$640,000\.00/)).toBeVisible();
+  await expect(page.getByText(/custodian statement \$640,000\.00/).first()).toBeVisible();
   await expect(page.getByText(/\$612,000\.00/).first()).toBeVisible();
 
   // Resolve the material conflict in favour of the custodian statement.
@@ -80,7 +81,7 @@ test("Patel: conflict blocks freeze; resolve, document exception, freeze, check,
   await page.goto("/demo/app/households/hh_patel");
   await expect(page.getByText("No blockers")).toBeVisible();
   await page.getByRole("button", { name: /Freeze snapshot/ }).click();
-  await expect(page.getByText(/Snapshot snap_[a-f0-9]+ frozen/)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/Snapshot snap_[a-f0-9]+ \(revision \d+\) frozen/)).toBeVisible({ timeout: 15_000 });
 
   // Run the independent check against the real Python service.
   await page.goto("/demo/app/households/hh_patel/checks");
@@ -146,5 +147,7 @@ test("cross-tenant access: Northline personas cannot see Harbor Point households
   expect(res.status()).toBe(404);
   await page.goto("/demo/app/households/hh_patel");
   await expect(page.getByText("Not found")).toBeVisible();
+  await page.goto("/demo/app/reviews");
   await switchPersona(page, "user_hp_analyst", "Priya Raman");
+  await expect(page.getByRole("link", { name: "Patel household" })).toBeVisible();
 });

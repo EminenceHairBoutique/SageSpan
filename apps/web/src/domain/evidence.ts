@@ -5,7 +5,7 @@ import { toCsv } from "@/import/csv-export";
 import { appendAudit, sha256, verifyAuditChain } from "./audit";
 import { DomainError } from "./errors";
 import { newId, nowIso } from "./ids";
-import { factDisplayValue, householdBundle, profileName, requireHousehold, subjectLabel, type HouseholdBundle } from "./queries";
+import { householdBundle, profileName, requireHousehold, subjectLabel, type HouseholdBundle } from "./queries";
 
 export const PACKET_LIMITATIONS = [
   "This is a review evidence packet with source references, recorded assumptions, rule-set versions and reviewer actions. It is not an SEC examination certification, an audit opinion or a guarantee that the plan is correct or suitable.",

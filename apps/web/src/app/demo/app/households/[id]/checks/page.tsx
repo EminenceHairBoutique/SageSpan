@@ -44,7 +44,7 @@ export default async function ChecksPage({ params }: { params: Promise<{ id: str
             <EmptyState title="No frozen snapshot yet.">Resolve blockers on the Overview, then freeze the snapshot.</EmptyState>
           )}
           <div className="mt-4 flex flex-wrap gap-3">
-            <ActionForm action={runChecksAction} hidden={{ household_id: id }} submitLabel={<><Play size={14} aria-hidden /> Run independent RMD check</>} pendingLabel="Calling calculation service…" disabled={!canRun} disabledReason={runReason} successMessage={(d) => `${d.runs} check run(s) completed and recorded with receipts.`} inline />
+            <ActionForm action={runChecksAction} hidden={{ household_id: id }} submitLabel={<><Play size={14} aria-hidden /> Run independent RMD check</>} pendingLabel="Calling calculation service…" disabled={!canRun} disabledReason={runReason} inline />
             <ActionForm action={sendToReviewAction} hidden={{ household_id: id }} submitLabel={<><Send size={14} aria-hidden /> Send to review</>} disabled={status !== "CHECK_COMPLETE"} disabledReason={status !== "CHECK_COMPLETE" ? "Available once a check has completed." : undefined} successMessage="Sent to review." variant="secondary" inline />
           </div>
         </Card>
