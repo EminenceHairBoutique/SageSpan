@@ -8,7 +8,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 create schema if not exists tests;
 \ir 000_helpers.sql
-select plan(74);
+select plan(78);
 
 select tests.make_user('40000000-0000-0000-0000-00000000000a', 'ana@e.test');
 select tests.make_user('40000000-0000-0000-0000-00000000000b', 'ben@e.test');
@@ -41,11 +41,15 @@ select throws_ok($$ select app.create_personal_workspace('FIRM', 'x', 'x', 1, 0)
 select throws_ok($$ select app.create_personal_workspace('HOUSEHOLD', 'x', 'x', 1, 0) $$, 'P0001', null, 'a household needs at least two people');
 select throws_ok($$ select app.create_personal_workspace('PERSONAL', 'x', 'x', 1, -1) $$, 'P0001', null, 'negative cash floor refused');
 
--- Owner writes records (RLS insert policy: ACTIVE OWNER only)
-insert into app.cash_accounts (account_ref, workspace_id, label, kind, balance, balance_as_of) values ('40000000-0000-0000-0000-0000000000c1', (select v from t where k = 'P')::uuid, 'Checking (synthetic)', 'CHECKING', 3200.00, '2026-10-31');
-insert into app.liabilities (workspace_id, label, kind, balance, balance_as_of, apr_percent, minimum_payment) values ((select v from t where k = 'P')::uuid, 'Card (synthetic)', 'CREDIT_CARD', 1800.00, '2026-10-31', 24.99, 55.00);
-insert into app.savings_goals (workspace_id, label, kind, target_amount, saved_amount) values ((select v from t where k = 'H')::uuid, 'Move (synthetic)', 'MOVE', 6000.00, 900.00);
-insert into app.cash_accounts (account_ref, workspace_id, label, kind, balance, balance_as_of) values ('40000000-0000-0000-0000-0000000000c2', (select v from t where k = 'H')::uuid, 'Joint checking (synthetic)', 'CHECKING', 4100.00, '2026-10-31');
+-- Owner writes records. Since 0009 every personal write goes through app.apply_personal_changes (one transaction,
+-- owner re-derived server-side); direct INSERT/UPDATE privileges on the record tables are revoked.
+select lives_ok($$ select app.apply_personal_changes((select v from t where k = 'P')::uuid, jsonb_build_object('inserts', jsonb_build_array(
+  jsonb_build_object('table', 'cash_accounts', 'rows', jsonb_build_array(jsonb_build_object('id', '40000000-0000-0000-0000-0000000000a1', 'account_ref', '40000000-0000-0000-0000-0000000000c1', 'label', 'Checking (synthetic)', 'kind', 'CHECKING', 'balance', '3200.00', 'balance_as_of', '2026-10-31'))),
+  jsonb_build_object('table', 'liabilities', 'rows', jsonb_build_array(jsonb_build_object('id', '40000000-0000-0000-0000-0000000000b1', 'label', 'Card (synthetic)', 'kind', 'CREDIT_CARD', 'balance', '1800.00', 'balance_as_of', '2026-10-31', 'apr_percent', '24.99', 'minimum_payment', '55.00')))))) $$, 'owner writes P records through apply_personal_changes');
+select lives_ok($$ select app.apply_personal_changes((select v from t where k = 'H')::uuid, jsonb_build_object('inserts', jsonb_build_array(
+  jsonb_build_object('table', 'savings_goals', 'rows', jsonb_build_array(jsonb_build_object('id', '40000000-0000-0000-0000-0000000000d1', 'label', 'Move (synthetic)', 'kind', 'MOVE', 'target_amount', '6000.00', 'saved_amount', '900.00'))),
+  jsonb_build_object('table', 'cash_accounts', 'rows', jsonb_build_array(jsonb_build_object('id', '40000000-0000-0000-0000-0000000000a2', 'account_ref', '40000000-0000-0000-0000-0000000000c2', 'label', 'Joint checking (synthetic)', 'kind', 'CHECKING', 'balance', '4100.00', 'balance_as_of', '2026-10-31'))))) ) $$, 'owner writes H records through apply_personal_changes');
+select throws_ok($$ insert into app.cash_accounts (account_ref, workspace_id, label, kind, balance, balance_as_of) values (gen_random_uuid(), (select v from t where k = 'P')::uuid, 'direct', 'CHECKING', 1, '2026-10-31') $$, '42501', null, 'S-02 even the owner cannot INSERT records directly (privilege revoked in 0009)');
 select is((select count(*) from app.cash_accounts), 2::bigint, 'owner sees both of her cash accounts');
 select is((select count(*) from app.workspaces), 2::bigint, 'owner sees exactly her two workspaces');
 
@@ -97,8 +101,8 @@ select is((select readable_domains::text || '|' || via from app.my_workspace_acc
 select is((select count(*) from app.my_workspace_access((select v from t where k = 'P')::uuid)), 0::bigint, 'my_workspace_access on P is empty for Ben (RLS on workspaces)');
 -- participant is read-only
 select throws_ok($$ insert into app.savings_goals (workspace_id, label, kind, target_amount) values ((select v from t where k = 'H')::uuid, 'Sneaky', 'OTHER', 1) $$, '42501', null, 'participant cannot insert records');
-update app.savings_goals set saved_amount = 999999;
-select is((select count(*) from app.savings_goals where saved_amount = 999999), 0::bigint, 'participant update touches zero rows (RLS USING hides them from UPDATE)');
+select throws_ok($$ update app.savings_goals set saved_amount = 999999 $$, '42501', null, 'participant cannot UPDATE records directly (no privilege)');
+select throws_ok($$ select app.apply_personal_changes((select v from t where k = 'H')::uuid, jsonb_build_object('updates', jsonb_build_array(jsonb_build_object('table', 'savings_goals', 'id', '40000000-0000-0000-0000-0000000000d1', 'row', jsonb_build_object('saved_amount', '999999'))))) $$, 'P0002', null, 'participant calling apply_personal_changes gets non-disclosing NOT_FOUND');
 select is((select saved_amount from app.savings_goals), 900.00::numeric, 'goal unchanged');
 select throws_ok($$ select app.grant_consent((select v from t where k = 'H')::uuid, null, 'f2f2f2f2-0000-0000-0000-000000000002', '{SAVINGS_GOALS}', 'ADVISOR_REVIEW') $$, 'P0002', null, 'a participant cannot grant consent on the household');
 
@@ -168,9 +172,9 @@ select tests.clear_auth();
 select is((select count(*) from information_schema.routine_privileges where specific_schema = 'app' and grantee = 'PUBLIC'), 0::bigint, 'N-04 PUBLIC still holds no EXECUTE in schema app');
 select results_eq(
   $$ select distinct routine_name::text collate "C" from information_schema.routine_privileges where specific_schema = 'app' and grantee = 'authenticated' order by 1 $$,
-  $$ select v collate "C" from (values ('accept_invitation'), ('build_snapshot_payload'), ('can_read_workspace_domain'), ('can_transition'), ('canonical_json'), ('confirm_fact'), ('coverage_summary'), ('create_personal_workspace'), ('current_role_in'), ('current_user_id'), ('disposition_discrepancy'), ('document_exception'), ('freeze_snapshot'), ('grant_consent'), ('has_role'), ('invite_participant'), ('is_member'), ('is_workspace_member'), ('is_workspace_owner'), ('latest_check_runs'), ('member_orgs'), ('my_workspace_access'), ('policy_record'), ('record_check_run'), ('record_review'), ('require_principal'), ('resolve_conflict'), ('revoke_consent'), ('revoke_membership'), ('send_to_review'), ('set_reconciliation_status'), ('sha256_canonical'), ('verify_audit_chain')) as x(v) $$,
-  'N-04 authenticated may execute exactly the sanctioned entry points (0008 adds the workspace/consent entry points)');
-select is((select count(*) from information_schema.routine_privileges where specific_schema = 'app' and grantee = 'authenticated' and routine_name in ('workspace_append_event', 'consent_grants_guard', 'workspace_memberships_guard', 'workspace_events_immutable')), 0::bigint, 'N-04 internal workspace functions are not executable by authenticated');
+  $$ select v collate "C" from (values ('accept_invitation'), ('apply_personal_changes'), ('build_snapshot_payload'), ('can_read_personal_runs'), ('can_read_workspace_domain'), ('can_transition'), ('canonical_json'), ('confirm_fact'), ('coverage_summary'), ('create_personal_workspace'), ('current_role_in'), ('current_user_id'), ('disposition_discrepancy'), ('document_exception'), ('freeze_snapshot'), ('grant_consent'), ('has_role'), ('invite_participant'), ('is_member'), ('is_workspace_member'), ('is_workspace_owner'), ('latest_check_runs'), ('member_orgs'), ('my_workspace_access'), ('policy_record'), ('record_check_run'), ('record_review'), ('require_principal'), ('resolve_conflict'), ('revoke_consent'), ('revoke_membership'), ('send_to_review'), ('set_reconciliation_status'), ('sha256_canonical'), ('verify_audit_chain')) as x(v) $$,
+  'N-04 authenticated may execute exactly the sanctioned entry points (0008 adds the workspace/consent entry points; 0009 adds apply_personal_changes, can_read_personal_runs)');
+select is((select count(*) from information_schema.routine_privileges where specific_schema = 'app' and grantee = 'authenticated' and routine_name in ('workspace_append_event', 'consent_grants_guard', 'workspace_memberships_guard', 'workspace_events_immutable', 'personal_table_columns', 'personal_snapshots_guard')), 0::bigint, 'N-04 internal workspace functions are not executable by authenticated');
 
 select * from finish();
 rollback;

@@ -21,9 +21,9 @@ import { SupabasePersonalRepository } from "./supabase-repository";
  * `bundle()` and never queries tables itself: workspace authorisation is decided once,
  * here and in the database, not re-implemented per tool.
  *
- * What is NOT behind this seam yet (DATA-002): personal snapshots, calc runs, decisions
- * and AI runs for production workspaces. Their tables do not exist, so a production
- * bundle carries them empty and the UI says so instead of computing anything.
+ * DATA-002: snapshots, receipted calc runs, user decisions and the retirement intake are
+ * persisted for production too (migration 0009, one atomic RPC), so `runs.ts` works against
+ * both backends. Still not behind this seam: AI runs for production (the AI track's tables).
  */
 export interface PersonalRepository {
   readonly mode: "DEMO" | "PRODUCTION";
@@ -49,7 +49,7 @@ class DemoPersonalRepository implements PersonalRepository {
 
 class ProductionPersonalRepository implements PersonalRepository {
   readonly mode = "PRODUCTION" as const;
-  readonly supportsRuns = false;
+  readonly supportsRuns = true;
   constructor(
     readonly actor: PersonalActor,
     private readonly inner: SupabasePersonalRepository,

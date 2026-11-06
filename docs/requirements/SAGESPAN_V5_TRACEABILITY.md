@@ -155,3 +155,14 @@ This matrix is **traceability, not a certification**. It does not mean every pos
 | Non-atomic multi-row writes over PostgREST are disclosed, not hidden | `DATA_PARTIAL_WRITE` names what landed; atomic RPC planned for DATA-002 | unit test |
 | Parallel-session coordination (AI-CORE track) | `docs/architecture/PARALLEL_SESSIONS_AND_DATA_BOUNDARY.md`: ownership, seams (`PersonalRepository.bundle()` is the AI tools' data source), migration-number reservation | — |
 
+## I. DATA-002 evidence (2026-11-06, `feat/data-002-personal-runs`)
+
+| Requirement | Evidence in tree | Suite |
+|---|---|---|
+| One atomic, server-authorised write path for all personal tables; no direct INSERT/UPDATE privilege for end users (S-02) | 0009 §4 `apply_personal_changes` (owner re-derived, workspace/actor columns forced, table+column allow-lists, zero-row update raises), §6 revokes | SQL 009 (forged columns overwritten, allow-lists, rollback of a half-applied plan, N-04 "no direct write privilege"); realstack harness §2/§4b; realstack vitest |
+| Snapshots immutable except CURRENT→SUPERSEDED; one CURRENT per workspace; runs and decisions append-only (S-04 analogue) | 0009 §1 triggers + partial unique index; column allow-list for updates = `status` only | SQL 009; realstack vitest (supersede + revision 2 in one call) |
+| A stored "successful" run is verified, engine-attributed and receipted; an ERROR run carries no amounts (S-05) | `personal_calc_runs_success_shape` CHECK; web `verifyPersonalReceipt` unchanged | SQL 009 (three refusals + accepted ERROR), realstack vitest (DB refuses an unverified success through the repository) |
+| Computed results readable only with access to every record domain they span | `app.can_read_personal_runs`; RLS on snapshots/runs/decisions | SQL 009 (participant, stranger, 3-of-4-domain grant refused, 4-of-4 allowed, RETIREMENT separate); realstack vitest participant isolation |
+| Same engines/policy for demo and production; no arithmetic in the web tier | `runs.ts` over `PersonalDataSource`; `/app/personal` renders receipted figures via `Money`/`Stat` | web `personal.test.ts` unchanged (28), `supabase-repository.test.ts` (14), Playwright 20/20 |
+| Workspace event per logical change incl. snapshots, runs, decisions, retirement | 0009 §3 allow-list widened; RPC appends events | SQL 009 `results_eq` on the event log |
+

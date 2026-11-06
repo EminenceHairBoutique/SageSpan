@@ -1,25 +1,30 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { RefreshCw } from "lucide-react";
 import { formatMoney, PERSONAL_RECORD_TYPE_LABELS } from "@sagespan/contracts";
 import { getProductionIdentity } from "@/auth/actor";
 import { supabaseConfigured } from "@/config/env";
+import { latestDecisions, personalLabels } from "@/domain/personal/queries";
 import { productionPersonalRepository } from "@/domain/personal/repository";
-import { appRetireRecordAction, appSaveRecordAction, appUpdatePolicyAction } from "@/server/app-personal-actions";
+import { personalInsights, refreshBaseline, type RefreshOutcome } from "@/domain/personal/runs";
+import { appDecideAction, appRefreshBaselineAction, appRetireRecordAction, appSaveRecordAction, appUpdatePolicyAction } from "@/server/app-personal-actions";
 import { ActionForm } from "@/ui/ActionForm";
-import { DataStateChip } from "@/ui/personal/components";
+import { DecisionCard } from "@/ui/personal/DecisionCard";
+import { DataStateChip, FlagList, Money, Stat } from "@/ui/personal/components";
 import { AddRecord, CashAccountFields, EditRecord, GoalFields, IncomeStreamFields, LiabilityFields, ObligationFields, VariableSpendingFields } from "@/ui/personal/RecordForms";
 import { ProductionGate } from "@/ui/ProductionGate";
-import { Alert, Card, Chip, Field, inputClasses, KeyValue } from "@/ui/primitives";
+import { Alert, Card, Chip, EmptyState, Field, inputClasses, KeyValue } from "@/ui/primitives";
 
 export const dynamic = "force-dynamic";
 
 const PENDING = "Saving…";
 
 /**
- * DATA-001 — the production "My Money": the signed-in person's own records, read and written
- * through Supabase under their session (RLS 0008). Same forms and the same domain functions as
- * /demo/personal; no totals, no baseline, no recommendations here yet — those need receipted
- * runs over persisted snapshots (DATA-002), and we say so rather than compute in this tier.
+ * DATA-001/002 — the production "My Money": the signed-in person's own records, read and written
+ * through Supabase under their session (RLS 0008/0009), plus the receipted baseline, flags and
+ * ranked next steps computed by the calculation service from a dated snapshot of those records
+ * (same `runs.ts` and decision policy as /demo/personal). Nothing is computed in this tier; when
+ * the service is unreachable the page says so and shows records only.
  */
 export default async function AppPersonalPage() {
   if (!supabaseConfigured()) return <ProductionGate requestedPath="/app/personal" />;
@@ -27,8 +32,23 @@ export default async function AppPersonalPage() {
   if (!identity) redirect("/app/sign-in?next=%2Fapp%2Fpersonal");
   const repo = await productionPersonalRepository();
   if (!repo) redirect("/app/personal/start");
-  const b = await repo.bundle();
+  let b = await repo.bundle();
   const isOwner = b.membership.role === "OWNER";
+  // Owner: make sure the CURRENT snapshot matches the records and receipted runs exist (no-op when they do).
+  let refresh: RefreshOutcome | null = null;
+  if (isOwner) {
+    try {
+      refresh = await refreshBaseline(repo);
+      if (refresh.snapshotCreated || refresh.errors.length === 0) b = await repo.bundle();
+    } catch (e) {
+      refresh = { snapshotId: "", snapshotCreated: false, clarity: null as never, debt: null, errors: [{ check: "PERSONAL_CLARITY", code: "ERROR", message: e instanceof Error ? e.message : String(e) }] };
+    }
+  }
+  const insights = personalInsights(b);
+  const { clarity, clarityRun, policy } = insights;
+  const labels = personalLabels(b);
+  const decisions = latestDecisions(b);
+  const errors = refresh?.errors ?? [];
   const can = (domain: "CASH_FLOW" | "SPENDING" | "DEBT" | "SAVINGS_GOALS") => isOwner || b.membership.domains.includes(domain);
   const liabilityOptions = b.liabilities.map((l) => ({ id: l.id, label: l.label }));
   const accountOptions = b.cashAccounts.map((a) => ({ ref: a.account_ref, label: a.label }));
@@ -50,9 +70,60 @@ export default async function AppPersonalPage() {
         </Link>
       </div>
 
-      <Alert tone="amber" title="Records only, for now">
-        Totals, your cash-flow baseline, debt paths, what-ifs and next steps need receipted calculation runs over a frozen snapshot of these records. That persistence (DATA-002) is not built for production workspaces yet, so nothing is computed or estimated on this page. The synthetic demo of the full experience is at <Link href="/demo/personal" className="underline">/demo/personal</Link>.
-      </Alert>
+      {isOwner && errors.length > 0 && !clarity ? (
+        <Alert tone="conflict" title="The calculation service is not reachable, so there are no computed figures">
+          {errors[0]!.message} Nothing is estimated in the browser or on this server; your records are listed below and the baseline will be computed when the service answers.
+        </Alert>
+      ) : null}
+      {!isOwner && !clarity ? (
+        <Alert tone="amber" title="Computed figures are the owner's">
+          Baselines and recommendations span every domain of the workspace, so they are shown only to members whose access covers all of them. You see the records you were granted.
+        </Alert>
+      ) : null}
+
+      {clarity && clarityRun ? (
+        <>
+          {clarity.result_status === "INSUFFICIENT_DATA" ? (
+            <Alert tone="amber" title="The picture is incomplete">
+              Income, expenses or balances are missing, so SageSpan does not state a margin or buffer. Add the basics below.
+            </Alert>
+          ) : null}
+          <section aria-label="Where I stand" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat label="Liquid cash" hint={`Your floor: ${formatMoney(clarity.cash.cash_floor)} · ${formatMoney(clarity.cash.above_floor)} above it`} tone={clarity.cash.above_floor.startsWith("-") ? "conflict" : undefined}>
+              <Money value={clarity.cash.liquid_total} run={clarityRun} label="Liquid cash" field="cash.liquid_total" />
+            </Stat>
+            <Stat label="Essentials covered" hint={clarity.cash.buffer_target_months ? `Target you chose: ${clarity.cash.buffer_target_months} months` : "No target set"}>
+              {clarity.cash.essential_buffer_months ?? "—"} <span className="text-base font-medium text-ink-muted">months</span>
+            </Stat>
+            <Stat label="Typical monthly margin" hint={`Low month: ${formatMoney(clarity.margin.low)}`} tone={clarity.margin.low?.startsWith("-") ? "conflict" : undefined}>
+              <Money value={clarity.margin.typical} run={clarityRun} label="Typical monthly margin" field="margin.typical" />
+            </Stat>
+            <Stat label={`Lowest point, next ${clarity.outlook.horizon_days} days`} hint={clarity.outlook.first_floor_breach_date ? `Below your floor from ${clarity.outlook.first_floor_breach_date}` : "Stays above your floor"} tone={clarity.outlook.first_floor_breach_date ? "conflict" : undefined}>
+              <Money value={clarity.outlook.lowest_projected_cash} run={clarityRun} label="Lowest projected cash" field="outlook.lowest_projected_cash" />
+            </Stat>
+          </section>
+          <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+            <Card
+              title="My next steps"
+              subtitle={`Ranked by ${policy?.policy_version ?? "policy"}: constraints first, then urgency, benefit, input reliability and reversibility. You decide; nothing happens automatically.`}
+              actions={isOwner ? <ActionForm action={appRefreshBaselineAction} submitLabel={<><RefreshCw size={14} aria-hidden /> Recompute</>} pendingLabel="Calling calculation service…" variant="secondary" size="sm" inline /> : undefined}
+            >
+              {policy && policy.primary.length > 0 ? (
+                <div className="space-y-4">
+                  {policy.primary.map((rec) => (
+                    <DecisionCard key={rec.recommendation_id} rec={rec} labels={labels} decision={decisions.get(rec.recommendation_id)} compact decide={appDecideAction} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState title="No actions proposed.">With the inputs so far the policy has nothing feasible to suggest; add records to sharpen the picture.</EmptyState>
+              )}
+            </Card>
+            <Card title="What needs attention" subtitle="Flags from the baseline, highest severity first.">
+              <FlagList flags={[...clarity.flags].sort((a, z) => ["HIGH", "MEDIUM", "LOW", "INFO"].indexOf(a.severity) - ["HIGH", "MEDIUM", "LOW", "INFO"].indexOf(z.severity))} labels={labels} limit={6} />
+            </Card>
+          </div>
+        </>
+      ) : null}
 
       {empty ? (
         <Card title="Nothing recorded yet">
