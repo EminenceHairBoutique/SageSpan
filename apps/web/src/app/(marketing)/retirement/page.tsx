@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Retirement Studio" };
 
 export default function RetirementPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-14 md:px-6">
+    <main id="main" className="mx-auto max-w-6xl px-4 py-14 md:px-6">
       <SectionHeading eyebrow="Retirement Studio · B2C and B2B" title="Realistic retirement planning, with the arithmetic kept honest">
         One planning environment shared by individuals and advisors: the same validated engines, different authority. Readiness before projections; disclosure before confidence.
       </SectionHeading>

@@ -5,6 +5,7 @@ import { PencilLine, Plus, Archive } from "lucide-react";
 import { CADENCES, CASH_ACCOUNT_KINDS, GOAL_KINDS, INCOME_KINDS, LIABILITY_KINDS, OBLIGATION_CATEGORIES, RATE_TYPES, RELIABILITIES, type CashAccount, type IncomeStream, type Liability, type PersonalRecordType, type RecurringObligation, type SavingsGoal, type VariableSpendingPattern } from "@sagespan/contracts";
 import { retireRecordAction, saveRecordAction } from "@/server/personal-actions";
 import { ActionForm } from "@/ui/ActionForm";
+import { ConfirmDialog } from "@/ui/ConfirmDialog";
 import { buttonClasses, cx, Field, inputClasses } from "@/ui/primitives";
 
 /**
@@ -266,7 +267,24 @@ export function EditRecord({ type, recordRef, name, children }: { type: Personal
         <button type="button" onClick={() => setOpen((o) => !o)} className={buttonClasses("ghost", "sm")} aria-expanded={open} aria-label={`Edit ${name}`}>
           <PencilLine size={13} aria-hidden /> {open ? "Close" : "Edit"}
         </button>
-        <ActionForm action={retireRecordAction} hidden={{ record_type: type, record_ref: recordRef }} submitLabel={<><Archive size={13} aria-hidden /> Retire</>} pendingLabel="Retiring…" variant="ghost" size="sm" inline className="!gap-0" />
+        <ConfirmDialog
+          trigger={
+            <>
+              <Archive size={13} aria-hidden /> Retire
+            </>
+          }
+          triggerClassName={buttonClasses("ghost", "sm")}
+          title={`Retire ${name}?`}
+          description="The record leaves your current baseline, which recomputes from a new snapshot. It stays in history as a retired revision; nothing is deleted."
+          confirmLabel="Retire"
+          pendingLabel="Retiring…"
+          onConfirm={() => {
+            const fd = new FormData();
+            fd.set("record_type", type);
+            fd.set("record_ref", recordRef);
+            return retireRecordAction(null, fd);
+          }}
+        />
       </div>
       {open && (
         <div className="mt-3 rounded-lg border border-line bg-surface-muted/40 p-3">

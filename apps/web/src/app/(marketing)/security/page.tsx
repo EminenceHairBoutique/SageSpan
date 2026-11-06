@@ -25,7 +25,7 @@ const notClaimed = [
 
 export default function SecurityPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-14 md:px-6">
+    <main id="main" className="mx-auto max-w-6xl px-4 py-14 md:px-6">
       <SectionHeading eyebrow="Security & trust" title="Design approach, not a certification">
         This page describes how the system is designed and what this synthetic build implements. It makes no compliance claims.
       </SectionHeading>
