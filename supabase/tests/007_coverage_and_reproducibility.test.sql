@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 create schema if not exists tests;
 \ir 000_helpers.sql
-select plan(43);
+select plan(44);
 
 select tests.make_user('30000000-0000-0000-0000-0000000000a1', 'analyst@e.test');
 select tests.make_user('30000000-0000-0000-0000-0000000000a2', 'advisor@e.test');
@@ -41,6 +41,7 @@ insert into t values ('p1', app.build_snapshot_payload('e1000000-0000-0000-0000-
 select is(((select v from t where k = 'p1')::jsonb ->> 'snapshot_version'), 'sagespan.snapshot.v2', 'S-07 build_snapshot_payload emits v2');
 select is(((select v from t where k = 'p1')::jsonb -> 'policy' -> 'tolerance' ->> 'absolute'), '1.00', 'S-07 payload carries the tolerance at freeze');
 select is(((select v from t where k = 'p1')::jsonb -> 'policy' ->> 'policy_sha256'), app.sha256_canonical(((select v from t where k = 'p1')::jsonb -> 'policy') - 'policy_sha256')::text, 'S-07 policy_sha256 is sha256(canonical_json(policy core))');
+select is(((select v from t where k = 'p1')::jsonb -> 'policy' ->> 'policy_sha256'), '859c42fc45f63719fa083ece7009852c15b4dbda332414d1f91489d532b14124', 'S-07 policy_sha256 equals the three-tier fixture digest (fixtures/synthetic/canonical/case_policy_record.json): SQL, TypeScript and Python record the same policy version');
 select is(((select v from t where k = 'p1')::jsonb -> 'household' ->> 'source_tool_label'), 'Vendor A (synthetic)', 'S-07 payload carries the vendor label');
 select is(jsonb_array_length((select v from t where k = 'p1')::jsonb -> 'accounts'), 1, 'S-07 payload lists the household accounts with classification');
 -- v1 payloads and tampered v2 payloads are refused

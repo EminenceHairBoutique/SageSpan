@@ -49,12 +49,12 @@ fail if it regressed. "—" means the layer is not the control for that row.
 | N-05 approval matrix | — | — | — | `record_review` policy check (`NOT_AN_APPROVER`, 42501) | `approvalDecision` / `canApprove` (UI + domain) | contracts `trust-boundaries`; web `trust-boundaries` N-05; SQL 005 N-05 |
 
 PR-002 (migration `0007_coverage_and_reproducibility.sql`, branch
-`feat/pr-002-coverage`) closes the three findings PR-001 left open:
+`feat/pr-002-coverage`, merged as #9) closes the three findings PR-001 left open:
 
 | Finding | Privileges | Function / trigger | Web tier | Tests |
 |---|---|---|---|---|
 | S-06 coverage ≠ approval | `reviews` gains `coverage_outcome` (enum `app.review_outcome`) + `coverage_summary`; check constraint ties them to `decision = 'APPROVED'` | `record_review` derives the outcome from `app.coverage_summary()`; the approver cannot supply it | `approveReview` records `approvalReadiness(coverageSummary(...))`; packet title/scope from `packetTitle` | SQL 007 E4/E5/E6; web `pr-002-coverage` S-06; contracts coverage helpers; e2e Okafor |
-| S-07 snapshot-only requests | — | `build_snapshot_payload` emits v2 (policy record with `policy_sha256`, vendor label, account classification); `freeze_snapshot` verifies all three against the organisation's rows and refuses v1 | `buildRmdRequest(snapshot, accountId)` reads only the payload; `policyRecord()` hashes the policy at freeze | SQL 007 E1 (live policy/label edit after freeze leaves the frozen payload and hash unchanged); web `pr-002-coverage` S-07 |
+| S-07 snapshot-only requests | — | `build_snapshot_payload` emits v2 (policy record with `policy_sha256`, vendor label, account classification); `freeze_snapshot` verifies all three against the organisation's rows and refuses v1 | `buildRmdRequest(snapshot, accountId)` reads only the payload; `policyRecord()` hashes the policy at freeze | SQL 007 E1 (live policy/label edit after freeze leaves the frozen payload and hash unchanged; `policy_sha256` pinned to the shared fixture digest); web `pr-002-coverage` S-07; three-tier canonical fixtures `case_policy_record.json` and `case_snapshot_v2.json` (pytest, contracts, SQL 006) |
 | N-02 latest attempt | — | `app.latest_check_runs()`; `record_check_run` stamps `clock_timestamp()` and advances to CHECK_COMPLETE only when every payload account's latest attempt is clean; `record_review` refuses `CHECK_FAILED_LATEST` | `latestCheckRuns()` shared by approval, packet, UI and the AI evidence resolver | SQL 007 E2 (ERROR→PASS approvable), E3 (PASS→ERROR refused); web `pr-002-coverage` N-02 |
 
 The S-04 guard that refuses approval when any non-ERROR run lacks a verified

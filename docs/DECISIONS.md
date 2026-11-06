@@ -63,3 +63,11 @@ live-client beta.
 | No live AI vendor until G3 (consent, DPA); configuration alone yields the mock plus an explicit note | AI-E17 |
 | Demo state v2 reseeds older files (synthetic only) | `apps/web/src/domain/store.ts` |
 | Consumer pricing recorded only as unvalidated hypotheses ($8–15 personal, $15–30 household) | `CONSUMER_PRICING_HYPOTHESIS` |
+
+## PR-002 approval and coverage decisions (merged #9 on 2026-11-06; S-06 outcome confirmed by the founder 2026-11-06)
+
+| Decision | Rationale / record |
+|---|---|
+| **A snapshot whose accounts are all UNSUPPORTED or INDETERMINATE may be approved by an authorised professional, but the approval is typed `REVIEWED_WITH_LIMITATIONS` and is never labelled a verified check. No hard `COVERAGE_INSUFFICIENT` refusal.** Founder confirmed on 2026-11-06 when asked whether to refuse instead ("keep as merged"). | Audit S-06 remediation asked for a typed outcome and coverage-derived packet scope, not a refusal. A professional acknowledging that accounts sit outside the engine's supported scope is a legitimate, auditable review act; a refusal would leave every household with one unsupported account unable to close a review at all. The outcome is derived server-side (`approvalReadiness`, `app.record_review`), carries `coverage_summary`, cannot be upgraded by UPDATE, and the packet title/scope list the accounts outside supported scope. Reversing this needs a new decision row, a migration (0009+) and updated SQL 007 E4 / web S-06 / Okafor e2e expectations. Record: #9, #11, `CLAUDE.md` §5b |
+| (PR-002) Only the latest attempt per (account, check type) on a snapshot is evaluated for CHECK_COMPLETE and approval; earlier attempts stay as audited history (`latestCheckRuns`, `app.latest_check_runs`). ERROR → PASS recovers; PASS → ERROR refuses `CHECK_FAILED_LATEST` | A transient calculator outage must not force a new revision (N-02), and a stale success must never carry over a later failure |
+| (PR-002) Calculator requests are built solely from the frozen `sagespan.snapshot.v2` payload; the firm policy at freeze is recorded with `policy_sha256` as the policy version and pinned by the three-tier fixture `case_policy_record.json` (Python reference, TypeScript, SQL 006/007) | S-07: a receipt's `request_hash` must be reproducible from the snapshot alone; live policy or label edits after freeze cannot move it |

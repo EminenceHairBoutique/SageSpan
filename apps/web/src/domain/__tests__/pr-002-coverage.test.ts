@@ -4,8 +4,10 @@
  *  N-02 latest attempt per account: ERROR -> PASS recovers, PASS -> ERROR blocks, history kept;
  *  S-06 typed coverage outcome on approval; unsupported-only is never "verified"; packet title/scope from coverage.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { approvalReadiness, coverageSummary, latestCheckRuns, packetTitle, type CheckRun } from "@sagespan/contracts";
+import { approvalReadiness, coverageSummary, latestCheckRuns, packetTitle, type CheckRun, type OrgPolicies, type Snapshot, type SnapshotPayload } from "@sagespan/contracts";
 import type { Actor } from "@/auth/types";
 import { buildRmdRequest, runRmdChecks, sendToReview } from "@/domain/checks";
 import { DomainError } from "@/domain/errors";
@@ -69,6 +71,9 @@ vi.mock("@/provenance/calc-client", async () => {
 });
 
 const control = (calc as unknown as { __control: { mode: Mode } }).__control;
+/** Three-tier canonical fixtures shared with services/calculator (reference) and supabase/tests/006_canonical_json.test.sql. */
+const CANON = resolve(__dirname, "../../../../../fixtures/synthetic/canonical");
+const canonFixture = <T,>(name: string): T => JSON.parse(readFileSync(resolve(CANON, name), "utf8")) as T;
 const actor = (user_id: string, org_id: string, role: Actor["role"]): Actor => ({ user_id, org_id, role, display_name: user_id, actor_type: "SIMULATED_REVIEWER", mode: "DEMO" });
 const analyst = actor("user_hp_analyst", "org_harborpoint", "ANALYST");
 const advisor = actor("user_hp_advisor", "org_harborpoint", "ADVISOR");
@@ -140,6 +145,21 @@ describe("S-07: calculator requests come from the frozen snapshot alone", () => 
     const b = policyRecord({ separation_of_duties: true, allow_nonmaterial_exceptions: false, approver_roles: ["ADVISOR", "COMPLIANCE"], tolerance: { absolute: "1.00", relative: "0.001" } });
     expect(a.policy_sha256).toBe(b.policy_sha256);
     expect(a.approver_roles).toEqual(["ADVISOR", "COMPLIANCE"]);
+  });
+
+  it("the recorded policy version is the three-tier fixture digest, and the v2 fixture builds a request from the payload alone", () => {
+    const expected = canonFixture<Record<"case_policy_record.json" | "case_snapshot_v2.json", string>>("expected.json");
+    // policyRecord() over the fixture's policy core must hash to the digest Python computed and SQL 006 re-derives.
+    expect(policyRecord(canonFixture<OrgPolicies>("case_policy_record.json")).policy_sha256).toBe(expected["case_policy_record.json"]);
+    const payload = canonFixture<SnapshotPayload>("case_snapshot_v2.json");
+    expect(payload.snapshot_version).toBe("sagespan.snapshot.v2");
+    expect(payload.policy.policy_sha256).toBe(expected["case_policy_record.json"]);
+    const snap: Snapshot = { id: "snap_fixture_v2", org_id: "org_harborpoint", household_id: payload.household_id, revision: payload.revision, content_sha256: expected["case_snapshot_v2.json"], rule_set_versions: {}, assumption_set_id: null, created_by: "user_hp_analyst", created_by_role: "ANALYST", created_at: "2026-11-06T00:00:00.000Z", status: "FROZEN", canonical_payload: payload };
+    const req = buildRmdRequest(snap, "acct_patel_trad_ira");
+    expect(req.tolerance).toEqual({ absolute: "1.00", relative: "0.001" });
+    expect(req.imported_comparison?.vendor_label).toBe("Vendor A (synthetic)");
+    expect(req.account.account_type).toBe("TRADITIONAL_IRA");
+    expect(req.snapshot_ref).toEqual({ snapshot_id: "snap_fixture_v2", revision: 1, input_hash: expected["case_snapshot_v2.json"] });
   });
 
   it("a request cannot be built from a pre-PR-002 (v1) snapshot", () => {
