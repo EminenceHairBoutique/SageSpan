@@ -3,6 +3,8 @@
 > **Purpose:** Permanent, repository-local guidance for Claude Code. This file supersedes the **V3 B2B-only product decision**, but preserves the original implementation history, engineering conventions, security gates, and financial-calculation requirements. Do **not** confuse this file with a prompt to execute the entire V5 roadmap in one session.
 >
 > **Status note (2026-11-05):** The shipped/test-count statements below were reported by the uploaded V3 `CLAUDE.md`; they are **historical**, not independently rechecked against the currently checked-out branch. Verify `git status`, `git branch`, migrations, code, open PRs and CI before relying on them. PR-001 was reported complete on `feat/pr-001-trust-boundaries`; **do not assume it has been merged or deployed**.
+>
+> **Status note (2026-11-06, milestone 3):** PR-001 merged to `master` (#5); V5 dual-market + PERS-002 merged (#7, #6); **PR-002 merged (#9)** as forward-only migration `0007_coverage_and_reproducibility.sql` with snapshot payload v2 — see §5b. PR-003 identity work is open as #10 and already uses migration number `0008`; check `supabase/migrations` **and open PRs** before numbering a new migration. Nothing has been validated on a real Supabase stack (shimmed PostgreSQL only).
 
 ## 1. Mission and precedence
 
@@ -71,14 +73,14 @@ Preserve remediation and tests for historical findings **S-01–S-10 and N-01–
 
 The uploaded V3 `CLAUDE.md` recorded these **2026-11-05 milestone results**:
 
-| Area | Milestone 1 vertical slice | Milestone 2 PR-001 branch |
-|---|---|---|
-| Python calculator tests | 64 passed | 69 passed (locked `uv` environment) |
-| Contracts Vitest | 15 passed | 23 passed |
-| Web Vitest | 24 passed | 44 passed |
-| SQL test harness | 4 files, 45 assertions on PostgreSQL 16 | 6 files, 117 assertions on PostgreSQL 18.6 |
-| Playwright | 4 scenarios | 4/4 scenarios |
-| Production Supabase | Not validated | **Still not validated** |
+| Area | Milestone 1 vertical slice | Milestone 2 PR-001 branch | Milestone 3 PR-002 (#9), rerun 2026-11-06 on Windows 11 |
+|---|---|---|---|
+| Python calculator tests | 64 passed | 69 passed (locked `uv` environment) | 119 passed (`uv sync --locked --extra dev`, Python 3.13) |
+| Contracts Vitest | 15 passed | 23 passed | 49 passed (3 files) |
+| Web Vitest | 24 passed | 44 passed | 106 passed (7 files, calculator live, 0 skipped) |
+| SQL test harness | 4 files, 45 assertions on PostgreSQL 16 | 6 files, 117 assertions on PostgreSQL 18.6 | 7 files, 165 assertions on embedded PostgreSQL 18.6 (pgTAP/Supabase shims; 006: 13, 007: 44) |
+| Playwright | 4 scenarios | 4/4 scenarios | 16 passed (this worktree's dev server on port 3100, live calculator) |
+| Production Supabase | Not validated | **Still not validated** | **Still not validated** (Docker/`supabase start` unavailable locally) |
 
 **Milestone 1 implementation recorded:**
 
@@ -95,11 +97,22 @@ The uploaded V3 `CLAUDE.md` recorded these **2026-11-05 milestone results**:
 
 **Do not infer:** these files are merged into `master`, that current SQL migrations remain numbered as stated, that a site feature is already shipped, or that any of these tests were rerun in this session. Re-check before changing code.
 
+### 5b. Milestone 3 — PR-002 approval and coverage correctness (merged as #9, 2026-11-06)
+
+Delivered on `feat/pr-002-coverage` (session report `docs/engineering/V5_SESSION_3_PR_002_REPORT.md`; invariant rows in `docs/SECURITY_AND_LIMITS.md`; traceability §F):
+
+- **S-07** snapshot payload **v2** (`sagespan.snapshot.v2`): the firm policy at freeze (tolerance, separation of duties, nonmaterial-exception setting, approver roles in byte order, hashed as `policy_sha256` = the recorded policy version), the vendor label and each account's classification. `buildRmdRequest(snapshot, accountId)` reads only the payload; SQL `app.policy_record`, `app.build_snapshot_payload` v2 and `app.freeze_snapshot` verify policy/label/accounts against the organisation's own rows and refuse v1.
+- **N-02** only the latest attempt per (account, check type) counts (`latestCheckRuns` / `app.latest_check_runs`); earlier attempts stay as audited history. ERROR → PASS recovers; PASS → ERROR refuses (`CHECK_FAILED_LATEST`); `record_check_run` stamps `clock_timestamp()`.
+- **S-06** typed review outcome derived server-side (`SUPPORTED_CHECK_VERIFIED` | `REVIEWED_WITH_LIMITATIONS` | `APPROVED_WITH_EXCEPTIONS`), `reviews.coverage_outcome` + `coverage_summary` with a decision check constraint and no UPDATE privilege; evidence packet v2 lists per-account coverage and accounts outside supported scope. **Design decision recorded:** an unsupported-only snapshot *may* be approved by a professional but is typed `REVIEWED_WITH_LIMITATIONS` and is never labelled verified — matching the audit's remediation. A hard `COVERAGE_INSUFFICIENT` refusal was **not** adopted; the founder confirmed the merged behaviour on 2026-11-06 (`docs/DECISIONS.md`, PR-002 decisions). Changing it later needs a new decision row and a migration.
+- **Follow-up (this entry's branch):** three-tier canonical fixtures `fixtures/synthetic/canonical/case_policy_record.json` and `case_snapshot_v2.json` pin the policy version hash and a v2 payload hash across Python (reference), TypeScript and SQL (`006`, regenerated); SQL `007` and web `pr-002-coverage.test.ts` assert the recorded `policy_sha256` equals that fixture digest. The earlier `AI Checklist` commit had reverted the PR-002 notes in this file; this entry restores them.
+
+Suites in the table above were executed in this session on Windows 11 (embedded PostgreSQL with shims, not Supabase). Real Supabase Auth/JWT/PostgREST/RLS has still never been run on any branch.
+
 ## 6. Known historical blockers and next safe sequence
 
 As recorded at the V3 milestone, these items were **not complete** (verify if still true):
 
-- **PR-002:** S-06 supported/limited/unsupported review outcomes; S-07 snapshot-only calculation request; N-02 failed-then-successful attempt recovery and latest-run semantics.
+- **PR-002:** S-06 / S-07 / N-02 — **merged (#9, migration 0007)**; see §5b. Residual: not run against real Supabase; `app.review_outcome` and payload v2 are forward-only additions (pre-0007 v1 snapshots would need a re-freeze; none exist in the synthetic seed).
 - **PR-003:** production Supabase store adapter and real actor/session resolution (`apps/web/src/auth/actor.ts`, `src/domain/store.ts`); private file bytes/storage, trusted document registration, actual Supabase JWT/RLS/PostgREST testing, real member management, real import mappings and PDF evidence rendering.
 - Professional financial-rule signoff; U.S. income-tax draft validation; model/version governance, privacy/consent and legal clearance before regulated or real-data features.
 - `mypy --strict` historical errors in `financial/checks.py` (the original record noted 25 `Discrepancy(**dict)` typing errors) and historical `auth_rls_initplan` RLS performance warnings.
@@ -108,7 +121,7 @@ As recorded at the V3 milestone, these items were **not complete** (verify if st
 
 1. **Baseline reconciliation:** verify Git state/PR-001 integration, preserve uncommitted changes, inventory current B2C/B2B code, determine which historic defects persist, run available tests.
 2. **PR-001 residual work (if needed)** and real-stack security; do not duplicate already merged fixes.
-3. **PR-002** financial coverage, frozen request reproducibility and retry semantics.
+3. **PR-002** financial coverage, frozen request reproducibility and retry semantics. **Delivered and merged (#9)**; shim PostgreSQL + CI postgres:15 only — real-stack validation pending (PR-003).
 4. **DUAL-000/001** shared B2C+B2B product routing/workspace shells, manual-entry-first synthetic personal finance and explicit permission model. Safe synthetic UIs may proceed in a separate branch while security is being completed.
 5. **AI-000/001** contracts, mocked orchestration, 28-case evaluation suite and evidence-grounded synthetic "Analyze Plan" drafts.
 6. **PERS-001/002** validated deterministic cash flow/debt/goal planning and a feasible, transparent recommendation queue.
@@ -125,8 +138,8 @@ As recorded at the V3 milestone, these items were **not complete** (verify if st
 - Regenerate calculator OpenAPI from `services/calculator` with `python scripts/export_openapi.py` in the calculator service working directory when its API changes; let the pinned drift test enforce parity.
 - After changing synthetic source files, regenerate hashes with `python fixtures/synthetic/scripts/compute_hashes.py`; preserve original fixture bytes on Windows via `.gitattributes` as applicable.
 - Python environment: from `services/calculator`, edit `pyproject.toml`, run `uv lock` then `uv sync --locked --extra dev`; stop a running Python server before replacing `.venv`. Regenerate generated rule SQL (`0006_seed_rule_sets.sql`) and generated canonical fixture SQL tests via their existing generator scripts; run their `--check` modes.
-- PostgreSQL migrations are forward-only: do not edit existing applied `0001`–`0006` unless there is explicit evidence the environment has never applied them; prefer a new migration. For each new or replaced function, inspect and explicitly limit `EXECUTE` for `PUBLIC`, `anon`, `authenticated`, `service_role`, granting only required minimal entry points. Review `SECURITY DEFINER` owners and `search_path`, RLS helper invocation and PostgREST exposure. Do not trust `app.workflow_fn` alone.
-- Local SQL harness command (from repo root): `SAGESPAN_PG_BIN=<dir with initdb/pg_ctl> SAGESPAN_TEST_PG_PORT=<free port> python supabase/tests/run_sql_tests.py` (on Windows adapt environment syntax). Real stack: `supabase start`, `supabase db reset`, `supabase test db`, plus test authenticated RPCs via JWT/PostgREST—only when configuration and required local services are available.
+- PostgreSQL migrations are forward-only: do not edit existing applied `0001`–`0007` unless there is explicit evidence the environment has never applied them; prefer a new migration (check the highest number in `supabase/migrations` and in open PRs first). Snapshot payloads are `sagespan.snapshot.v2` since 0007; `freeze_snapshot` refuses v1. Three-tier canonical fixtures live in `fixtures/synthetic/canonical`: recompute `expected.json` from the Python reference canonicaliser, then regenerate `006_canonical_json.test.sql` with `services/calculator/scripts/export_canonical_sql_test.py` (its `--check` mode runs in pytest and CI). For each new or replaced function, inspect and explicitly limit `EXECUTE` for `PUBLIC`, `anon`, `authenticated`, `service_role`, granting only required minimal entry points. Review `SECURITY DEFINER` owners and `search_path`, RLS helper invocation and PostgREST exposure. Do not trust `app.workflow_fn` alone.
+- Local SQL harness command (from repo root): `SAGESPAN_PG_BIN=<dir with initdb/pg_ctl> SAGESPAN_TEST_PG_PORT=<free port> python supabase/tests/run_sql_tests.py` (on Windows adapt environment syntax; the runner needs `psql` on PATH or the `psycopg` package in the interpreter that runs it). Real stack: `supabase start`, `supabase db reset`, `supabase test db`, plus test authenticated RPCs via JWT/PostgREST—only when configuration and required local services are available.
 - Tests to run and report exact results, depending on scope: `npm run typecheck`, `npm run lint`, contracts Vitest, web Vitest with calculator running, `npm run build --workspace apps/web`, `npm run test:e2e --workspace apps/web`, locked Python `pytest`, SQL harness, and real Supabase security tests. Never report commands that were not actually executed. Separate typecheck, build, unit, e2e and integration evidence.
 - Windows/local CLI note: original sessions observed long Bash commands truncating. Prefer Write tool / smaller shell commands; stop a specific stray PostgreSQL cluster with `pg_ctl -D <tmp>/data stop`, not blanket `taskkill`.
 
