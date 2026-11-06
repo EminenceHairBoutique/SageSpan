@@ -1,0 +1,57 @@
+{
+  "schema_version": "sagespan.debt-paths.v1",
+  "as_of_date": "2026-11-01",
+  "liabilities": [
+    {
+      "liability_ref": "liab_castillo_card",
+      "label": "Rewards credit card",
+      "balance": "4820.00",
+      "apr_percent": "24.99",
+      "minimum_payment": "145.00",
+      "rate_type": "VARIABLE",
+      "due_day_of_month": 21,
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "liability_ref": "liab_castillo_car",
+      "label": "Car loan",
+      "balance": "11300.00",
+      "apr_percent": "6.90",
+      "minimum_payment": "310.00",
+      "rate_type": "FIXED",
+      "due_day_of_month": 5,
+      "data_state": "USER_REPORTED"
+    }
+  ],
+  "policy": {
+    "cash_floor": "1500.00"
+  },
+  "strategies": [
+    "MINIMUMS_ONLY",
+    "AVALANCHE",
+    "SNOWBALL",
+    "HYBRID"
+  ],
+  "workspace_ref": "ws_castillo_personal",
+  "extra_monthly_payment": "250.00",
+  "cash_accounts": [
+    {
+      "account_ref": "cash_castillo_checking",
+      "label": "Everyday checking",
+      "balance": "2150.00",
+      "currency": "USD",
+      "balance_as_of": "2026-11-01",
+      "liquid": true,
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "account_ref": "cash_castillo_savings",
+      "label": "Savings",
+      "balance": "1500.00",
+      "currency": "USD",
+      "balance_as_of": "2026-10-31",
+      "liquid": true,
+      "data_state": "USER_REPORTED"
+    }
+  ]
+}

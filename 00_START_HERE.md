@@ -1,4 +1,6 @@
 # SageSpan — Unified Framework V3 (Canonical Context Pack)
+> **SUPERSEDED (2026-11-05 founder decision, recorded 2026-11-06).** This V3 document states a **B2B-only** direction. That market decision is superseded by **SageSpan V5: one platform serving B2C individuals/households AND B2B advisors/RIA firms** — see `docs/product/SAGESPAN_V5_MASTER_SOURCE_OF_TRUTH.md` and `CLAUDE.md`. V3's assurance design, financial-rule framework and security requirements remain in force where V5 preserves them. Kept unchanged below as history.
+
 **Prepared:** 2026-11-05  
 **Status:** Founder-selected build direction; brand, pricing and customer demand remain provisional or unvalidated where identified.  
 **Scope:** U.S. B2B independent retirement plan assurance and supervisory intelligence.

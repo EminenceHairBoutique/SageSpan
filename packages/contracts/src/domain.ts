@@ -15,6 +15,11 @@ import type {
   WorkflowStatus,
 } from "./enums";
 import type { RmdCheckRequest, RmdCheckResponse } from "./calc";
+import type { AiFeedback, AiRunRecord } from "./ai";
+import type { UserDecisionEvent } from "./decisions";
+import type { CashAccount, IncomeStream, Liability, PersonalCalcRun, PersonalProfile, PersonalSnapshot, RecurringObligation, RetirementIntake, SavingsGoal, VariableSpendingPattern } from "./personal";
+import type { PersonalRecordRevision } from "./personal-records";
+import type { ConsentGrant, Principal, Workspace, WorkspaceMembership } from "./workspace";
 
 /**
  * Domain record shapes. These mirror the Supabase tables in
@@ -381,8 +386,17 @@ export interface PilotInterest {
   note: string;
 }
 
+/**
+ * Demo state version. v2 (V5) added the workspace model, Personal (B2C) records,
+ * AI runs and feedback alongside the unchanged firm records; v3 (PERS-002) adds
+ * the append-only personal record revision log and the `retired` flag on
+ * personal records. A stored state with an older version is reseeded (synthetic
+ * data only, nothing to migrate).
+ */
+export const DEMO_STATE_VERSION = "sagespan.demo-state.v3" as const;
+
 export interface DataState {
-  state_version: "sagespan.demo-state.v1";
+  state_version: typeof DEMO_STATE_VERSION;
   seeded_at: string;
   mode: "DEMO_SYNTHETIC";
   organizations: Organization[];
@@ -409,4 +423,26 @@ export interface DataState {
   evidence_packets: EvidencePacket[];
   audit_events: AuditEvent[];
   pilot_interest: PilotInterest[];
+  // ---- V5: workspaces (firm workspaces map 1:1 onto organizations) ----
+  principals: Principal[];
+  workspaces: Workspace[];
+  workspace_memberships: WorkspaceMembership[];
+  consent_grants: ConsentGrant[];
+  // ---- V5: Personal (B2C) records, every row scoped by workspace_id ----
+  personal_profiles: PersonalProfile[];
+  cash_accounts: CashAccount[];
+  income_streams: IncomeStream[];
+  recurring_obligations: RecurringObligation[];
+  variable_spending: VariableSpendingPattern[];
+  liabilities: Liability[];
+  savings_goals: SavingsGoal[];
+  retirement_intakes: RetirementIntake[];
+  personal_snapshots: PersonalSnapshot[];
+  personal_calc_runs: PersonalCalcRun[];
+  user_decisions: UserDecisionEvent[];
+  /** PERS-002: append-only history of every personal record write (create / update / retire). */
+  personal_record_revisions: PersonalRecordRevision[];
+  // ---- V5: AI draft runs and separate reviewer feedback ----
+  ai_runs: AiRunRecord[];
+  ai_feedback: AiFeedback[];
 }

@@ -41,3 +41,13 @@ committed document drifts from the running application.
   after authenticating the user. Bodies containing `org_id` are rejected (422).
 * No request payloads are logged or stored. Validation errors return field paths only.
 * `CALC_DEMO_MODE=1` uses a fixed local token and is for synthetic-data demos only.
+
+## V5 Personal engines (2026-11-06)
+
+| Endpoint | Method set | What it does |
+|---|---|---|
+| `POST /v1/personal/clarity` | `personal.cashflow_baseline@2026.1` | Median/low observed income, essential vs discretionary commitments, margin, liquid cash vs the user's floor, buffer months, dated 30/60/90-day outlook with bill collisions, flags, data quality. Returns `INSUFFICIENT_DATA` rather than guessing. |
+| `POST /v1/personal/debt-paths` | `personal.debt_amortization@2026.1` | Minimums-only / avalanche / snowball / hybrid amortisation on identical inputs under a budget or an extra monthly amount; liquidity guard against the cash floor. |
+| `GET /v1/methods` | — | Methodology registry (separate from `/v1/rules`; not seeded into Postgres yet, see ADR-V5-001 §6). |
+
+All three use the same bearer token and `X-SageSpan-Org-Id` header (the web tier passes the workspace id). Receipts cite method sets exactly like rule sets. Conventions are documented in `app/financial/methods.py` and `docs/finance/RULE_VERIFICATION_AND_MODEL_REGISTRY.md`; goldens in `tests/test_personal_clarity.py` and `tests/test_debt_paths.py`. These are descriptive engines: not advice, and not a verification of the user's inputs.

@@ -15,6 +15,8 @@ import { reconcileImport } from "@/domain/reconcile";
 import { addComment, attemptApproval, assignHousehold, confirmFact, dispositionDiscrepancy, documentException, recordAssumption, recordReview, resolveConflict, updatePolicy } from "@/domain/review";
 import { getStore } from "@/domain/store";
 import { newId, nowIso } from "@/domain/ids";
+import { runFirmAnalyzePlan } from "@/ai/review-orchestrator";
+import { recordAiFeedback } from "@/domain/ai/feedback";
 import type { ColumnMapping } from "@/import/csv-contract";
 import { IMPORT_CSV_COLUMNS } from "@sagespan/contracts";
 
@@ -225,4 +227,19 @@ export async function pilotInterestAction(_prev: ActionResult | null, formData: 
   } catch (e) {
     return errorResult(e);
   }
+}
+
+// ---------------------------------------------------------------- AI plan review (draft only; never approves)
+export async function analyzePlanAction(_prev: ActionResult<{ runId: string; message: string }> | null, formData: FormData): Res<{ runId: string; message: string }> {
+  return run(async (actor) => {
+    const record = await runFirmAnalyzePlan(getStore(), actor, str(formData, "household_id"));
+    return { runId: record.id, message: record.run_status === "DRAFT_READY" ? `Draft ready: ${record.accepted_finding_count} grounded finding(s), ${record.rejected_finding_count} rejected by the validator. Nothing has been approved or verified.` : `No draft produced (${record.run_status}); see the validator log.` };
+  });
+}
+
+export async function firmAiFeedbackAction(_prev: ActionResult<{ message: string }> | null, formData: FormData): Res<{ message: string }> {
+  return run((actor) => {
+    getStore().mutate((s) => recordAiFeedback(s, { principal_id: actor.user_id, role: actor.role, scope: { kind: "FIRM_HOUSEHOLD", org_id: actor.org_id } }, { ai_run_id: str(formData, "ai_run_id"), finding_id: str(formData, "finding_id"), action: str(formData, "action") as "ACCEPT" | "EDIT" | "DISMISS" | "REQUEST_EVIDENCE", edited_text: str(formData, "edited_text") || null, rationale: str(formData, "rationale") }));
+    return { message: "Reviewer feedback recorded as a separate versioned event. The AI output is unchanged, and no review or approval was recorded." };
+  });
 }

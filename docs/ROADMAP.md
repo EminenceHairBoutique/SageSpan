@@ -1,6 +1,8 @@
 # Roadmap
 
-Priorities follow the V3 founder documents. Everything below P0 is a hypothesis
+> **V5 (2026-11-05):** the controlling sequence is now in `docs/product/SAGESPAN_V5_MASTER_SOURCE_OF_TRUTH.md` §11/§22 and `CLAUDE.md` §6: PR-001 → PR-002 → DUAL-000/001 (done, synthetic) → AI-000/001 (done, offline mock) → PERS-001/002 (slice done; next PR) → PR-003/DATA-001 → SCENARIO-001/PLAN-001 → AI-002…005 → IMPORT-001/ASSURANCE-001 → REG-001/FIN-VERIFY-001. The V3 priorities below are retained as history for the assurance pillar.
+
+Priorities below follow the V3 founder documents. Everything below P0 is a hypothesis
 to validate with firms, not a commitment.
 
 ## P0 (this milestone) — shipped in the vertical slice

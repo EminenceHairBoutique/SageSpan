@@ -11,6 +11,7 @@ export function HouseholdTabs({ id }: { id: string }) {
     { href: base, label: "Overview" },
     { href: `${base}/imports`, label: "Imports" },
     { href: `${base}/checks`, label: "Checks" },
+    { href: `${base}/ai-review`, label: "AI review" },
     { href: `${base}/review`, label: "Review" },
     { href: `${base}/evidence`, label: "Evidence" },
   ];

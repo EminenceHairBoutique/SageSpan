@@ -1,5 +1,7 @@
 # Architecture
 
+> **V5 addition (2026-11-06).** Two workspaces share this architecture: the firm console (`/demo/app`, `org_id` scope) and the Personal workspace (`/demo/personal`, `workspace_id` scope). New pieces: `apps/web/src/domain/personal/*` (snapshot → receipted engine runs → policy), `apps/web/src/ai/*` (evidence resolver → provider → tools → validator → immutable run), personal engines in `services/calculator/app/financial/{cashflow,debt}.py`, and contracts under `packages/contracts/src/{workspace,personal,personal-calc,decisions,decision-policy,ai}`. Details: `docs/architecture/DUAL_WORKSPACE_ADR.md`.
+
 SageSpan (provisional brand) is a monorepo with three runtime parts and one
 shared contract package.
 

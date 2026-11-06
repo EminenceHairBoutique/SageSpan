@@ -5,10 +5,15 @@
  */
 export const brand = {
   name: process.env.NEXT_PUBLIC_BRAND_NAME?.trim() || "SageSpan",
-  tagline: process.env.NEXT_PUBLIC_BRAND_TAGLINE?.trim() || "Independent assurance for every retirement plan",
+  tagline: process.env.NEXT_PUBLIC_BRAND_TAGLINE?.trim() || "Clear money decisions, realistic plans, independent checks",
   status: "provisional" as const,
   legalNotice: "Provisional working name pending trademark and domain clearance. Not a registered mark.",
-  productNoun: "independent retirement plan assurance",
+  /** V5 (2026-11-05): one platform, two audiences. */
+  productNoun: "financial clarity, retirement planning and independent plan assurance",
+  personalCta: "Plan My Finances",
+  firmCta: "Explore for Firms",
+  /** Kept for the assurance pillar's own copy. */
+  assuranceTagline: "Independent assurance for every retirement plan",
   contactNote: "Pilot interest submissions in this build are stored locally and are not transmitted to any external service.",
 };
 

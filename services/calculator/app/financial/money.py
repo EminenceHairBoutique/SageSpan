@@ -40,3 +40,13 @@ def money_str(value: Decimal) -> str:
 
 def is_positive(value: Decimal) -> bool:
     return value > ZERO
+
+
+def format_usd(value: Decimal) -> str:
+    """Display form for human-readable messages, e.g. Decimal('2399') -> '$2,399.00'.
+
+    Messages only. Structured response fields stay plain decimal strings.
+    """
+    q = round_cents(value)
+    sign = "-" if q < 0 else ""
+    return f"{sign}${abs(q):,.2f}"

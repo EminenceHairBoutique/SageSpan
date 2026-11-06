@@ -45,3 +45,18 @@ export const ILLUSTRATIVE_PRICE_TABLE = [50, 100, 250, 500, 1000].map((h) => ({
 export function formatUsd(amount: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: amount % 1 === 0 ? 0 : 2 }).format(amount);
 }
+
+
+/**
+ * V5 consumer pricing HYPOTHESES (blueprint §12). Unvalidated research ranges to
+ * test in interviews; not announced prices, no billing. A firm-client household
+ * must never be billed twice for using both portals.
+ */
+export const CONSUMER_PRICING_HYPOTHESIS = {
+  status: "UNVALIDATED_RESEARCH_HYPOTHESIS",
+  currency: "USD",
+  free: { label: "Educational and manual-entry tools", monthlyUsd: 0 },
+  personal: { label: "Personal", monthlyUsdLow: 8, monthlyUsdHigh: 15 },
+  household: { label: "Household", monthlyUsdLow: 15, monthlyUsdHigh: 30 },
+  conduct: ["No covert commissions or paid steering", "Recommendation order never favours SageSpan revenue", "Any referral relationship disclosed and legally reviewed"],
+} as const;

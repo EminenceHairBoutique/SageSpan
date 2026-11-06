@@ -1,0 +1,550 @@
+{
+  "check_type": "DEBT_PATHS",
+  "result_status": "COMPUTED",
+  "as_of_date": "2026-11-01",
+  "liquidity_guard": {
+    "liquid_cash": "3650.00",
+    "cash_floor": "1500.00",
+    "headroom": "2150.00",
+    "floor_respected": true,
+    "budget_covers_minimums": true,
+    "total_minimums": "455.00",
+    "extra_per_month": "250.00"
+  },
+  "results": [
+    {
+      "strategy": "MINIMUMS_ONLY",
+      "feasible": true,
+      "infeasible_reason": null,
+      "months_to_payoff": 58,
+      "payoff_date": "2031-09-01",
+      "total_interest": "4888.22",
+      "total_paid": "21008.22",
+      "payoff_order": [
+        {
+          "liability_ref": "liab_castillo_car",
+          "month_index": 42,
+          "payoff_date": "2030-05-01"
+        },
+        {
+          "liability_ref": "liab_castillo_card",
+          "month_index": 58,
+          "payoff_date": "2031-09-01"
+        }
+      ],
+      "first_year": [
+        {
+          "month_index": 1,
+          "month_start": "2026-11-01",
+          "opening_total_balance": "16120.00",
+          "interest": "165.36",
+          "payment": "455.00",
+          "closing_total_balance": "15830.36"
+        },
+        {
+          "month_index": 2,
+          "month_start": "2026-12-01",
+          "opening_total_balance": "15830.36",
+          "interest": "163.02",
+          "payment": "455.00",
+          "closing_total_balance": "15538.38"
+        },
+        {
+          "month_index": 3,
+          "month_start": "2027-01-01",
+          "opening_total_balance": "15538.38",
+          "interest": "160.65",
+          "payment": "455.00",
+          "closing_total_balance": "15244.03"
+        },
+        {
+          "month_index": 4,
+          "month_start": "2027-02-01",
+          "opening_total_balance": "15244.03",
+          "interest": "158.25",
+          "payment": "455.00",
+          "closing_total_balance": "14947.28"
+        },
+        {
+          "month_index": 5,
+          "month_start": "2027-03-01",
+          "opening_total_balance": "14947.28",
+          "interest": "155.83",
+          "payment": "455.00",
+          "closing_total_balance": "14648.11"
+        },
+        {
+          "month_index": 6,
+          "month_start": "2027-04-01",
+          "opening_total_balance": "14648.11",
+          "interest": "153.38",
+          "payment": "455.00",
+          "closing_total_balance": "14346.49"
+        },
+        {
+          "month_index": 7,
+          "month_start": "2027-05-01",
+          "opening_total_balance": "14346.49",
+          "interest": "150.90",
+          "payment": "455.00",
+          "closing_total_balance": "14042.39"
+        },
+        {
+          "month_index": 8,
+          "month_start": "2027-06-01",
+          "opening_total_balance": "14042.39",
+          "interest": "148.39",
+          "payment": "455.00",
+          "closing_total_balance": "13735.78"
+        },
+        {
+          "month_index": 9,
+          "month_start": "2027-07-01",
+          "opening_total_balance": "13735.78",
+          "interest": "145.85",
+          "payment": "455.00",
+          "closing_total_balance": "13426.63"
+        },
+        {
+          "month_index": 10,
+          "month_start": "2027-08-01",
+          "opening_total_balance": "13426.63",
+          "interest": "143.28",
+          "payment": "455.00",
+          "closing_total_balance": "13114.91"
+        },
+        {
+          "month_index": 11,
+          "month_start": "2027-09-01",
+          "opening_total_balance": "13114.91",
+          "interest": "140.68",
+          "payment": "455.00",
+          "closing_total_balance": "12800.59"
+        },
+        {
+          "month_index": 12,
+          "month_start": "2027-10-01",
+          "opening_total_balance": "12800.59",
+          "interest": "138.04",
+          "payment": "455.00",
+          "closing_total_balance": "12483.63"
+        }
+      ],
+      "interest_saved_vs_minimums": null,
+      "months_saved_vs_minimums": null
+    },
+    {
+      "strategy": "AVALANCHE",
+      "feasible": true,
+      "infeasible_reason": null,
+      "months_to_payoff": 26,
+      "payoff_date": "2029-01-01",
+      "total_interest": "1862.18",
+      "total_paid": "17982.18",
+      "payoff_order": [
+        {
+          "liability_ref": "liab_castillo_card",
+          "month_index": 15,
+          "payoff_date": "2028-02-01"
+        },
+        {
+          "liability_ref": "liab_castillo_car",
+          "month_index": 26,
+          "payoff_date": "2029-01-01"
+        }
+      ],
+      "first_year": [
+        {
+          "month_index": 1,
+          "month_start": "2026-11-01",
+          "opening_total_balance": "16120.00",
+          "interest": "165.36",
+          "payment": "705.00",
+          "closing_total_balance": "15580.36"
+        },
+        {
+          "month_index": 2,
+          "month_start": "2026-12-01",
+          "opening_total_balance": "15580.36",
+          "interest": "157.81",
+          "payment": "705.00",
+          "closing_total_balance": "15033.17"
+        },
+        {
+          "month_index": 3,
+          "month_start": "2027-01-01",
+          "opening_total_balance": "15033.17",
+          "interest": "150.13",
+          "payment": "705.00",
+          "closing_total_balance": "14478.30"
+        },
+        {
+          "month_index": 4,
+          "month_start": "2027-02-01",
+          "opening_total_balance": "14478.30",
+          "interest": "142.30",
+          "payment": "705.00",
+          "closing_total_balance": "13915.60"
+        },
+        {
+          "month_index": 5,
+          "month_start": "2027-03-01",
+          "opening_total_balance": "13915.60",
+          "interest": "134.35",
+          "payment": "705.00",
+          "closing_total_balance": "13344.95"
+        },
+        {
+          "month_index": 6,
+          "month_start": "2027-04-01",
+          "opening_total_balance": "13344.95",
+          "interest": "126.24",
+          "payment": "705.00",
+          "closing_total_balance": "12766.19"
+        },
+        {
+          "month_index": 7,
+          "month_start": "2027-05-01",
+          "opening_total_balance": "12766.19",
+          "interest": "117.99",
+          "payment": "705.00",
+          "closing_total_balance": "12179.18"
+        },
+        {
+          "month_index": 8,
+          "month_start": "2027-06-01",
+          "opening_total_balance": "12179.18",
+          "interest": "109.59",
+          "payment": "705.00",
+          "closing_total_balance": "11583.77"
+        },
+        {
+          "month_index": 9,
+          "month_start": "2027-07-01",
+          "opening_total_balance": "11583.77",
+          "interest": "101.03",
+          "payment": "705.00",
+          "closing_total_balance": "10979.80"
+        },
+        {
+          "month_index": 10,
+          "month_start": "2027-08-01",
+          "opening_total_balance": "10979.80",
+          "interest": "92.33",
+          "payment": "705.00",
+          "closing_total_balance": "10367.13"
+        },
+        {
+          "month_index": 11,
+          "month_start": "2027-09-01",
+          "opening_total_balance": "10367.13",
+          "interest": "83.46",
+          "payment": "705.00",
+          "closing_total_balance": "9745.59"
+        },
+        {
+          "month_index": 12,
+          "month_start": "2027-10-01",
+          "opening_total_balance": "9745.59",
+          "interest": "74.42",
+          "payment": "705.00",
+          "closing_total_balance": "9115.01"
+        }
+      ],
+      "interest_saved_vs_minimums": "3026.04",
+      "months_saved_vs_minimums": 32
+    },
+    {
+      "strategy": "SNOWBALL",
+      "feasible": true,
+      "infeasible_reason": null,
+      "months_to_payoff": 26,
+      "payoff_date": "2029-01-01",
+      "total_interest": "1862.18",
+      "total_paid": "17982.18",
+      "payoff_order": [
+        {
+          "liability_ref": "liab_castillo_card",
+          "month_index": 15,
+          "payoff_date": "2028-02-01"
+        },
+        {
+          "liability_ref": "liab_castillo_car",
+          "month_index": 26,
+          "payoff_date": "2029-01-01"
+        }
+      ],
+      "first_year": [
+        {
+          "month_index": 1,
+          "month_start": "2026-11-01",
+          "opening_total_balance": "16120.00",
+          "interest": "165.36",
+          "payment": "705.00",
+          "closing_total_balance": "15580.36"
+        },
+        {
+          "month_index": 2,
+          "month_start": "2026-12-01",
+          "opening_total_balance": "15580.36",
+          "interest": "157.81",
+          "payment": "705.00",
+          "closing_total_balance": "15033.17"
+        },
+        {
+          "month_index": 3,
+          "month_start": "2027-01-01",
+          "opening_total_balance": "15033.17",
+          "interest": "150.13",
+          "payment": "705.00",
+          "closing_total_balance": "14478.30"
+        },
+        {
+          "month_index": 4,
+          "month_start": "2027-02-01",
+          "opening_total_balance": "14478.30",
+          "interest": "142.30",
+          "payment": "705.00",
+          "closing_total_balance": "13915.60"
+        },
+        {
+          "month_index": 5,
+          "month_start": "2027-03-01",
+          "opening_total_balance": "13915.60",
+          "interest": "134.35",
+          "payment": "705.00",
+          "closing_total_balance": "13344.95"
+        },
+        {
+          "month_index": 6,
+          "month_start": "2027-04-01",
+          "opening_total_balance": "13344.95",
+          "interest": "126.24",
+          "payment": "705.00",
+          "closing_total_balance": "12766.19"
+        },
+        {
+          "month_index": 7,
+          "month_start": "2027-05-01",
+          "opening_total_balance": "12766.19",
+          "interest": "117.99",
+          "payment": "705.00",
+          "closing_total_balance": "12179.18"
+        },
+        {
+          "month_index": 8,
+          "month_start": "2027-06-01",
+          "opening_total_balance": "12179.18",
+          "interest": "109.59",
+          "payment": "705.00",
+          "closing_total_balance": "11583.77"
+        },
+        {
+          "month_index": 9,
+          "month_start": "2027-07-01",
+          "opening_total_balance": "11583.77",
+          "interest": "101.03",
+          "payment": "705.00",
+          "closing_total_balance": "10979.80"
+        },
+        {
+          "month_index": 10,
+          "month_start": "2027-08-01",
+          "opening_total_balance": "10979.80",
+          "interest": "92.33",
+          "payment": "705.00",
+          "closing_total_balance": "10367.13"
+        },
+        {
+          "month_index": 11,
+          "month_start": "2027-09-01",
+          "opening_total_balance": "10367.13",
+          "interest": "83.46",
+          "payment": "705.00",
+          "closing_total_balance": "9745.59"
+        },
+        {
+          "month_index": 12,
+          "month_start": "2027-10-01",
+          "opening_total_balance": "9745.59",
+          "interest": "74.42",
+          "payment": "705.00",
+          "closing_total_balance": "9115.01"
+        }
+      ],
+      "interest_saved_vs_minimums": "3026.04",
+      "months_saved_vs_minimums": 32
+    },
+    {
+      "strategy": "HYBRID",
+      "feasible": true,
+      "infeasible_reason": null,
+      "months_to_payoff": 26,
+      "payoff_date": "2029-01-01",
+      "total_interest": "1862.18",
+      "total_paid": "17982.18",
+      "payoff_order": [
+        {
+          "liability_ref": "liab_castillo_card",
+          "month_index": 15,
+          "payoff_date": "2028-02-01"
+        },
+        {
+          "liability_ref": "liab_castillo_car",
+          "month_index": 26,
+          "payoff_date": "2029-01-01"
+        }
+      ],
+      "first_year": [
+        {
+          "month_index": 1,
+          "month_start": "2026-11-01",
+          "opening_total_balance": "16120.00",
+          "interest": "165.36",
+          "payment": "705.00",
+          "closing_total_balance": "15580.36"
+        },
+        {
+          "month_index": 2,
+          "month_start": "2026-12-01",
+          "opening_total_balance": "15580.36",
+          "interest": "157.81",
+          "payment": "705.00",
+          "closing_total_balance": "15033.17"
+        },
+        {
+          "month_index": 3,
+          "month_start": "2027-01-01",
+          "opening_total_balance": "15033.17",
+          "interest": "150.13",
+          "payment": "705.00",
+          "closing_total_balance": "14478.30"
+        },
+        {
+          "month_index": 4,
+          "month_start": "2027-02-01",
+          "opening_total_balance": "14478.30",
+          "interest": "142.30",
+          "payment": "705.00",
+          "closing_total_balance": "13915.60"
+        },
+        {
+          "month_index": 5,
+          "month_start": "2027-03-01",
+          "opening_total_balance": "13915.60",
+          "interest": "134.35",
+          "payment": "705.00",
+          "closing_total_balance": "13344.95"
+        },
+        {
+          "month_index": 6,
+          "month_start": "2027-04-01",
+          "opening_total_balance": "13344.95",
+          "interest": "126.24",
+          "payment": "705.00",
+          "closing_total_balance": "12766.19"
+        },
+        {
+          "month_index": 7,
+          "month_start": "2027-05-01",
+          "opening_total_balance": "12766.19",
+          "interest": "117.99",
+          "payment": "705.00",
+          "closing_total_balance": "12179.18"
+        },
+        {
+          "month_index": 8,
+          "month_start": "2027-06-01",
+          "opening_total_balance": "12179.18",
+          "interest": "109.59",
+          "payment": "705.00",
+          "closing_total_balance": "11583.77"
+        },
+        {
+          "month_index": 9,
+          "month_start": "2027-07-01",
+          "opening_total_balance": "11583.77",
+          "interest": "101.03",
+          "payment": "705.00",
+          "closing_total_balance": "10979.80"
+        },
+        {
+          "month_index": 10,
+          "month_start": "2027-08-01",
+          "opening_total_balance": "10979.80",
+          "interest": "92.33",
+          "payment": "705.00",
+          "closing_total_balance": "10367.13"
+        },
+        {
+          "month_index": 11,
+          "month_start": "2027-09-01",
+          "opening_total_balance": "10367.13",
+          "interest": "83.46",
+          "payment": "705.00",
+          "closing_total_balance": "9745.59"
+        },
+        {
+          "month_index": 12,
+          "month_start": "2027-10-01",
+          "opening_total_balance": "9745.59",
+          "interest": "74.42",
+          "payment": "705.00",
+          "closing_total_balance": "9115.01"
+        }
+      ],
+      "interest_saved_vs_minimums": "3026.04",
+      "months_saved_vs_minimums": 32
+    }
+  ],
+  "assumptions": [
+    "Balances, APRs and minimum payments are as reported on the as-of date; no new charges are added.",
+    "The monthly debt budget is held constant for the whole horizon.",
+    "Rewards credit card: variable rate held constant at 24.99%."
+  ],
+  "flags": [],
+  "receipt": {
+    "receipt_version": "sagespan.receipt.v1",
+    "engine_name": "sagespan-calculator",
+    "engine_version": "0.1.0",
+    "request_hash": "28c3b8c259cc2b25289f3166613cb928667430afb6cb23109473238ff7272bb4",
+    "run_hash": "b85265538567416a8e7aaf0e449b1823eee1d7eac6ac720a1f34ead4dfb75905",
+    "computed_at": "2026-11-01T12:00:00Z",
+    "org_context": {
+      "org_id": "ws_castillo_personal"
+    },
+    "snapshot_ref": null,
+    "rule_sets": [
+      {
+        "rule_set_id": "personal.debt_amortization",
+        "version": "2026.1",
+        "status": "PUBLISHED",
+        "checksum": "26963a49333af302f2c4e4245dbf0454f7b935cb89e6aa82e170c986ff732f67",
+        "effective_from": "2026-01-01",
+        "effective_to": null,
+        "sources": []
+      }
+    ],
+    "inputs_used": {
+      "as_of_date": "2026-11-01",
+      "liabilities": 2,
+      "monthly_debt_budget": null,
+      "extra_monthly_payment": "250.00",
+      "strategies": [
+        "MINIMUMS_ONLY",
+        "AVALANCHE",
+        "SNOWBALL",
+        "HYBRID"
+      ],
+      "workspace_ref": "ws_castillo_personal",
+      "input_hash": null
+    },
+    "formula": "monthly: interest = round(balance * APR/100/12); pay minimums; extra = budget - minimums -> strategy target",
+    "limitations": [
+      "Illustrative amortisation on the stated balances, APRs and minimums; not a recommendation to refinance, consolidate or change any payment.",
+      "Interest accrues monthly at APR/12 on the opening balance and is rounded to cents each month; lender daily-balance methods, fees, grace periods and rate changes are not modelled.",
+      "Variable rates are held constant; promotional rates apply until their stated expiry.",
+      "Required minimum payments are always paid in full before any extra payment is directed anywhere."
+    ]
+  }
+}

@@ -155,6 +155,491 @@
         "title": "Beneficiary",
         "type": "object"
       },
+      "CashAccountInput": {
+        "additionalProperties": false,
+        "properties": {
+          "account_ref": {
+            "description": "Opaque reference from the personal workspace; no account numbers.",
+            "title": "Account Ref",
+            "type": "string"
+          },
+          "balance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Balance"
+          },
+          "balance_as_of": {
+            "format": "date",
+            "title": "Balance As Of",
+            "type": "string"
+          },
+          "currency": {
+            "default": "USD",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Currency",
+            "type": "string"
+          },
+          "data_state": {
+            "default": "USER_REPORTED",
+            "enum": [
+              "USER_REPORTED",
+              "EVIDENCE_VERIFIED",
+              "ASSUMED",
+              "MISSING",
+              "STALE",
+              "CONFLICTING"
+            ],
+            "title": "Data State",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "liquid": {
+            "default": true,
+            "description": "Counts toward the cash buffer only when true (checking/savings, not retirement or illiquid assets).",
+            "title": "Liquid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "account_ref",
+          "balance",
+          "balance_as_of"
+        ],
+        "title": "CashAccountInput",
+        "type": "object"
+      },
+      "CashSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "above_floor": {
+            "title": "Above Floor",
+            "type": "string"
+          },
+          "buffer_gap_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Positive when liquid cash is below the user's target buffer.",
+            "title": "Buffer Gap Amount"
+          },
+          "buffer_target_months": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buffer Target Months"
+          },
+          "cash_floor": {
+            "title": "Cash Floor",
+            "type": "string"
+          },
+          "essential_buffer_months": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "liquid_total / monthly_essential, 2 dp; null when essentials are zero.",
+            "title": "Essential Buffer Months"
+          },
+          "liquid_total": {
+            "title": "Liquid Total",
+            "type": "string"
+          }
+        },
+        "required": [
+          "liquid_total",
+          "cash_floor",
+          "above_floor"
+        ],
+        "title": "CashSummary",
+        "type": "object"
+      },
+      "Collision": {
+        "additionalProperties": false,
+        "properties": {
+          "refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Refs",
+            "type": "array"
+          },
+          "total_due": {
+            "title": "Total Due",
+            "type": "string"
+          },
+          "window_end": {
+            "format": "date",
+            "title": "Window End",
+            "type": "string"
+          },
+          "window_start": {
+            "format": "date",
+            "title": "Window Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "window_start",
+          "window_end",
+          "total_due",
+          "refs"
+        ],
+        "title": "Collision",
+        "type": "object"
+      },
+      "CommitmentSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "discretionary_items": {
+            "title": "Discretionary Items",
+            "type": "integer"
+          },
+          "essential_items": {
+            "title": "Essential Items",
+            "type": "integer"
+          },
+          "monthly_debt_minimums": {
+            "title": "Monthly Debt Minimums",
+            "type": "string"
+          },
+          "monthly_discretionary_typical": {
+            "title": "Monthly Discretionary Typical",
+            "type": "string"
+          },
+          "monthly_essential": {
+            "description": "Essential obligations normalised to a month plus essential variable spending (typical).",
+            "title": "Monthly Essential",
+            "type": "string"
+          }
+        },
+        "required": [
+          "monthly_essential",
+          "monthly_discretionary_typical",
+          "monthly_debt_minimums",
+          "essential_items",
+          "discretionary_items"
+        ],
+        "title": "CommitmentSummary",
+        "type": "object"
+      },
+      "DataQualityItem": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "USER_REPORTED",
+              "EVIDENCE_VERIFIED",
+              "ASSUMED",
+              "MISSING",
+              "STALE",
+              "CONFLICTING"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "state"
+        ],
+        "title": "DataQualityItem",
+        "type": "object"
+      },
+      "DebtPathsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "cash_accounts": {
+            "items": {
+              "$ref": "#/components/schemas/CashAccountInput"
+            },
+            "title": "Cash Accounts",
+            "type": "array"
+          },
+          "extra_monthly_payment": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Amount above the sum of stated minimums to direct at the strategy target each month. The engine derives the budget as minimums + extra so the web tier never sums money.",
+            "title": "Extra Monthly Payment"
+          },
+          "input_hash": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Hash"
+          },
+          "liabilities": {
+            "items": {
+              "$ref": "#/components/schemas/LiabilityInput"
+            },
+            "minItems": 1,
+            "title": "Liabilities",
+            "type": "array"
+          },
+          "liquid_cash": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Total liquid cash. Alternatively supply cash_accounts and let the engine total the liquid ones (the web tier never sums money).",
+            "title": "Liquid Cash"
+          },
+          "max_months": {
+            "default": 600,
+            "maximum": 600.0,
+            "minimum": 1.0,
+            "title": "Max Months",
+            "type": "integer"
+          },
+          "monthly_debt_budget": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Total amount available for all debt payments each month, including minimums. Comes from the user's margin, never from below the cash floor. Supply exactly one of monthly_debt_budget or extra_monthly_payment.",
+            "title": "Monthly Debt Budget"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/LiquidityPolicy"
+          },
+          "schema_version": {
+            "const": "sagespan.debt-paths.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "strategies": {
+            "items": {
+              "enum": [
+                "MINIMUMS_ONLY",
+                "AVALANCHE",
+                "SNOWBALL",
+                "HYBRID"
+              ],
+              "type": "string"
+            },
+            "title": "Strategies",
+            "type": "array"
+          },
+          "workspace_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Ref"
+          }
+        },
+        "required": [
+          "schema_version",
+          "as_of_date",
+          "liabilities",
+          "policy"
+        ],
+        "title": "DebtPathsRequest",
+        "type": "object"
+      },
+      "DebtPathsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "check_type": {
+            "const": "DEBT_PATHS",
+            "title": "Check Type",
+            "type": "string"
+          },
+          "flags": {
+            "items": {
+              "$ref": "#/components/schemas/Flag"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "liquidity_guard": {
+            "$ref": "#/components/schemas/LiquidityGuard"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/Receipt"
+          },
+          "result_status": {
+            "enum": [
+              "COMPUTED",
+              "INFEASIBLE"
+            ],
+            "title": "Result Status",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/StrategyResult"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "check_type",
+          "result_status",
+          "as_of_date",
+          "liquidity_guard",
+          "results",
+          "receipt"
+        ],
+        "title": "DebtPathsResponse",
+        "type": "object"
+      },
+      "DebtSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "balance_weighted_apr_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balance Weighted Apr Percent"
+          },
+          "highest_apr_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highest Apr Percent"
+          },
+          "highest_apr_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highest Apr Ref"
+          },
+          "liability_count": {
+            "title": "Liability Count",
+            "type": "integer"
+          },
+          "total_balance": {
+            "title": "Total Balance",
+            "type": "string"
+          },
+          "total_minimums": {
+            "title": "Total Minimums",
+            "type": "string"
+          }
+        },
+        "required": [
+          "liability_count",
+          "total_balance",
+          "total_minimums"
+        ],
+        "title": "DebtSummary",
+        "type": "object"
+      },
       "DeclaredInputs": {
         "additionalProperties": false,
         "properties": {
@@ -494,6 +979,236 @@
         "title": "FirstRmdElection",
         "type": "object"
       },
+      "Flag": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "refs": {
+            "description": "Input references (account_ref, obligation_ref, liability_ref...) the flag is about.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Refs",
+            "type": "array"
+          },
+          "severity": {
+            "enum": [
+              "INFO",
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ],
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "title": "Flag",
+        "type": "object"
+      },
+      "GoalChange": {
+        "additionalProperties": false,
+        "properties": {
+          "baseline_months_to_target": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Months To Target"
+          },
+          "baseline_on_track": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline On Track"
+          },
+          "goal_ref": {
+            "title": "Goal Ref",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "scenario_months_to_target": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Months To Target"
+          },
+          "scenario_on_track": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario On Track"
+          }
+        },
+        "required": [
+          "goal_ref",
+          "label"
+        ],
+        "title": "GoalChange",
+        "type": "object"
+      },
+      "GoalInput": {
+        "additionalProperties": false,
+        "properties": {
+          "goal_ref": {
+            "title": "Goal Ref",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "monthly_contribution": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Contribution"
+          },
+          "saved_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Saved Amount"
+          },
+          "target_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Target Amount"
+          },
+          "target_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Date"
+          }
+        },
+        "required": [
+          "goal_ref",
+          "label",
+          "target_amount"
+        ],
+        "title": "GoalInput",
+        "type": "object"
+      },
+      "GoalSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "goal_ref": {
+            "title": "Goal Ref",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "months_to_target_at_contribution": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ceil(remaining / monthly_contribution) when a contribution is stated and positive.",
+            "title": "Months To Target At Contribution"
+          },
+          "on_track_for_target_date": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Track For Target Date"
+          },
+          "remaining_amount": {
+            "title": "Remaining Amount",
+            "type": "string"
+          },
+          "saved_amount": {
+            "title": "Saved Amount",
+            "type": "string"
+          },
+          "target_amount": {
+            "title": "Target Amount",
+            "type": "string"
+          }
+        },
+        "required": [
+          "goal_ref",
+          "label",
+          "target_amount",
+          "saved_amount",
+          "remaining_amount"
+        ],
+        "title": "GoalSummary",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -623,6 +1338,600 @@
         "title": "ImportedComparison",
         "type": "object"
       },
+      "IncomeInterruptionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_skipped_in_horizon": {
+            "title": "Amount Skipped In Horizon",
+            "type": "string"
+          },
+          "cash_above_floor": {
+            "title": "Cash Above Floor",
+            "type": "string"
+          },
+          "cash_above_floor_covers_interruption": {
+            "description": "True when runway at typical spending is at least the interruption length (or there is no shortfall).",
+            "title": "Cash Above Floor Covers Interruption",
+            "type": "boolean"
+          },
+          "end_date": {
+            "description": "Exclusive: payments on or after this date resume.",
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "horizon_covers_interruption": {
+            "description": "False when the interruption ends after the dated outlook horizon; dated figures then show only part of it.",
+            "title": "Horizon Covers Interruption",
+            "type": "boolean"
+          },
+          "income_forgone_typical": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "stream_typical_monthly x months.",
+            "title": "Income Forgone Typical"
+          },
+          "margin_essential_only_during": {
+            "description": "Typical income of the remaining streams minus essential commitments only.",
+            "title": "Margin Essential Only During",
+            "type": "string"
+          },
+          "margin_typical_during": {
+            "description": "Typical income of the remaining streams minus essential and typical discretionary spending.",
+            "title": "Margin Typical During",
+            "type": "string"
+          },
+          "months": {
+            "title": "Months",
+            "type": "integer"
+          },
+          "payments_skipped_in_horizon": {
+            "title": "Payments Skipped In Horizon",
+            "type": "integer"
+          },
+          "runway_months_essentials_only": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "cash_above_floor / monthly shortfall if discretionary spending stopped; null when there is no shortfall.",
+            "title": "Runway Months Essentials Only"
+          },
+          "runway_months_typical_spending": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "cash_above_floor / monthly shortfall at typical spending; null when there is no shortfall.",
+            "title": "Runway Months Typical Spending"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "stream_ref": {
+            "title": "Stream Ref",
+            "type": "string"
+          },
+          "stream_typical_monthly": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Median of the stream's own observed months.",
+            "title": "Stream Typical Monthly"
+          }
+        },
+        "required": [
+          "stream_ref",
+          "start_date",
+          "end_date",
+          "months",
+          "payments_skipped_in_horizon",
+          "amount_skipped_in_horizon",
+          "cash_above_floor",
+          "margin_typical_during",
+          "margin_essential_only_during",
+          "cash_above_floor_covers_interruption",
+          "horizon_covers_interruption"
+        ],
+        "title": "IncomeInterruptionResult",
+        "type": "object"
+      },
+      "IncomeStreamInput": {
+        "additionalProperties": false,
+        "properties": {
+          "cadence": {
+            "default": "MONTHLY",
+            "enum": [
+              "WEEKLY",
+              "BIWEEKLY",
+              "MONTHLY",
+              "QUARTERLY",
+              "ANNUAL",
+              "ONE_TIME"
+            ],
+            "title": "Cadence",
+            "type": "string"
+          },
+          "data_state": {
+            "default": "USER_REPORTED",
+            "enum": [
+              "USER_REPORTED",
+              "EVIDENCE_VERIFIED",
+              "ASSUMED",
+              "MISSING",
+              "STALE",
+              "CONFLICTING"
+            ],
+            "title": "Data State",
+            "type": "string"
+          },
+          "expected_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Expected per-payment amount for the outlook. If omitted the engine uses the typical (median) monthly amount scaled to the cadence.",
+            "title": "Expected Amount"
+          },
+          "kind": {
+            "default": "OTHER",
+            "enum": [
+              "SALARY",
+              "HOURLY",
+              "VARIABLE_PAY",
+              "SELF_EMPLOYMENT",
+              "BENEFIT",
+              "PENSION",
+              "RENTAL",
+              "OTHER"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "next_expected_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Expected Date"
+          },
+          "observed_monthly_amounts": {
+            "description": "Net amounts received per calendar month, oldest first. Used for the typical/low statistics.",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Observed Monthly Amounts",
+            "type": "array"
+          },
+          "reliability": {
+            "default": "UNKNOWN",
+            "enum": [
+              "REGULAR",
+              "VARIABLE",
+              "IRREGULAR",
+              "UNKNOWN"
+            ],
+            "title": "Reliability",
+            "type": "string"
+          },
+          "stream_ref": {
+            "title": "Stream Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stream_ref"
+        ],
+        "title": "IncomeStreamInput",
+        "type": "object"
+      },
+      "IncomeSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "classification": {
+            "enum": [
+              "REGULAR",
+              "VARIABLE",
+              "IRREGULAR",
+              "UNKNOWN"
+            ],
+            "title": "Classification",
+            "type": "string"
+          },
+          "high_monthly": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High Monthly"
+          },
+          "low_monthly": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Minimum observed monthly total.",
+            "title": "Low Monthly"
+          },
+          "observed_months": {
+            "title": "Observed Months",
+            "type": "integer"
+          },
+          "spread_ratio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "(high - low) / typical, 4 dp.",
+            "title": "Spread Ratio"
+          },
+          "typical_monthly": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Median of observed monthly totals across all streams.",
+            "title": "Typical Monthly"
+          }
+        },
+        "required": [
+          "observed_months",
+          "classification"
+        ],
+        "title": "IncomeSummary",
+        "type": "object"
+      },
+      "LiabilityInput": {
+        "additionalProperties": false,
+        "properties": {
+          "apr_percent": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Annual percentage rate as a percent, e.g. '24.99'.",
+            "title": "Apr Percent"
+          },
+          "balance": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Balance"
+          },
+          "data_state": {
+            "default": "USER_REPORTED",
+            "enum": [
+              "USER_REPORTED",
+              "EVIDENCE_VERIFIED",
+              "ASSUMED",
+              "MISSING",
+              "STALE",
+              "CONFLICTING"
+            ],
+            "title": "Data State",
+            "type": "string"
+          },
+          "due_day_of_month": {
+            "anyOf": [
+              {
+                "maximum": 31.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Day Of Month"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "liability_ref": {
+            "title": "Liability Ref",
+            "type": "string"
+          },
+          "minimum_payment": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Minimum Payment"
+          },
+          "promo_apr_expires": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promo Apr Expires"
+          },
+          "promo_apr_percent": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promo Apr Percent"
+          },
+          "rate_type": {
+            "default": "FIXED",
+            "enum": [
+              "FIXED",
+              "VARIABLE",
+              "PROMOTIONAL"
+            ],
+            "title": "Rate Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "liability_ref",
+          "balance",
+          "apr_percent",
+          "minimum_payment"
+        ],
+        "title": "LiabilityInput",
+        "type": "object"
+      },
+      "LiquidityGuard": {
+        "additionalProperties": false,
+        "properties": {
+          "budget_covers_minimums": {
+            "title": "Budget Covers Minimums",
+            "type": "boolean"
+          },
+          "cash_floor": {
+            "title": "Cash Floor",
+            "type": "string"
+          },
+          "extra_per_month": {
+            "description": "budget - total minimums at the start; never negative.",
+            "title": "Extra Per Month",
+            "type": "string"
+          },
+          "floor_respected": {
+            "title": "Floor Respected",
+            "type": "boolean"
+          },
+          "headroom": {
+            "title": "Headroom",
+            "type": "string"
+          },
+          "liquid_cash": {
+            "title": "Liquid Cash",
+            "type": "string"
+          },
+          "total_minimums": {
+            "title": "Total Minimums",
+            "type": "string"
+          }
+        },
+        "required": [
+          "liquid_cash",
+          "cash_floor",
+          "headroom",
+          "floor_respected",
+          "budget_covers_minimums",
+          "total_minimums",
+          "extra_per_month"
+        ],
+        "title": "LiquidityGuard",
+        "type": "object"
+      },
+      "LiquidityPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "buffer_target_months": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "User-chosen essential-expense buffer target. Optional; the engine never imposes a universal '3 months'.",
+            "title": "Buffer Target Months"
+          },
+          "cash_floor": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "The user's own minimum liquid-cash floor. A hard constraint for recommendations, never a universal rule.",
+            "title": "Cash Floor"
+          }
+        },
+        "required": [
+          "cash_floor"
+        ],
+        "title": "LiquidityPolicy",
+        "type": "object"
+      },
+      "MarginSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "essential_only_low": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "low income - essential (what is left if discretionary spending stopped)",
+            "title": "Essential Only Low"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "low income - essential - discretionary typical",
+            "title": "Low"
+          },
+          "typical": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "typical income - essential - discretionary typical",
+            "title": "Typical"
+          }
+        },
+        "title": "MarginSummary",
+        "type": "object"
+      },
+      "MethodSetListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "engine_name": {
+            "title": "Engine Name",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "method_sets": {
+            "items": {
+              "$ref": "#/components/schemas/RuleSetRef"
+            },
+            "title": "Method Sets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "method_sets",
+          "engine_name",
+          "engine_version"
+        ],
+        "title": "MethodSetListResponse",
+        "type": "object"
+      },
       "Money": {
         "additionalProperties": false,
         "properties": {
@@ -656,6 +1965,46 @@
           "as_of_date"
         ],
         "title": "Money",
+        "type": "object"
+      },
+      "MonthRow": {
+        "additionalProperties": false,
+        "properties": {
+          "closing_total_balance": {
+            "title": "Closing Total Balance",
+            "type": "string"
+          },
+          "interest": {
+            "title": "Interest",
+            "type": "string"
+          },
+          "month_index": {
+            "title": "Month Index",
+            "type": "integer"
+          },
+          "month_start": {
+            "format": "date",
+            "title": "Month Start",
+            "type": "string"
+          },
+          "opening_total_balance": {
+            "title": "Opening Total Balance",
+            "type": "string"
+          },
+          "payment": {
+            "title": "Payment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "month_index",
+          "month_start",
+          "opening_total_balance",
+          "interest",
+          "payment",
+          "closing_total_balance"
+        ],
+        "title": "MonthRow",
         "type": "object"
       },
       "ObligationEvent": {
@@ -783,6 +2132,111 @@
         "title": "ObligationEvent",
         "type": "object"
       },
+      "ObligationInput": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "cadence": {
+            "default": "MONTHLY",
+            "enum": [
+              "WEEKLY",
+              "BIWEEKLY",
+              "MONTHLY",
+              "QUARTERLY",
+              "ANNUAL",
+              "ONE_TIME"
+            ],
+            "title": "Cadence",
+            "type": "string"
+          },
+          "category": {
+            "default": "OTHER",
+            "enum": [
+              "HOUSING",
+              "UTILITIES",
+              "INSURANCE",
+              "DEBT_MINIMUM",
+              "SUBSCRIPTION",
+              "TRANSPORT",
+              "FOOD",
+              "CHILDCARE",
+              "HEALTH",
+              "SAVINGS_TRANSFER",
+              "OTHER"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "data_state": {
+            "default": "USER_REPORTED",
+            "enum": [
+              "USER_REPORTED",
+              "EVIDENCE_VERIFIED",
+              "ASSUMED",
+              "MISSING",
+              "STALE",
+              "CONFLICTING"
+            ],
+            "title": "Data State",
+            "type": "string"
+          },
+          "essential": {
+            "default": true,
+            "title": "Essential",
+            "type": "boolean"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "liability_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set when this obligation is the minimum payment of a liability in `liabilities`.",
+            "title": "Liability Ref"
+          },
+          "next_due_date": {
+            "format": "date",
+            "title": "Next Due Date",
+            "type": "string"
+          },
+          "obligation_ref": {
+            "title": "Obligation Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "obligation_ref",
+          "amount",
+          "next_due_date"
+        ],
+        "title": "ObligationInput",
+        "type": "object"
+      },
       "OrgContext": {
         "additionalProperties": false,
         "properties": {
@@ -795,6 +2249,150 @@
           "org_id"
         ],
         "title": "OrgContext",
+        "type": "object"
+      },
+      "Outlook": {
+        "additionalProperties": false,
+        "properties": {
+          "collisions": {
+            "items": {
+              "$ref": "#/components/schemas/Collision"
+            },
+            "title": "Collisions",
+            "type": "array"
+          },
+          "end_projected_cash": {
+            "title": "End Projected Cash",
+            "type": "string"
+          },
+          "first_floor_breach_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Floor Breach Date"
+          },
+          "floor_breach_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Floor Breach Dates",
+            "type": "array"
+          },
+          "horizon_days": {
+            "title": "Horizon Days",
+            "type": "integer"
+          },
+          "lowest_projected_cash": {
+            "title": "Lowest Projected Cash",
+            "type": "string"
+          },
+          "lowest_projected_date": {
+            "format": "date",
+            "title": "Lowest Projected Date",
+            "type": "string"
+          },
+          "points": {
+            "description": "Only days with events plus the horizon end, to keep payloads small.",
+            "items": {
+              "$ref": "#/components/schemas/OutlookPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "start_cash": {
+            "title": "Start Cash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "horizon_days",
+          "start_cash",
+          "lowest_projected_cash",
+          "lowest_projected_date",
+          "end_projected_cash"
+        ],
+        "title": "Outlook",
+        "type": "object"
+      },
+      "OutlookEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "Signed: income positive, outflows negative.",
+            "title": "Amount",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "essential": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Essential"
+          },
+          "kind": {
+            "enum": [
+              "INCOME",
+              "OBLIGATION",
+              "DISCRETIONARY"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "ref",
+          "kind",
+          "amount"
+        ],
+        "title": "OutlookEvent",
+        "type": "object"
+      },
+      "OutlookPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/OutlookEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "projected_cash": {
+            "title": "Projected Cash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "projected_cash"
+        ],
+        "title": "OutlookPoint",
         "type": "object"
       },
       "Owner": {
@@ -833,6 +2431,362 @@
           "person_ref"
         ],
         "title": "Owner",
+        "type": "object"
+      },
+      "PayoffEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "liability_ref": {
+            "title": "Liability Ref",
+            "type": "string"
+          },
+          "month_index": {
+            "description": "1-based month counting from as_of_date in which the balance reaches zero.",
+            "title": "Month Index",
+            "type": "integer"
+          },
+          "payoff_date": {
+            "format": "date",
+            "title": "Payoff Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "liability_ref",
+          "month_index",
+          "payoff_date"
+        ],
+        "title": "PayoffEvent",
+        "type": "object"
+      },
+      "PersonalClarityRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "cash_accounts": {
+            "items": {
+              "$ref": "#/components/schemas/CashAccountInput"
+            },
+            "title": "Cash Accounts",
+            "type": "array"
+          },
+          "goals": {
+            "items": {
+              "$ref": "#/components/schemas/GoalInput"
+            },
+            "title": "Goals",
+            "type": "array"
+          },
+          "horizon_days": {
+            "default": 90,
+            "maximum": 180.0,
+            "minimum": 30.0,
+            "title": "Horizon Days",
+            "type": "integer"
+          },
+          "income_streams": {
+            "items": {
+              "$ref": "#/components/schemas/IncomeStreamInput"
+            },
+            "title": "Income Streams",
+            "type": "array"
+          },
+          "input_hash": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Caller-side SHA-256 of the personal snapshot the request was built from.",
+            "title": "Input Hash"
+          },
+          "liabilities": {
+            "items": {
+              "$ref": "#/components/schemas/LiabilityInput"
+            },
+            "title": "Liabilities",
+            "type": "array"
+          },
+          "obligations": {
+            "items": {
+              "$ref": "#/components/schemas/ObligationInput"
+            },
+            "title": "Obligations",
+            "type": "array"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/LiquidityPolicy"
+          },
+          "schema_version": {
+            "const": "sagespan.personal-clarity.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "variable_spending": {
+            "items": {
+              "$ref": "#/components/schemas/VariableSpendingInput"
+            },
+            "title": "Variable Spending",
+            "type": "array"
+          },
+          "workspace_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque workspace reference echoed into the receipt. Not an authority claim.",
+            "title": "Workspace Ref"
+          }
+        },
+        "required": [
+          "schema_version",
+          "as_of_date",
+          "policy"
+        ],
+        "title": "PersonalClarityRequest",
+        "type": "object"
+      },
+      "PersonalClarityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "cash": {
+            "$ref": "#/components/schemas/CashSummary"
+          },
+          "check_type": {
+            "const": "PERSONAL_CLARITY",
+            "title": "Check Type",
+            "type": "string"
+          },
+          "commitments": {
+            "$ref": "#/components/schemas/CommitmentSummary"
+          },
+          "data_quality": {
+            "items": {
+              "$ref": "#/components/schemas/DataQualityItem"
+            },
+            "title": "Data Quality",
+            "type": "array"
+          },
+          "debt": {
+            "$ref": "#/components/schemas/DebtSummary"
+          },
+          "flags": {
+            "items": {
+              "$ref": "#/components/schemas/Flag"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "goals": {
+            "items": {
+              "$ref": "#/components/schemas/GoalSummary"
+            },
+            "title": "Goals",
+            "type": "array"
+          },
+          "income": {
+            "$ref": "#/components/schemas/IncomeSummary"
+          },
+          "margin": {
+            "$ref": "#/components/schemas/MarginSummary"
+          },
+          "outlook": {
+            "$ref": "#/components/schemas/Outlook"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/Receipt"
+          },
+          "result_status": {
+            "description": "COMPUTED is a descriptive baseline on the supplied inputs. It is not advice and not a verification of the inputs.",
+            "enum": [
+              "COMPUTED",
+              "INSUFFICIENT_DATA"
+            ],
+            "title": "Result Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "check_type",
+          "result_status",
+          "as_of_date",
+          "income",
+          "commitments",
+          "margin",
+          "cash",
+          "debt",
+          "outlook",
+          "receipt"
+        ],
+        "title": "PersonalClarityResponse",
+        "type": "object"
+      },
+      "PersonalScenarioRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "baseline": {
+            "$ref": "#/components/schemas/PersonalClarityRequest",
+            "description": "The full baseline request (built from the frozen personal snapshot). The scenario is applied to a copy of it."
+          },
+          "input_hash": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Caller-side SHA-256 of the personal snapshot the baseline was built from.",
+            "title": "Input Hash"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/ScenarioSpec-Input"
+          },
+          "schema_version": {
+            "const": "sagespan.personal-scenario.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "workspace_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Ref"
+          }
+        },
+        "required": [
+          "schema_version",
+          "baseline",
+          "scenario"
+        ],
+        "title": "PersonalScenarioRequest",
+        "type": "object"
+      },
+      "PersonalScenarioResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "baseline_metrics": {
+            "$ref": "#/components/schemas/ScenarioMetrics"
+          },
+          "check_type": {
+            "const": "PERSONAL_SCENARIO",
+            "title": "Check Type",
+            "type": "string"
+          },
+          "delta": {
+            "$ref": "#/components/schemas/ScenarioDelta"
+          },
+          "goal_changes": {
+            "items": {
+              "$ref": "#/components/schemas/GoalChange"
+            },
+            "title": "Goal Changes",
+            "type": "array"
+          },
+          "infeasible_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Infeasible Reason"
+          },
+          "interruption": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IncomeInterruptionResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "new_flags": {
+            "description": "Flags raised by the scenario run that the baseline did not raise.",
+            "items": {
+              "$ref": "#/components/schemas/Flag"
+            },
+            "title": "New Flags",
+            "type": "array"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/Receipt"
+          },
+          "resolved_flag_codes": {
+            "description": "Baseline flag codes that the scenario run no longer raises.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Resolved Flag Codes",
+            "type": "array"
+          },
+          "result_status": {
+            "description": "COMPUTED is an illustration of one stated change on the supplied inputs. It is not advice, not a forecast, and not a verification of the inputs.",
+            "enum": [
+              "COMPUTED",
+              "INSUFFICIENT_DATA",
+              "INFEASIBLE"
+            ],
+            "title": "Result Status",
+            "type": "string"
+          },
+          "scenario": {
+            "$ref": "#/components/schemas/ScenarioSpec-Output"
+          },
+          "scenario_metrics": {
+            "$ref": "#/components/schemas/ScenarioMetrics"
+          }
+        },
+        "required": [
+          "check_type",
+          "result_status",
+          "as_of_date",
+          "scenario",
+          "baseline_metrics",
+          "scenario_metrics",
+          "delta",
+          "receipt"
+        ],
+        "title": "PersonalScenarioResponse",
         "type": "object"
       },
       "Reason": {
@@ -1244,6 +3198,388 @@
         "title": "RuleSourceRef",
         "type": "object"
       },
+      "ScenarioDelta": {
+        "additionalProperties": false,
+        "description": "scenario minus baseline; null where either side is null.",
+        "properties": {
+          "end_projected_cash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Projected Cash"
+          },
+          "lowest_projected_cash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lowest Projected Cash"
+          },
+          "margin_low": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Low"
+          },
+          "margin_typical": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Typical"
+          },
+          "monthly_discretionary_typical": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Discretionary Typical"
+          }
+        },
+        "title": "ScenarioDelta",
+        "type": "object"
+      },
+      "ScenarioMetrics": {
+        "additionalProperties": false,
+        "properties": {
+          "end_projected_cash": {
+            "title": "End Projected Cash",
+            "type": "string"
+          },
+          "essential_buffer_months": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Essential Buffer Months"
+          },
+          "first_floor_breach_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Floor Breach Date"
+          },
+          "income_low_monthly": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Income Low Monthly"
+          },
+          "income_typical_monthly": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Income Typical Monthly"
+          },
+          "liquid_total": {
+            "title": "Liquid Total",
+            "type": "string"
+          },
+          "lowest_projected_cash": {
+            "title": "Lowest Projected Cash",
+            "type": "string"
+          },
+          "lowest_projected_date": {
+            "format": "date",
+            "title": "Lowest Projected Date",
+            "type": "string"
+          },
+          "margin_essential_only_low": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Essential Only Low"
+          },
+          "margin_low": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Low"
+          },
+          "margin_typical": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Typical"
+          },
+          "monthly_discretionary_typical": {
+            "title": "Monthly Discretionary Typical",
+            "type": "string"
+          },
+          "monthly_essential": {
+            "title": "Monthly Essential",
+            "type": "string"
+          }
+        },
+        "required": [
+          "monthly_essential",
+          "monthly_discretionary_typical",
+          "liquid_total",
+          "lowest_projected_cash",
+          "lowest_projected_date",
+          "end_projected_cash"
+        ],
+        "title": "ScenarioMetrics",
+        "type": "object"
+      },
+      "ScenarioSpec-Input": {
+        "additionalProperties": false,
+        "description": "Exactly one bounded change. Fields not used by `kind` must be omitted.",
+        "properties": {
+          "destination": {
+            "anyOf": [
+              {
+                "enum": [
+                  "LIQUID",
+                  "ILLIQUID"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "SAVINGS_CHANGE only: LIQUID keeps the money in liquid accounts (default); ILLIQUID moves it out of liquid cash monthly.",
+            "title": "Destination"
+          },
+          "goal_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "SAVINGS_CHANGE only: goal whose monthly contribution increases by monthly_amount.",
+            "title": "Goal Ref"
+          },
+          "kind": {
+            "enum": [
+              "SPENDING_CHANGE",
+              "SAVINGS_CHANGE",
+              "INCOME_INTERRUPTION"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "monthly_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "SPENDING_CHANGE: signed change to typical monthly discretionary spending (negative = spend less). SAVINGS_CHANGE: positive amount set aside each month.",
+            "title": "Monthly Amount"
+          },
+          "months": {
+            "anyOf": [
+              {
+                "maximum": 12.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "INCOME_INTERRUPTION only: length of the interruption.",
+            "title": "Months"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "SAVINGS_CHANGE (ILLIQUID) / INCOME_INTERRUPTION: first affected date; defaults to the baseline as_of_date.",
+            "title": "Start Date"
+          },
+          "stream_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "INCOME_INTERRUPTION only: the income stream that pays nothing during the window.",
+            "title": "Stream Ref"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "ScenarioSpec",
+        "type": "object"
+      },
+      "ScenarioSpec-Output": {
+        "additionalProperties": false,
+        "description": "Exactly one bounded change. Fields not used by `kind` must be omitted.",
+        "properties": {
+          "destination": {
+            "anyOf": [
+              {
+                "enum": [
+                  "LIQUID",
+                  "ILLIQUID"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "SAVINGS_CHANGE only: LIQUID keeps the money in liquid accounts (default); ILLIQUID moves it out of liquid cash monthly.",
+            "title": "Destination"
+          },
+          "goal_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "SAVINGS_CHANGE only: goal whose monthly contribution increases by monthly_amount.",
+            "title": "Goal Ref"
+          },
+          "kind": {
+            "enum": [
+              "SPENDING_CHANGE",
+              "SAVINGS_CHANGE",
+              "INCOME_INTERRUPTION"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "monthly_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "SPENDING_CHANGE: signed change to typical monthly discretionary spending (negative = spend less). SAVINGS_CHANGE: positive amount set aside each month.",
+            "title": "Monthly Amount"
+          },
+          "months": {
+            "anyOf": [
+              {
+                "maximum": 12.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "INCOME_INTERRUPTION only: length of the interruption.",
+            "title": "Months"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "SAVINGS_CHANGE (ILLIQUID) / INCOME_INTERRUPTION: first affected date; defaults to the baseline as_of_date.",
+            "title": "Start Date"
+          },
+          "stream_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "INCOME_INTERRUPTION only: the income stream that pays nothing during the window.",
+            "title": "Stream Ref"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "ScenarioSpec",
+        "type": "object"
+      },
       "SnapshotRef": {
         "additionalProperties": false,
         "properties": {
@@ -1266,6 +3602,114 @@
           "input_hash"
         ],
         "title": "SnapshotRef",
+        "type": "object"
+      },
+      "StrategyResult": {
+        "additionalProperties": false,
+        "properties": {
+          "feasible": {
+            "description": "False when the budget cannot cover the sum of minimum payments or the horizon ends before payoff.",
+            "title": "Feasible",
+            "type": "boolean"
+          },
+          "first_year": {
+            "description": "First 12 months (or fewer) of the aggregate schedule for display.",
+            "items": {
+              "$ref": "#/components/schemas/MonthRow"
+            },
+            "title": "First Year",
+            "type": "array"
+          },
+          "infeasible_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Infeasible Reason"
+          },
+          "interest_saved_vs_minimums": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "MINIMUMS_ONLY total interest minus this strategy's total interest, when both are finite.",
+            "title": "Interest Saved Vs Minimums"
+          },
+          "months_saved_vs_minimums": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Months Saved Vs Minimums"
+          },
+          "months_to_payoff": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Months To Payoff"
+          },
+          "payoff_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payoff Date"
+          },
+          "payoff_order": {
+            "items": {
+              "$ref": "#/components/schemas/PayoffEvent"
+            },
+            "title": "Payoff Order",
+            "type": "array"
+          },
+          "strategy": {
+            "enum": [
+              "MINIMUMS_ONLY",
+              "AVALANCHE",
+              "SNOWBALL",
+              "HYBRID"
+            ],
+            "title": "Strategy",
+            "type": "string"
+          },
+          "total_interest": {
+            "title": "Total Interest",
+            "type": "string"
+          },
+          "total_paid": {
+            "title": "Total Paid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strategy",
+          "feasible",
+          "total_interest",
+          "total_paid"
+        ],
+        "title": "StrategyResult",
         "type": "object"
       },
       "Tolerance": {
@@ -1338,11 +3782,58 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "VariableSpendingInput": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "data_state": {
+            "default": "USER_REPORTED",
+            "enum": [
+              "USER_REPORTED",
+              "EVIDENCE_VERIFIED",
+              "ASSUMED",
+              "MISSING",
+              "STALE",
+              "CONFLICTING"
+            ],
+            "title": "Data State",
+            "type": "string"
+          },
+          "essential": {
+            "default": false,
+            "title": "Essential",
+            "type": "boolean"
+          },
+          "observed_monthly_amounts": {
+            "description": "Observed spend per calendar month, oldest first (transfers and refunds already excluded by the caller).",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Observed Monthly Amounts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "category"
+        ],
+        "title": "VariableSpendingInput",
+        "type": "object"
       }
     }
   },
   "info": {
-    "description": "\nDeterministic, Decimal-safe retirement rule checks with versioned rule sets and\ntraceable receipts. P0 scope: lifetime RMD for living owners of non-inherited\ntraditional-family IRAs using the Uniform Lifetime Table.\n\nTenant context is supplied by the trusted web server via `X-SageSpan-Org-Id`;\nrequest bodies never carry `org_id`. No client data is retained by this service.\n",
+    "description": "\nDeterministic, Decimal-safe financial engines with versioned rule/methodology\nsets and traceable receipts.\n\n* Assurance (B2B): lifetime RMD check for living owners of non-inherited\n  traditional-family IRAs using the Uniform Lifetime Table.\n* Personal (B2C, V5): descriptive cash-flow baseline and illustrative debt\n  payoff path comparison on user-reported inputs. Descriptive arithmetic only;\n  never advice, never a verification of the inputs.\n\nTenant context is supplied by the trusted web server via `X-SageSpan-Org-Id`;\nrequest bodies never carry `org_id`. No client data is retained by this service.\n",
     "title": "SageSpan Calculation & Verification Service",
     "version": "0.1.0"
   },
@@ -1462,6 +3953,370 @@
         "summary": "Check Rmd",
         "tags": [
           "checks"
+        ]
+      }
+    },
+    "/v1/methods": {
+      "get": {
+        "description": "Versioned methodology sets used by the Personal engines (separate registry from regulatory rule sets).",
+        "operationId": "list_methods_v1_methods_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-SageSpan-Org-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sagespan-Org-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MethodSetListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Missing or invalid service token"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Methods",
+        "tags": [
+          "personal"
+        ]
+      }
+    },
+    "/v1/personal/clarity": {
+      "post": {
+        "description": "Personal cash-flow baseline: income statistics, commitments, margin, buffer, dated 30/60/90-day outlook, flags and data quality.\n\nDescriptive arithmetic on user-reported inputs with a receipt citing\n`personal.cashflow_baseline`. INSUFFICIENT_DATA is returned, not a guess,\nwhen income, expenses or cash balances are absent.",
+        "operationId": "personal_clarity_v1_personal_clarity_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-SageSpan-Org-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sagespan-Org-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalClarityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalClarityResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Missing server-resolved tenant header"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Missing or invalid service token"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request did not match the contract (field paths only; submitted values are never echoed)"
+          }
+        },
+        "summary": "Personal Clarity",
+        "tags": [
+          "personal"
+        ]
+      }
+    },
+    "/v1/personal/debt-paths": {
+      "post": {
+        "description": "Compare debt payoff orderings (minimums only, avalanche, snowball, hybrid) on identical inputs under a fixed monthly budget and the user's cash floor.",
+        "operationId": "personal_debt_paths_v1_personal_debt_paths_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-SageSpan-Org-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sagespan-Org-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DebtPathsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebtPathsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Missing server-resolved tenant header"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Missing or invalid service token"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request did not match the contract (field paths only; submitted values are never echoed)"
+          }
+        },
+        "summary": "Personal Debt Paths",
+        "tags": [
+          "personal"
+        ]
+      }
+    },
+    "/v1/personal/scenario": {
+      "post": {
+        "description": "What-if on the cash-flow baseline: one bounded change (spending change, added saving, or a 1-12 month income interruption).\n\nBaseline and scenario are computed by the same engine and reported side by\nside with the delta, runway and flag changes. INFEASIBLE is returned, not a\ncapped number, when the change cannot be applied to the stated inputs.",
+        "operationId": "personal_scenario_v1_personal_scenario_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-SageSpan-Org-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sagespan-Org-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalScenarioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalScenarioResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Missing server-resolved tenant header"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Missing or invalid service token"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request did not match the contract (field paths only; submitted values are never echoed)"
+          }
+        },
+        "summary": "Personal Scenario",
+        "tags": [
+          "personal"
         ]
       }
     },
@@ -1643,6 +4498,10 @@
     {
       "description": "Versioned, effective-dated rule registry.",
       "name": "rules"
+    },
+    {
+      "description": "Personal (B2C) deterministic engines: cash-flow baseline and debt payoff paths. Descriptive, receipted, not advice.",
+      "name": "personal"
     },
     {
       "description": "Health and version.",
