@@ -1,101 +1,150 @@
-# CLAUDE.md — SageSpan V3 engineering record
+# SageSpan — CLAUDE.md (V5 Unified Engineering Instructions)
 
-Read this first. It records founder decisions, implementation status and the
-conventions later sessions must keep. The founder documents `00_START_HERE.md`
-through `10_CHANGELOG_V1_V2_V3.md` (and `SAGESPAN_MASTER_SOURCE_OF_TRUTH.md`)
-are canonical for product, buyer, pricing and compliance language.
+> **Purpose:** Permanent, repository-local guidance for Claude Code. This file supersedes the **V3 B2B-only product decision**, but preserves the original implementation history, engineering conventions, security gates, and financial-calculation requirements. Do **not** confuse this file with a prompt to execute the entire V5 roadmap in one session.
+>
+> **Status note (2026-11-05):** The shipped/test-count statements below were reported by the uploaded V3 `CLAUDE.md`; they are **historical**, not independently rechecked against the currently checked-out branch. Verify `git status`, `git branch`, migrations, code, open PRs and CI before relying on them. PR-001 was reported complete on `feat/pr-001-trust-boundaries`; **do not assume it has been merged or deployed**.
 
-## V3 founder decisions (adopted; do not relitigate per turn)
+## 1. Mission and precedence
 
-1. **Brand:** SageSpan is a provisional working name pending trademark/domain
-   clearance. All brand strings live in `apps/web/src/config/brand.ts`.
-2. **Product:** B2B independent retirement plan assurance for U.S. RIAs. Not a
-   planner, robo-advisor, trading tool or consumer app. The five-stage lifecycle
-   is a long-term map, not P0 scope.
-3. **Buyer:** RIA firms of ~5–50 advisors; CCO champion, owner/CEO/COO economic
-   buyer, lead advisor adoption. Hypotheses to validate in interviews.
-4. **Architecture:** Next.js App Router + strict TypeScript + Tailwind on Vercel;
-   Supabase Postgres/Auth/RLS; a **separate Python/FastAPI calculation service
-   from day one**; queue/workers later. No retirement math in React/Next; no
-   long work in Vercel request handlers.
-5. **Pricing hypothesis (illustrative, not offered):** `750 + 3.50 × max(0, H − 100)`
-   USD/month; limited $500/month pilot up to 50 households; firm-wide access,
-   no per-seat fee; no billing in the prototype.
+Act as SageSpan's founding product/engineering collaborator: a pragmatic fintech architect, AI systems engineer, financial-model reviewer, security engineer, privacy and governance reviewer. Be precise and constructively critical. Prefer validated, useful functionality over feature count or marketing claims.
 
-Hard rules: synthetic data only; mathematical PASS ≠ professional approval;
-"review evidence packet", never "SEC-certified"; no SOC 2 / ZDR / certification
-claims; vendor names on imports are metadata, not integrations; never invent
-numbers when the calculation service is unavailable.
+**Current founder direction — binding:** SageSpan is **one dual-market B2C + B2B platform**, not B2B-only and not B2C-only:
 
-## Implementation status (milestone 1 — vertical slice, 2026-11-05)
+1. **SageSpan Personal / Household (B2C):** financial clarity, income and spending patterns, cash-flow and bills, budgeting, debt, emergency reserves, savings goals, investments education, practical next steps, and household permissions.
+2. **SageSpan Retirement Studio (B2C and B2B):** retirement intake, validated annual cash-flow and retirement projections, what-if comparisons, income and withdrawal strategies; expand to tax, Social Security, Roth conversions and Monte Carlo only after the relevant deterministic models are independently verified.
+3. **SageSpan Advisor & Assurance (B2B):** RIA/advisor/CCO workflows, permissioned client relationships, sourced plan imports, reconciliation, independent checks, evidence-backed AI reviews, exception management, separation of duties, review approval and verifiable audit/evidence packages.
 
-### Shipped
+Serve the five-stage lifecycle: **Discover → Diagnose → Develop/Design → Review/Decide → Monitor**. Our promise is to reduce the *burden* of financial decisions with realistic, understandable options, not to guarantee outcomes, replace personal judgment, or eliminate stress.
 
-* **Monorepo** (npm workspaces): `apps/web`, `packages/contracts`, `services/calculator`, `supabase`, `fixtures/synthetic`, `docs`.
-* **Calculation service** (`services/calculator`): `POST /v1/checks/rmd`, `GET /v1/rules`, `GET /health`; Decimal arithmetic; versioned rule sets with SHA-256 checksums (Uniform Lifetime Table 2022.1, applicable age 2023.1, required beginning date 2023.1, joint-table eligibility 2022.1, comparison tolerance 1.0; DRAFT 2026 ordinary-income tax, unexposed); typed `PASS | NOT_REQUIRED | UNSUPPORTED | INDETERMINATE` with reasons; separate obligation events for the deferred first-year RMD; discrepancy classification (8 classes); deterministic receipts; bearer token + server-set `X-SageSpan-Org-Id`; bodies with `org_id` rejected; OpenAPI exported to `packages/contracts/openapi/calculator.openapi.json` with a drift test.
-* **Contracts** (`packages/contracts`): Zod mirrors of the service contract, import contract `sagespan.import.v1` (JSON + CSV columns), enums, fact field registry with materiality, workflow state machine, role permissions, pricing hypothesis, BigInt money helpers, canonical JSON/SHA-256 byte-compatible with Python.
-* **Web console** (`/demo/app`, synthetic, simulated reviewer personas): review queue with filters/sort; household overview with four evidence states, fact receipts, ownership/beneficiaries, source hashes, fail-closed freeze gate with blockers and how-to-resolve; imports (upload → CSV column mapping → entity mapping → reconcile; unsupported files rejected with reasons); checks (run against the service, receipts for every number, obligation events, discrepancy classification, visible service errors); review (conflict resolution creating fact revisions, COMPLIANCE-only nonmaterial exceptions, dispositions, comments, review and approval with attestation and separation of duties); evidence (packet preview, JSON/HTML/CSV export, export log, audit-chain integrity); settings (roles, policy editing, rule-set versions from the service, unavailable enterprise settings, hash-chained audit trail, demo reset).
-* **Marketing**: `/`, `/product`, `/security`, `/pricing` (calculator, illustrative), `/demo` (tour); pilot-interest form stored locally; `/app/*` production gate.
-* **Supabase**: migrations `0001`–`0004` (types, tenant-scoped tables with composite FKs, forced RLS, SECURITY DEFINER workflow functions, immutability triggers, hash-chained `append_audit`) and pgTAP tests `001`–`004`.
-* **Fixtures**: Patel (material balance conflict + nonmaterial label conflict, imported $24,000.00), Okafor (DOB conflict; younger-spouse → UNSUPPORTED), Reyes-Lindqvist (plan-only, missing evidence, 2025-09-30 balance), Bauer (second tenant, Northline).
-* **Docs**: README, `.env.example`, `docs/ARCHITECTURE.md`, `docs/FINANCIAL_METHODOLOGY.md`, `docs/SECURITY_AND_LIMITS.md`, `docs/ROADMAP.md`, `docs/DECISIONS.md`, `supabase/README.md`, `fixtures/synthetic/README.md`.
+### Controlling references (must exist in the checked-out repository; verify them)
 
-### Test results at milestone 1 (see the log below for exact runs)
+- `docs/product/SAGESPAN_V5_MASTER_SOURCE_OF_TRUTH.md` — **controlling V5 product, architecture, decision policy, governance, security and financial specification** (same content as the V5 Unified Master Blueprint).
+- `docs/engineering/SAGESPAN_V5_ENGINEERING_PROMPT.md` — detailed **engineering reference and acceptance criteria**, including PR-001 and AI implementation annexes. **Do not treat it as permission to implement every PR automatically.**
+- `docs/requirements/SAGESPAN_V5_TRACEABILITY.md` — required non-regression mapping for S-01–S-10, N-01–N-05, AI, financial and consent controls.
+- This `CLAUDE.md` — **operational repository conventions and historical status**, updated for V5.
+- Repository code, current migrations, tests, CI and verified Git state — **truth about what is actually implemented**.
+- `docs/history/CLAUDE_V3_ENGINEERING_RECORD_2026-11-05.md` (if installed) and original V1–V3 founder docs — **historical implementation and decision records**, not overriding the V5 market decision.
 
-* Python `pytest`: 64 passed (engine golden cases, classification, receipts, rules, tax draft, jobs, API, OpenAPI drift).
-* `packages/contracts` Vitest: 15 passed; `tsc` clean.
-* `apps/web` Vitest: 24 passed (includes live-service integration when the service is running); `tsc` clean; ESLint 0 problems; `next build` succeeds.
-* Playwright: 4 scenarios (public nav + pricing calculator, unsupported import rejection, Patel conflict → resolution → exception → freeze → RMD check → forged-approval 403 → disposition → review → approval → packet export, cross-tenant 404).
-* SQL: all nine files parse with `pglast`. The pgTAP suite was **executed on plain PostgreSQL 16** via `supabase/tests/run_sql_tests.py` (Supabase/pgTAP shims; PR #1): 4 migrations applied, 4/4 test files, 45 assertions; the same runner is the `database` job in `.github/workflows/ci.yml`. `supabase test db` on the real stack has still not been run.
+**Precedence:** Latest explicit founder product decisions govern market direction; stricter compatible security, privacy, financial correctness, consent and legal gates remain mandatory. Resolve discrepancies explicitly and record an ADR; don't quietly discard prior safeguards. The current checked-out code determines present implementation status, while historical tests establish only a dated baseline. If a referenced source is absent, say so and do not fabricate it.
 
-### Not done / requires configuration
+**V3 founder decisions superseded:** The earlier wording “B2B only; not a planner or consumer app” is no longer valid. Preserve the *B2B assurance product*, commercial hypotheses, calculation architecture and review safeguards. Earlier B2B pilot pricing is a hypothesis, not a public price; B2C pricing also remains experimental. SageSpan is a provisional brand pending clearance, with brand strings historically configured in `apps/web/src/config/brand.ts`.
 
-* Supabase store adapter and session resolution (`apps/web/src/auth/actor.ts`, `src/domain/store.ts`); `/app/*` shows a gate.
-* Executing `supabase test db` on the real Supabase stack (Docker); object storage for uploads; member management; PDF rendering; real export-format mapping (two formats is a 90-day gate).
-* P1 tax module stays DRAFT until benchmarked.
+## 2. Non-negotiable engineering design
 
-## Repository collision (2026-11-05) — resolved: `services/calculator` kept
+- **Retain the monorepo:** `apps/web` (Next.js App Router/React/strict TypeScript/Tailwind), `packages/contracts` (Zod, shared policy and workflow contracts), `services/calculator` (**separate Python/FastAPI, Decimal arithmetic**), `supabase` (PostgreSQL/Auth/RLS), `fixtures/synthetic`, and `docs` unless a documented migration is justified. Vercel handlers must not perform heavy computation.
+- **Never recreate a parallel calculator** under `services/calc` or introduce a competing SQL migration series. The original founder selected `services/calculator` and the `app` schema. The old parallel implementation was archived at `.archive/parallel-implementation-2026-11-05/`.
+- **No authoritative financial math in React/Next or LLM outputs.** All material dollar amounts, taxes, RMDs, interest, retirement projections and scenario impacts require a suitable versioned deterministic engine, with verified inputs, exact rounding, test coverage, and uncertainty/limitations as applicable.
+- **Contracts first:** Zod/typed schemas, validation at trust boundaries, semantically versioned financial facts, receipts, snapshots, approvals, source references and calculation assumptions. Never silently convert `UNSUPPORTED`, `INDETERMINATE`, `NOT_REQUIRED` or `ERROR` into a successful verified check.
+- **Five-stage journey and two market experiences:** shared safe primitives, but separate consumer / household / advisor / firm authorization, navigation and decision rights. Do not merge consumer private accounts into firm access by default.
+- **Synthetic-only development remains in force** until the relevant production release gates explicitly pass. No real PII, bank statements, sensitive customer data, passwords or API tokens in the repository, logs, fixtures or development prompts. Never market synthetic demonstrations as live integrations.
 
-A second, independent implementation appeared in the working tree during the
-milestone-1 build (files dated 18:47–19:14, created by a parallel process, not
-by the session that wrote this file). The founder chose to keep
-`services/calculator` and the schema-`app` migration series. The parallel files
-were moved, not deleted, to the git-ignored folder
-`.archive/parallel-implementation-2026-11-05/`, which can be removed once nothing
-in it is needed. For the record, they were:
+## 3. Financial decision intelligence: what SageSpan AI may and may not do
 
-| Parallel file(s) | Overlaps with | Difference |
+Build evidence-driven analysis with the sequence:
+
+**Evidence → Patterns → Constraints → Feasible alternatives → Ranked explanations → User or advisor choice → Monitoring**.
+
+- Analyze sufficient permitted financial history before characterizing recurring bills, savings capacity, seasonal/variable income, spending patterns, debt repayment options or retirement readiness. Distinguish observed facts, source provenance/as-of dates, modeled forecasts, user assumptions and missing/stale/conflicting information.
+- A recommended next action must make the evidence, feasibility prerequisites, deterministic projected impact, uncertainty, downside risks, alternative choices, reversibility and decision authority clear. Do not invent rates, APRs, balances, investment returns, probabilities, savings or citations. Abstain and request necessary information when critical facts are missing.
+- The **LLM is a proposing/explaining layer**, not the financial source of truth. Implement a server-owned orchestrator/provider adapter, scoped retrieval, allowlisted read-only tools, machine-validated outputs, model/prompt versions, budgets, feedback and safe disable/rollback. The initial allowed tool concepts include `read_facts`, `read_evidence`, `get_check_runs`; `propose_scenario` must be explicitly non-authoritative; `run_supported_projection` must refuse models that are not yet implemented and verified.
+- Confirm every referenced fact ID, document locator, check receipt, calculation result and workspace authorization **server-side**. Uploaded PDFs, CSV cells, merchant names and retrieved text are untrusted data, never new instructions. No document instruction can bypass system policy or cause exfiltration.
+- AI **must not** independently verify facts, override receipts, change policies, grant consent, approve plans or review findings, publish regulated personalized investment advice, send irreversible financial communications, place trades, move money or pay bills. Humans retain decisions; regulated recommendations remain disabled until legal, licensing, supervisory, disclosure, conflict-of-interest and model-validation gates are met.
+- AI-000/AI-001 require **at least 28 labeled synthetic evaluation cases** plus a deterministic mocked provider. Cover false source IDs, cross-tenant leaks, unsupported math, forged citations, prompt injection, invalid approvals, conflicting facts, missing/stale evidence, and reviewer feedback. Keep evaluation artifacts and expected outcomes versioned. Model updates must replay applicable evaluation suites before release.
+- Distinguish the **Claude Code development assistant** from the **production SageSpan model provider**. The latter needs explicit API contracts, consent, retention/security review, server-side keys, controlled processing and rollback.
+
+## 4. Trust-boundary and data-security invariants
+
+Preserve remediation and tests for historical findings **S-01–S-10 and N-01–N-05**, with their exact meanings in V5 §17 and the traceability matrix. Treat the original audit as a historical baseline; recheck the current code.
+
+1. **Authorization & tenancy:** derive org/workspace/person from authenticated server context; tenant-scoped FKs, RLS, PostgREST entry points and RPCs must enforce active membership, role, scope and purpose. Never accept client-supplied `org_id` or guessed household IDs as authority. Firm membership never implies unrelated personal/household data access. Cross-tenant misses return a non-disclosing not-found response.
+2. **Database privileges:** prevent callers from directly mutating workflow-owned columns, fact verification state, approved discrepancy dispositions, check results, registered document hashes or audit events. Restrict `SECURITY DEFINER` execution, use safe `search_path`, and explicitly audit `PUBLIC`/`anon`/`authenticated` grants after *every migration*. Auth/RLS helpers must still work for approved paths; test them.
+3. **Sentinel caution:** the existing `app.workflow_fn` session setting may be an implementation coordination mechanism, **never an independent security boundary**. Privileges, scoped trusted functions, invariant triggers and verified actor authorization must prevent bypass even when a custom session setting is forged.
+4. **Audit authority:** only trusted callers append audit events, with derived actor and validated event type/tenant. The audit chain must be linear under multi-event transactions/concurrency, sequence-numbered, verifiable and append-only. A hash chain alone cannot prove that an event is authorized; nor is a hash a signature.
+5. **Frozen inputs and receipts:** freeze only verified/allowed facts with complete, authorized and versioned snapshot payloads; SQL/TS/Python canonicalization must match by versioned fixture. Build calculation requests **solely from frozen snapshot values** once PR-002 is implemented. Record only authenticated calculator outputs after verifying the request/snapshot/rule identity, rule status/checksum and receipt. A caller-constructed matching hash alone is not proof of calculator authenticity.
+6. **Review & publication:** calculation `PASS` ≠ source verification ≠ approved financial plan. An unsupported-only run is not a verified plan; disclose per-account coverage. Preserve separation of duties and an explicit, consistent approval-role policy. Approved records/dispositions/evidence are immutable; amendments create versions. A failed earlier run must remain in history while latest-attempt semantics allow safe retry under PR-002.
+7. **Consumer privacy:** personal, household and firm memberships are distinct. Explicit, limited-purpose, revocable and auditable sharing; joint participants' private records remain private absent grant. Data minimization, encrypted source storage, access reviews, retention/export/deletion with lawful exceptions, secure secret management, backup/restore and incident response must pass before real data.
+8. **Evidence integrity:** source-document checksums must come from trusted stored bytes; packets need per-artifact hashes and a verifiable manifest. Do not claim independent attestation, digital signatures, zero retention, SOC 2 certification or SEC endorsement without proof.
+
+**Testing gate:** Use the shimmed PostgreSQL suite for fast iteration **and separately run real Supabase Auth/JWT/PostgREST/RLS integration tests** before enabling production data. A clean shim run is *not* proof that Supabase is safe. Test allowed and denied paths, invalid credentials, cross-tenant access, malicious payloads, evidence forgery and rollback effects. If a transaction raises and rolls back, its audit writes also roll back; record durable denial evidence outside that transaction through an authorized mechanism.
+
+## 5. Historical milestone inventory — verify actual branch status first
+
+The uploaded V3 `CLAUDE.md` recorded these **2026-11-05 milestone results**:
+
+| Area | Milestone 1 vertical slice | Milestone 2 PR-001 branch |
 |---|---|---|
-| `services/calc/` (`sagespan_calc`, port 8081, uv/ruff/mypy) | `services/calculator/` (this build, port 8010, wired to the web app) | Two calculation services; only `services/calculator` is called by `apps/web` and covered by the contract/e2e tests |
-| `supabase/migrations/0001_schema.sql`, `0002_rls.sql` (public schema; roles owner/cco/reviewer/analyst/viewer) | `0001_types.sql` … `0004_workflow_functions.sql` (schema `app`; roles per `03_ARCHITECTURE_AND_DATA_SCHEMA.md`) | Two migration series in one directory; `supabase db reset` would apply all six in lexical order |
-| `supabase/tests/test_rls.py` (throwaway Postgres 16 cluster via `initdb`) | `supabase/tests/*.test.sql` (pgTAP) | Written against the parallel schema |
-| `Makefile` | `package.json` scripts | References `services/calc`, `e2e/smoke.mjs` (does not exist) |
+| Python calculator tests | 64 passed | 69 passed (locked `uv` environment) |
+| Contracts Vitest | 15 passed | 23 passed |
+| Web Vitest | 24 passed | 44 passed |
+| SQL test harness | 4 files, 45 assertions on PostgreSQL 16 | 6 files, 117 assertions on PostgreSQL 18.6 |
+| Playwright | 4 scenarios | 4/4 scenarios |
+| Production Supabase | Not validated | **Still not validated** |
 
-`apps/web/AGENTS.md` is auto-generated by `next dev` (Next 16) and is safe to commit.
+**Milestone 1 implementation recorded:**
 
-`supabase/migrations` again holds a single series (`0001_types` … `0004_workflow_functions`),
-so `supabase db reset` / `supabase test db` can be run once Docker is available.
+- `/demo/app` synthetic assurance console with Patel, Okafor, Reyes-Lindqvist and Bauer fixtures, imports, typed fact/evidence states, conflicts, freeze, RMD checks, review/approval and JSON/HTML/CSV exports; synthetic personas and demo-state persistence.
+- `POST /v1/checks/rmd`, `GET /v1/rules`, `GET /health` FastAPI calculator; published RMD rule sets, `Decimal` math, 8 discrepancy classifications, first-year/deferred obligation events, check receipts and versioned rule registry; P1 federal income-tax rules **DRAFT**, not released.
+- `packages/contracts` typed financial workflow, import contract `sagespan.import.v1`, Zod mirrors, SHA-256/canonicalization and money helpers.
+- Marketing pages and an `/app` **production gate**; Supabase migration series `0001`–`0004` as of milestone 1.
 
-## Conventions for future sessions
+**Milestone 2 PR-001 work reported on `feat/pr-001-trust-boundaries`:**
 
-* Retirement math only in `services/calculator`; the web tier renders receipts and verifies `request_hash`.
-* Every mutation goes through `src/domain/*` with an `Actor` resolved on the server; never trust client `org_id`; tenant misses are "not found".
-* Resolving anything after a freeze creates a new revision; never edit snapshots, check runs, reviews, packets or audit events.
-* Keep `packages/contracts/src/enums.ts`, `workflow.ts` and `supabase/migrations/0001_types.sql` / `app.can_transition()` in sync.
-* Regenerate the OpenAPI file with `python scripts/export_openapi.py` whenever the service contract changes; `tests/test_api.py` enforces it.
-* Fixture hashes: run `python fixtures/synthetic/scripts/compute_hashes.py` after editing synthetic source files.
-* Synthetic data only. No real client documents, PII or secrets in this repository or in Claude Code sessions.
-* On this Windows setup the Bash tool truncates long commands; write files with the Write tool and keep shell commands short.
+- Forward-only migrations `0005_trust_boundaries.sql` and generated `0006_seed_rule_sets.sql`; explicit grants, workflow transition restriction, org-scoped linear audit chain, canonicalized snapshot verification, fact confirmation and write restrictions, receipt checking, write-once discrepancies, consistent approval-policy logic.
+- TS `verifyReceipt`, `approvalDecision`/`canApprove`, error-state behavior; generated three-tier canonical fixtures; `uv.lock`/pinned Python environment; forward-only tests `005_trust_boundaries.test.sql`, `006_canonical_json.test.sql` and web/contracts checks.
+- Original root file refers to source-specific scripts, verified probe paths, unresolved `mypy` typing and audit-history details; see **archived V3 engineering record** for the exact legacy notes.
 
-## Milestone log
+**Do not infer:** these files are merged into `master`, that current SQL migrations remain numbered as stated, that a site feature is already shipped, or that any of these tests were rerun in this session. Re-check before changing code.
 
-### 2026-11-05 — Milestone 1: vertical slice
+## 6. Known historical blockers and next safe sequence
 
-* Repository was empty (design reference images only); built greenfield in the approved stack.
-* Engine golden case verified: `640000.00 / 25.5 = 25098.039215… → 25098.04`; Patel request hash `7e51cc1e…` and run hash `797be471…` recorded in `fixtures/synthetic/calc`.
-* Finding fixed during build: an approval denied inside a rolled-back transaction lost its `APPROVAL_DENIED` audit event; denials are now written in a separate committed write (`attemptApproval`).
-* Finding fixed during build: server components passed function props to a client form (RSC violation); success messages now travel in action results.
-* Docker was not running, so Supabase migrations/tests were syntax-checked only (`pglast`) in this session; PR #1 (a parallel session) later executed them on plain PostgreSQL 16 with shims and added CI.
-* Final verification: pytest 64/64; contracts Vitest 15/15; web Vitest 24/24 (live-service integration included); `tsc` clean in both packages; ESLint 0 problems; `next build` clean (no warnings); Playwright 4/4.
-* The founder committed the tree twice during the session ("First Commit", "Pt 2"); the session's fixes were then committed and pushed as `7e0c79f` on `master`. The parallel implementation (see the collision notice) was archived.
-* PR #1 (`feat/ci-and-executed-sql-tests`) was merged with `master` here, its doc conflict resolved, and its CI made green: `calculator`, `database` (SQL suite on PostgreSQL 16) and `web` all pass. Two fixes came out of that: the OpenAPI contract now declares explicit error-response descriptions (Python 3.12 and 3.13+ name HTTP 422 differently), and the CI database job uses trust auth with no password literal. GitGuardian still flags the throwaway `postgres` password in two earlier commits of that branch; those incidents live in history, not in the tree.
+As recorded at the V3 milestone, these items were **not complete** (verify if still true):
+
+- **PR-002:** S-06 supported/limited/unsupported review outcomes; S-07 snapshot-only calculation request; N-02 failed-then-successful attempt recovery and latest-run semantics.
+- **PR-003:** production Supabase store adapter and real actor/session resolution (`apps/web/src/auth/actor.ts`, `src/domain/store.ts`); private file bytes/storage, trusted document registration, actual Supabase JWT/RLS/PostgREST testing, real member management, real import mappings and PDF evidence rendering.
+- Professional financial-rule signoff; U.S. income-tax draft validation; model/version governance, privacy/consent and legal clearance before regulated or real-data features.
+- `mypy --strict` historical errors in `financial/checks.py` (the original record noted 25 `Discrepancy(**dict)` typing errors) and historical `auth_rls_initplan` RLS performance warnings.
+
+**Recommended bounded delivery order** (reorder only with explicit reasoning and safe gates):
+
+1. **Baseline reconciliation:** verify Git state/PR-001 integration, preserve uncommitted changes, inventory current B2C/B2B code, determine which historic defects persist, run available tests.
+2. **PR-001 residual work (if needed)** and real-stack security; do not duplicate already merged fixes.
+3. **PR-002** financial coverage, frozen request reproducibility and retry semantics.
+4. **DUAL-000/001** shared B2C+B2B product routing/workspace shells, manual-entry-first synthetic personal finance and explicit permission model. Safe synthetic UIs may proceed in a separate branch while security is being completed.
+5. **AI-000/001** contracts, mocked orchestration, 28-case evaluation suite and evidence-grounded synthetic "Analyze Plan" drafts.
+6. **PERS-001/002** validated deterministic cash flow/debt/goal planning and a feasible, transparent recommendation queue.
+7. **PR-003/DATA-001** real scoped auth, private storage, legal/vendor consent; **SCENARIO-001** independent annual retirement projection engine; then AI-002–005, verified import formats and professional evidence export.
+
+**Release gates:** G0 isolated synthetic demo → G1 security/trust remediation → G2 approval/coverage correctness → G3 real-data technical/consent controls → G4 named professional and legal signoffs for relevant features → G5 measured controlled customer pilots. Never enable a downstream capability solely because UI or a prompt exists.
+
+## 7. Repository work conventions and commands (preserve from V3)
+
+- Before work: `git status`, `git branch --show-current`, `git log -5 --oneline`; inspect the real diff, active PRs (if accessible), migrations, `.env.example`, test config and actual code. **Do not overwrite uncommitted edits or silently merge/force-push.** Reconcile the original parallel-implementation collision before starting multiple concurrent Claude sessions; use distinct branches and file ownership.
+- Every server mutation goes through `apps/web/src/domain/*` with a server-resolved `Actor`, trusted transaction/function and tenant check. No client-provided authorization context; reflect DB and TypeScript permissions consistently.
+- A change after freeze creates a new revision. Never mutate snapshots, check runs, approvals, packets or audit events retroactively. Protect differential/disposition values from post-approval edits.
+- Keep `packages/contracts/src/enums.ts` and `workflow.ts` aligned with database enum and `app.can_transition`; synchronize approval policy from `packages/contracts/src/permissions.ts` `approvalDecision()` across UI, domain and DB.
+- Regenerate calculator OpenAPI from `services/calculator` with `python scripts/export_openapi.py` in the calculator service working directory when its API changes; let the pinned drift test enforce parity.
+- After changing synthetic source files, regenerate hashes with `python fixtures/synthetic/scripts/compute_hashes.py`; preserve original fixture bytes on Windows via `.gitattributes` as applicable.
+- Python environment: from `services/calculator`, edit `pyproject.toml`, run `uv lock` then `uv sync --locked --extra dev`; stop a running Python server before replacing `.venv`. Regenerate generated rule SQL (`0006_seed_rule_sets.sql`) and generated canonical fixture SQL tests via their existing generator scripts; run their `--check` modes.
+- PostgreSQL migrations are forward-only: do not edit existing applied `0001`–`0006` unless there is explicit evidence the environment has never applied them; prefer a new migration. For each new or replaced function, inspect and explicitly limit `EXECUTE` for `PUBLIC`, `anon`, `authenticated`, `service_role`, granting only required minimal entry points. Review `SECURITY DEFINER` owners and `search_path`, RLS helper invocation and PostgREST exposure. Do not trust `app.workflow_fn` alone.
+- Local SQL harness command (from repo root): `SAGESPAN_PG_BIN=<dir with initdb/pg_ctl> SAGESPAN_TEST_PG_PORT=<free port> python supabase/tests/run_sql_tests.py` (on Windows adapt environment syntax). Real stack: `supabase start`, `supabase db reset`, `supabase test db`, plus test authenticated RPCs via JWT/PostgREST—only when configuration and required local services are available.
+- Tests to run and report exact results, depending on scope: `npm run typecheck`, `npm run lint`, contracts Vitest, web Vitest with calculator running, `npm run build --workspace apps/web`, `npm run test:e2e --workspace apps/web`, locked Python `pytest`, SQL harness, and real Supabase security tests. Never report commands that were not actually executed. Separate typecheck, build, unit, e2e and integration evidence.
+- Windows/local CLI note: original sessions observed long Bash commands truncating. Prefer Write tool / smaller shell commands; stop a specific stray PostgreSQL cluster with `pg_ctl -D <tmp>/data stop`, not blanket `taskkill`.
+
+## 8. Privacy, regulatory and marketing safeguards
+
+- B2C personalized securities recommendations or automated advice may create investment-adviser obligations; do not ship them until counsel has resolved the applicable federal/state regulatory perimeter, registration/licensing, fiduciary and supervision requirements, suitability/appropriateness where applicable, conflicts/disclosures, records and model validation. Generic budgeting/education still needs honest claims, consumer protection and data security.
+- B2B RIA workflow support does **not** mean SageSpan certifies a firm's compliance with SEC Rule 206(4)-7, Rule 204-2 or Regulation S-P. No unsupported “SEC-approved”, SOC 2, fiduciary, ZDR, compliant-by-default, zero-risk or native integration claims.
+- Do not integrate real banking/aggregator, investment brokerage, private documents or paid LLM processing of identifiable user data until consent, privacy terms, contractual/vendor review, secured auth/RLS/storage, audit logging, incident response and relevant legal release gates exist.
+- Evidence packet names must distinguish bounded review from comprehensive advice or certification. Document historical pricing only as a non-binding experiment: B2B `$750/month` including 100 households plus `$3.50` per additional household; limited `$500/month` pilot up to 50 households. B2C prices remain unvalidated hypotheses in V5.
+
+## 9. Required Claude Code work loop and reporting
+
+For each new task:
+
+1. **Inspect:** current branch, status, constraints, source files and tests; say which requirements are already implemented, partially implemented, proposed, blocked, or independently validated.
+2. **Scope:** smallest reviewable PR, affected files, permissions/tenant changes, model assumptions, data migrations, threat model, acceptance tests and non-goals. Do not self-authorize a full V5 rewrite.
+3. **Implement:** only the agreed or clearly requested scope; preserve existing working B2C and B2B functions; use synthetic data unless safe release gates are met.
+4. **Verify:** positive and negative tests, financial golden cases, cross-tenant isolation, snapshot/receipt integrity, AI evaluation as applicable; distinguish actual executions from CI/historical results.
+5. **Report:** changed files and behavior; precise commands with pass/fail counts; security/privacy/financial/regulatory blockers; V5 traceability IDs; exact next PR recommendation.
+
+**Permanent operating rule:** AI proposes and explains. Deterministic financial engines calculate. Authorization and policy constrain. Individuals and authorized professionals decide. Sources, methods, assumptions, versions and history remain independently reviewable.

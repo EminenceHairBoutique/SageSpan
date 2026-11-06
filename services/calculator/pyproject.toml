@@ -2,11 +2,13 @@
 name = "sagespan-calculator"
 version = "0.1.0"
 description = "SageSpan calculation & verification service: deterministic, Decimal-safe retirement rule checks (RMD P0) with versioned rule sets and traceable receipts."
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
+# Upper bounds plus uv.lock (the installed set CI and local .venv use) keep Pydantic/FastAPI
+# behaviour reproducible; the OpenAPI drift test is generated from the locked environment.
 dependencies = [
-  "fastapi>=0.115",
-  "pydantic>=2.9",
-  "uvicorn[standard]>=0.30",
+  "fastapi>=0.115,<1",
+  "pydantic>=2.9,<3",
+  "uvicorn[standard]>=0.30,<1",
 ]
 
 [project.optional-dependencies]

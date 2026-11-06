@@ -23,10 +23,10 @@ insert into app.source_documents (id, org_id, household_id, source_kind, filenam
   ('a0000000-0000-0000-0000-0000000d0c01', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'a0000000-0000-0000-0000-000000000001', 'CUSTODIAN_STATEMENT', 'a.txt', repeat('a', 64), 1, 'test'),
   ('b0000000-0000-0000-0000-0000000d0c01', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'b0000000-0000-0000-0000-000000000001', 'CUSTODIAN_STATEMENT', 'b.txt', repeat('b', 64), 1, 'test');
 
--- Anonymous: nothing is visible.
+-- Anonymous: nothing is visible and nothing is callable (no usage on schema app).
 select tests.clear_auth();
 set local role anon;
-select throws_ok($$ select count(*) from app.households $$, '42501', null, 'anon has no access to the app schema at all');
+select throws_ok($$ select count(*) from app.households $$, '42501', null, 'anon cannot read households');
 select throws_ok($$ insert into app.households (org_id, label, tax_year) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'x', 2026) $$, '42501', null, 'anon cannot insert households');
 reset role;
 
@@ -54,9 +54,9 @@ select throws_ok($$
   insert into app.persons (org_id, household_id, display_name) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'b0000000-0000-0000-0000-000000000001', 'Smuggled')
 $$, '23503', null, 'cross-org composite FK rejects A person under B household');
 
--- Audit: A sees only A's chain.
+-- Audit: A sees only A's chain (B's event appended from a service context).
 select tests.clear_auth();
-select app.append_audit('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'DEMO_RESET', 'organization', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'seed B', '{}'::jsonb, 'SYSTEM');
+select app.append_audit('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'DEMO_RESET', 'organization', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'seed B', '{}'::jsonb);
 select tests.authenticate_as('11111111-1111-1111-1111-111111111111');
 select is((select count(*) from app.audit_events where org_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'), 0::bigint, 'A cannot read B audit events');
 

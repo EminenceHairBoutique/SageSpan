@@ -126,12 +126,22 @@ export function evaluateGateFromBundle(b: HouseholdBundle): FreezeGate {
   return { canFreeze: blockers.length === 0, blockers, warnings, required };
 }
 
+/**
+ * Byte-order string comparison (UTF-16 code units; identical to UTF-8 byte order
+ * for the ASCII identifiers used here). Snapshot payload ordering must match
+ * app.canonical_json / app.build_snapshot_payload in Postgres (collate "C") and
+ * Python's sorted(), none of which are locale-aware. Never use localeCompare here.
+ */
+export function byteCompare(x: string, y: string): number {
+  return x < y ? -1 : x > y ? 1 : 0;
+}
+
 /** Deterministic, canonical snapshot payload built only from confirmed/assumed active facts. */
 export function buildSnapshotPayload(b: HouseholdBundle, revision: number): SnapshotPayload {
   const facts = b.activeFacts
     .filter((f) => f.verification_status === "FACT_CONFIRMED" || f.verification_status === "FACT_ASSUMED")
     .map((f) => ({ id: f.id, subject_type: f.subject_type, subject_id: f.subject_id, field_key: f.field_key, value_kind: f.value_kind, value_number: f.value_number, value_text: f.value_text, value_date: f.value_date, value_bool: f.value_bool, value_currency: f.value_currency, as_of_date: f.as_of_date, verification_status: f.verification_status, source_document_id: f.source_document_id }))
-    .sort((a, c) => a.id.localeCompare(c.id));
+    .sort((a, c) => byteCompare(a.id, c.id));
   const docIds = new Set(facts.map((f) => f.source_document_id).filter(Boolean));
   return {
     snapshot_version: "sagespan.snapshot.v1",
@@ -139,12 +149,12 @@ export function buildSnapshotPayload(b: HouseholdBundle, revision: number): Snap
     tax_year: b.household.tax_year,
     revision,
     facts,
-    source_documents: b.documents.filter((d) => docIds.has(d.id) || b.importedValues.some((v) => b.imports.find((i) => i.id === v.import_id)?.source_document_id === d.id)).map((d) => ({ id: d.id, source_kind: d.source_kind, filename: d.filename, sha256: d.sha256, source_as_of: d.source_as_of })).sort((a, c) => a.id.localeCompare(c.id)),
-    ownership: b.ownership.map((o) => ({ account_id: o.account_id, person_id: o.person_id, ownership_type: o.ownership_type, percentage: o.percentage, effective_from: o.effective_from, effective_to: o.effective_to })).sort((a, c) => (a.account_id + a.person_id).localeCompare(c.account_id + c.person_id)),
-    beneficiaries: b.beneficiaries.filter((d) => !d.effective_to).map((d) => ({ account_id: d.account_id, beneficiary_person_id: d.beneficiary_person_id, relationship: d.relationship, designation_type: d.designation_type, share_percentage: d.share_percentage, sole_primary_entire_year: d.sole_primary_entire_year })).sort((a, c) => (a.account_id + a.designation_type + (a.beneficiary_person_id ?? "")).localeCompare(c.account_id + c.designation_type + (c.beneficiary_person_id ?? ""))),
-    assumptions: b.assumptions.filter((a) => facts.some((f) => f.id === a.source_fact_id)).map((a) => ({ key: a.key, value_kind: a.value_kind, value_decimal: a.value_decimal, value_text: a.value_text, basis: a.basis })).sort((a, c) => a.key.localeCompare(c.key)),
-    exceptions: b.conflicts.filter((c) => c.status === "EXCEPTION_DOCUMENTED").map((c) => ({ id: c.id, field_key: c.field_key, materiality: c.materiality, resolution_note: c.resolution_note, resolved_by: c.resolved_by })).sort((a, c) => a.id.localeCompare(c.id)),
-    imported_plan_values: b.importedValues.filter((v) => v.tax_year === b.household.tax_year).map((v) => ({ id: v.id, metric_key: v.metric_key, tax_year: v.tax_year, value_decimal: v.value_decimal, currency: v.currency, calculation_scope: v.calculation_scope, balance_basis: v.balance_basis, declared_inputs: v.declared_inputs, assumptions: v.assumptions, account_id: v.account_id })).sort((a, c) => a.id.localeCompare(c.id)),
+    source_documents: b.documents.filter((d) => docIds.has(d.id) || b.importedValues.some((v) => b.imports.find((i) => i.id === v.import_id)?.source_document_id === d.id)).map((d) => ({ id: d.id, source_kind: d.source_kind, filename: d.filename, sha256: d.sha256, source_as_of: d.source_as_of })).sort((a, c) => byteCompare(a.id, c.id)),
+    ownership: b.ownership.map((o) => ({ account_id: o.account_id, person_id: o.person_id, ownership_type: o.ownership_type, percentage: o.percentage, effective_from: o.effective_from, effective_to: o.effective_to })).sort((a, c) => byteCompare((a.account_id + a.person_id), c.account_id + c.person_id)),
+    beneficiaries: b.beneficiaries.filter((d) => !d.effective_to).map((d) => ({ account_id: d.account_id, beneficiary_person_id: d.beneficiary_person_id, relationship: d.relationship, designation_type: d.designation_type, share_percentage: d.share_percentage, sole_primary_entire_year: d.sole_primary_entire_year })).sort((a, c) => byteCompare((a.account_id + a.designation_type + (a.beneficiary_person_id ?? "")), c.account_id + c.designation_type + (c.beneficiary_person_id ?? ""))),
+    assumptions: b.assumptions.filter((a) => facts.some((f) => f.id === a.source_fact_id)).map((a) => ({ key: a.key, value_kind: a.value_kind, value_decimal: a.value_decimal, value_text: a.value_text, basis: a.basis })).sort((a, c) => byteCompare(a.key, c.key)),
+    exceptions: b.conflicts.filter((c) => c.status === "EXCEPTION_DOCUMENTED").map((c) => ({ id: c.id, field_key: c.field_key, materiality: c.materiality, resolution_note: c.resolution_note, resolved_by: c.resolved_by })).sort((a, c) => byteCompare(a.id, c.id)),
+    imported_plan_values: b.importedValues.filter((v) => v.tax_year === b.household.tax_year).map((v) => ({ id: v.id, metric_key: v.metric_key, tax_year: v.tax_year, value_decimal: v.value_decimal, currency: v.currency, calculation_scope: v.calculation_scope, balance_basis: v.balance_basis, declared_inputs: v.declared_inputs, assumptions: v.assumptions, account_id: v.account_id })).sort((a, c) => byteCompare(a.id, c.id)),
   };
 }
 

@@ -1,0 +1,44 @@
+{
+  "snapshot_version": "sagespan.snapshot.v1",
+  "household_id": "hh_patel",
+  "tax_year": 2026,
+  "revision": 1,
+  "facts": [
+    {
+      "id": "f_patel_bal_stmt",
+      "subject_type": "ACCOUNT",
+      "subject_id": "acct_patel_trad_ira",
+      "field_key": "account.year_end_balance",
+      "value_kind": "NUMBER",
+      "value_number": "640000.00",
+      "value_text": null,
+      "value_date": null,
+      "value_bool": null,
+      "value_currency": "USD",
+      "as_of_date": "2025-12-31",
+      "verification_status": "FACT_CONFIRMED",
+      "source_document_id": "doc_patel_stmt"
+    },
+    {
+      "id": "f_patel_alive",
+      "subject_type": "PERSON",
+      "subject_id": "person_patel_rajesh",
+      "field_key": "person.is_alive",
+      "value_kind": "BOOL",
+      "value_number": null,
+      "value_text": null,
+      "value_date": null,
+      "value_bool": true,
+      "value_currency": null,
+      "as_of_date": "2026-10-15",
+      "verification_status": "FACT_ASSUMED",
+      "source_document_id": null
+    }
+  ],
+  "source_documents": [{"id": "doc_patel_stmt", "source_kind": "CUSTODIAN_STATEMENT", "filename": "patel_ira_statement_2025-12-31.txt", "sha256": "869dd885a6c4b2bb000000000000000000000000000000000000000000000000", "source_as_of": "2025-12-31"}],
+  "ownership": [{"account_id": "acct_patel_trad_ira", "person_id": "person_patel_rajesh", "ownership_type": "INDIVIDUAL", "percentage": "100", "effective_from": "2009-06-01", "effective_to": null}],
+  "beneficiaries": [],
+  "assumptions": [{"key": "person.is_alive", "value_kind": "BOOL", "value_decimal": null, "value_text": "true", "basis": "No death notice on file (synthetic)."}],
+  "exceptions": [],
+  "imported_plan_values": [{"id": "ipv_patel_rmd_2026", "metric_key": "rmd.annual_amount", "tax_year": 2026, "value_decimal": "24000.00", "currency": "USD", "calculation_scope": "SINGLE_ACCOUNT_ANNUAL_RMD", "balance_basis": "ACTUAL_PRIOR_YEAR_END", "declared_inputs": {"balance": "612000.00", "factor": "25.5"}, "assumptions": {}, "account_id": "acct_patel_trad_ira"}]
+}

@@ -1,22 +1,57 @@
 # Security design and limits
 
 This is a description of the design and of what this synthetic build
-implements. It is not a certification, an audit, or legal advice.
+implements. It is not a certification, an audit, or legal advice. Nothing here
+claims production readiness; the real Supabase stack has not been run.
 
 ## Threat model (prototype scope)
 
 | Threat | Control in this build |
 |---|---|
-| Tenant A reads or changes tenant B data | Server-side tenant scoping on every read/mutation (tested); SQL composite FKs and forced RLS on every table (written, not yet executed) |
+| Tenant A reads or changes tenant B data | Server-side tenant scoping on every read/mutation (tested); SQL composite FKs and RLS on every table, executed on plain Postgres with shims (117 assertions), not yet on the real Supabase stack |
 | Client forges `org_id` or role | Actor resolved from the server session only; calculation service reads tenant from a server-set header and rejects `org_id` in bodies (tested) |
-| UI-only approval | Approval is a domain function requiring approver role, rationale, attestation, no open discrepancies, and separation of duties; denials are audited (tested); SQL `record_review` repeats the checks and records `auth.uid()` as reviewer |
+| Workflow fields written outside a workflow function (S-01) | `authenticated` holds UPDATE only on `label, status, assignee_user_id, source_tool_label`; a trigger refuses `workflow_status` / `current_revision` changes unless the transaction-local sentinel `app.workflow_fn` is set by a SECURITY DEFINER workflow function; `app.transition_household` is not executable by `authenticated` (tested, SQL 005) |
+| Forged or cross-tenant audit events (S-02) | `app.append_audit` is executable by `service_role` only; workflow functions call it internally; `actor_type` is derived (USER when `auth.uid()` is set, SYSTEM only for a privileged session), `event_type` is allow-listed, every event carries `seq` in its hashed core and the chain is serialised per organisation through `app.audit_chain_heads` under an advisory lock (tested, SQL 003/005) |
+| Freeze with a payload that does not match the hash or the stored facts (S-03) | `app.freeze_snapshot` recomputes `sha256(app.canonical_json(payload))`, checks the household identity, revision and tax year, requires every cited fact to exist, be active, be confirmed/assumed and carry the same value, and requires every RMD-required fact to be present; `app.canonical_json` is byte-compatible with the TypeScript and Python canonicalisers (shared fixtures, tested in all three tiers) |
+| Tampered or foreign calculation receipt (S-04) | The web tier re-derives `request_hash`, requires engine `sagespan-calculator`, requires the receipt's `snapshot_ref` to match the frozen snapshot and every cited rule set to be PUBLISHED with the same checksum in the registry; failures are recorded as ERROR runs with `RECEIPT_INTEGRITY_ERROR` plus a `CHECK_RUN_FAILED` audit event and never advance the workflow. `app.record_check_run` repeats the checks in SQL against the seeded rule-set registry (migration 0006). Approval refuses any non-ERROR run whose receipt is not verified (`CHECK_RECEIPT_UNVERIFIED`) |
+| Direct check insertion, fact promotion, self-declared documents (S-05) | `authenticated` cannot INSERT `check_runs`, INSERT/UPDATE `discrepancies`, UPDATE `facts` or INSERT `source_documents`; facts change only through `app.confirm_fact` (COMPLIANCE/ADVISOR, rationale and evidence reference required) and the resolution functions; a trigger makes `superseded` one-way and `verification_status` sentinel-only |
+| Rewritten dispositions or discrepancy amounts (N-01) | Discrepancy amounts/classification are immutable; a disposition is write-once (`ALREADY_DISPOSITIONED`) and refused once the household is APPROVED/EXPORTED, in SQL (trigger + function) and TypeScript |
+| Production deployed with demo defaults (N-03 web) | With `NODE_ENV=production` and `SAGESPAN_DEMO_MODE` not exactly `1`, `apps/web/src/config/env.ts` refuses the demo token/URL; `instrumentation.ts` runs the check at server start |
+| PUBLIC EXECUTE on SECURITY DEFINER functions (N-04) | Every function in schema `app` is revoked from PUBLIC/anon/authenticated/service_role and re-granted explicitly; the SQL suite asserts the exact list executable by `authenticated` |
+| Approval matrix differs between tiers (N-05) | `approvalDecision()` in `packages/contracts` (capability COMPLIANCE/ADVISOR × firm policy `approver_roles`) drives the UI, the domain tier and the SQL `record_review` policy check (`NOT_AN_APPROVER`) |
+| UI-only approval | Approval is a domain function requiring approver role, rationale, attestation, no open discrepancies, verified receipts and separation of duties; denials are audited (tested); SQL `record_review` repeats the checks and records `auth.uid()` as reviewer |
 | Silent edits to frozen evidence | Snapshots are immutable; later changes create a new revision (tested); SQL triggers refuse snapshot/review/check-run/audit mutation |
-| Tampered audit history | Per-organisation SHA-256 hash chain with a verifier shown in the console (tested) |
+| Tampered audit history | Per-organisation SHA-256 hash chain with `seq`, verified by `app.verify_audit_chain` and in the console (tested) |
 | Malicious import files | Only the documented CSV/JSON contract; size/row/column limits; strict RFC 4180 parser; Zod validation; unsupported files rejected before any state is written (tested) |
 | Spreadsheet formula injection in exports | Cells beginning with `= + - @` or tab/CR are neutralised (tested) |
 | PII or financial values in logs | Audit events store digests and identifier-level summaries; validation errors return field paths, not values |
 | Browser framing / sniffing | `X-Frame-Options: DENY`, `nosniff`, strict referrer policy, no `X-Powered-By` |
 | Secrets in the browser | Service token and any service-role key are server-only; `NEXT_PUBLIC_*` is limited to the Supabase URL/anon key and brand strings |
+| Dependency drift in the calculator | `services/calculator/uv.lock` pins the environment (Pydantic 2.14.3, FastAPI 0.162.0, Python 3.12–3.13); CI installs with `uv sync --locked`; the OpenAPI drift test is generated from that environment |
+
+## Trust boundaries (PR-001, 2026-11-05)
+
+Findings are numbered as in `docs/audits/REPOSITORY_AUDIT_2026-11-05_v2.md`.
+Each row lists the layer that enforces the invariant and the test that would
+fail if it regressed. "—" means the layer is not the control for that row.
+
+| Finding | Postgres privilege | RLS | Trigger | Function check | TypeScript check | Tests |
+|---|---|---|---|---|---|---|
+| S-01 workflow transitions | `transition_household` not executable by `authenticated`; column-level UPDATE grant on `households` | `households_update` scoped to membership | `households_workflow_guard` (sentinel) | `set_reconciliation_status`, `send_to_review` assert role and membership on entry | `domain/workflow.ts` is the only writer of `workflow_status` | SQL 005 S-01a–c; web `trust-boundaries` "sentinel equivalent" |
+| S-02 audit injection | `append_audit` executable by `service_role` only | — | `audit_events` immutability; `unique (org_id, seq)`, `unique (org_id, previous_event_hash)` | derived `actor_type`, event-type allow-list, `assert_member`, advisory lock, `verify_audit_chain` | `appendAudit` is internal to `src/domain` | SQL 003, 005 S-02 |
+| S-03 freeze gate | — | snapshot insert through definer function only | snapshot immutability | hash recompute, identity, fact existence/status/value, required facts | `freezeSnapshot` + byte-order `buildSnapshotPayload` | SQL 005 S-03; SQL 006 (canonical fixtures); contracts `trust-boundaries`; web `trust-boundaries` S-03 |
+| S-04 receipts | `check_runs` INSERT and `discrepancies` INSERT/UPDATE revoked from `authenticated` | — | `rule_sets_checksum_guard` | `record_check_run` integrity checks → ERROR run + `CHECK_RUN_FAILED`; `record_review` `CHECK_RECEIPT_UNVERIFIED` | `verifyReceipt`, `runRmdChecks`, `approveReview` | SQL 005 S-04; web `trust-boundaries` S-04 (5 mutations + registry down + unverified approval) |
+| S-05a–e facts, checks, documents | `facts` UPDATE, `check_runs` INSERT, `source_documents` INSERT revoked from `authenticated` | write policies dropped | `facts_guard_update` | `confirm_fact` role, rationale, evidence reference | `confirmFact` role check | SQL 005 S-05a–e |
+| N-01 dispositions | `discrepancies` UPDATE revoked | — | `discrepancies_guard` (immutable amounts, write-once disposition, sentinel) | `disposition_discrepancy` refuses `ALREADY_DISPOSITIONED` and APPROVED/EXPORTED | `dispositionDiscrepancy`, `recordDisposition` | SQL 005 N-01; web `trust-boundaries` N-01 |
+| N-03 audit chain forks | — | — | `unique (org_id, previous_event_hash)` | `audit_chain_heads` + advisory lock + `seq` | — | SQL 003 (`verify_audit_chain` intact), 005 |
+| N-03 (web) demo defaults | — | — | — | — | `env.ts` fail-closed, `instrumentation.ts` | web `trust-boundaries` N-03 |
+| N-04 privileges | revoke-all then explicit grants, re-asserted at the end of 0005 | — | — | — | — | SQL 005 N-04 inventory; `supabase/tests/probes/advisor_equivalent.sql` |
+| N-05 approval matrix | — | — | — | `record_review` policy check (`NOT_AN_APPROVER`, 42501) | `approvalDecision` / `canApprove` (UI + domain) | contracts `trust-boundaries`; web `trust-boundaries` N-05; SQL 005 N-05 |
+
+Out of scope for PR-001 and still open: S-06 (approval with insufficient
+coverage), S-07 (check request not derived solely from the frozen snapshot;
+live tolerance policy is read at check time) and N-02 (a transient ERROR run
+blocks approval permanently). They are PR-002.
 
 ## What is deliberately not claimed
 
@@ -27,6 +62,9 @@ implements. It is not a certification, an audit, or legal advice.
 * No encryption-at-rest, backup, retention or incident-response guarantees
   beyond what a signed agreement would state.
 * No vendor integrations: vendor labels on imports are metadata.
+* RLS is **not** described as production-proven: the policies and functions
+  have been executed on plain PostgreSQL with Supabase shims, never on the
+  real Supabase stack (`supabase start` needs Docker, which was not available).
 
 ## Verification status of security tests (as of this build)
 
@@ -37,9 +75,11 @@ implements. It is not a certification, an audit, or legal advice.
 | Web domain: separation of duties denial audited | Passing (vitest) |
 | Web domain: snapshot immutability, new revision | Passing (vitest) |
 | Web domain: service unavailable → visible error, no local math | Passing (vitest) |
-| Calculation service: token required, tenant header required, body `org_id` rejected | Passing (pytest) |
-| Browser: forged API approval as viewer → 403; Northline cannot open Patel; full Patel flow against the real engine | Passing (Playwright, 4 scenarios, 2026-11-05) |
-| SQL: RLS tenant isolation, role/workflow, immutability, constraints | **Executed 2026-11-05 on PostgreSQL 16** via `supabase/tests/run_sql_tests.py` (Supabase/pgTAP shims, no Docker): 4 migrations applied, 4/4 test files, 45 assertions passed. Runs in CI (`database` job). `supabase test db` on the real stack remains the pre-deployment gate. |
+| Web domain: receipt integrity (wrong hash, wrong snapshot, unknown engine, unpublished rule set, no rule sets, registry down), unverified-receipt approval refused, write-once dispositions, approval matrix, fail-closed env, byte-order payloads | Passing (vitest, `src/domain/__tests__/trust-boundaries.test.ts`, 20 tests, 2026-11-05) |
+| Contracts: approval matrix for all roles × policies; canonical fixtures hash identically to Python and SQL | Passing (vitest, `test/trust-boundaries.test.ts`) |
+| Calculation service: token required, tenant header required, body `org_id` rejected; OpenAPI drift; rule-set seed and canonical SQL test generated from the locked environment | Passing (pytest, 69 tests, Python 3.13.3 from `uv.lock`) |
+| Browser: forged API approval as viewer → 403; Northline cannot open Patel; full Patel flow against the real engine | Passing (Playwright, 4 scenarios) |
+| SQL: tenant isolation, roles/workflow, immutability/chain, constraints, trust boundaries (58 assertions), canonical JSON parity (9) | **Executed 2026-11-05 on PostgreSQL 18.6** (embedded, no Docker) via `supabase/tests/run_sql_tests.py` with the Supabase/pgTAP shims: 6 migrations applied, 6/6 test files, 117 assertions. The same runner is the CI `database` job (`postgres:15`). `supabase test db` on the real stack has **not** been run. |
 
 The shim run proves the policies and functions on plain Postgres; the real-stack run (`supabase test db`, Docker) is still required before any deployment and must not be reported as done until it has run.
 
@@ -51,8 +91,8 @@ The shim run proves the policies and functions on plain Postgres; the real-stack
    permission, security review, documented use limitations.
 3. Real-client pilot: counsel perimeter memo, DPA, security risk assessment,
    validated calculations, incident-response and access-control tests, review
-   protocol, approved sub-processors, executed RLS tests, object storage with
-   malware scanning.
+   protocol, approved sub-processors, executed RLS tests on the real stack,
+   object storage with malware scanning.
 4. Public release: independent model validation, legal terms, security posture,
    regulated communications review, billing controls, operational runbook.
 
@@ -60,7 +100,35 @@ The shim run proves the policies and functions on plain Postgres; the real-stack
 
 * The demo store is a JSON file; it is not concurrent-safe and is reset by
   design. It exists to exercise the workflow, not to hold real records.
-* Uploaded file bytes are hashed but not stored.
+* Uploaded file bytes are hashed but not stored. After PR-001 only
+  `service_role` may register a `source_documents` row, so the server-side
+  path that stores bytes, hashes them and registers the row still has to be
+  built (planned as PR-003); until then documents arrive only through fixtures.
+* Shims versus Supabase: the SQL suite runs with `tests/shim_supabase.sql`
+  (roles, `auth.uid()` from `request.jwt.claims`) and `tests/shim_pgtap.sql`.
+  Differences from the hosted platform that matter: migrations run as the
+  superuser `postgres` here, whereas Supabase applies them as `postgres`
+  without superuser; `service_role` is created with `BYPASSRLS` by the shim as
+  on Supabase; `anon` is granted nothing in schema `app`. Tables use `enable`
+  rather than `force row level security` since 0005, so the table owner
+  (`postgres`, which runs the SECURITY DEFINER workflow functions) is not
+  subject to the policies while `authenticated`/`anon` are. Re-check both
+  points on the real stack.
+* Supabase Security Advisor: the hosted advisor could not be run. The local
+  equivalent (`supabase/tests/probes/advisor_equivalent.sql`) reports no
+  table without RLS or policies, no SECURITY DEFINER function with a mutable
+  `search_path`, no function executable by PUBLIC or `anon`, no `anon` table
+  privileges, no `security_definer` views and no extensions in `public`. It
+  does flag the performance lint `auth_rls_initplan` on nine insert/update
+  policies from migration 0003 that call `auth.uid()` per row; that is a
+  performance item, left for a later migration.
+* Canonical ordering: keys are ordered by UTF-16 code unit in TypeScript, by
+  code point in Python and by UTF-8 byte in SQL (`collate "C"`). These agree
+  for every key in use (ASCII); a key containing characters outside the Basic
+  Multilingual Plane could order differently and must not be introduced.
+* `mypy` is not run in CI (typing cleanup of `Discrepancy(**dict)` in
+  `app/financial/checks.py` is pending); `ruff` status is recorded in the
+  PR-001 description.
 * Demo reviewers are simulated; `actor_type = SIMULATED_REVIEWER` is recorded
   on every review and packet.
 * PDF rendering is not bundled; the HTML packet is print-ready.

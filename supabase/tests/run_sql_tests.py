@@ -27,7 +27,7 @@ import time
 HERE = pathlib.Path(__file__).resolve().parent
 MIGRATIONS = sorted((HERE.parent / "migrations").glob("*.sql"))
 TESTS = sorted(HERE.glob("*.test.sql"))
-PG_BIN = pathlib.Path(shutil.which("initdb") or "/usr/lib/postgresql/16/bin/initdb").parent
+PG_BIN = pathlib.Path(shutil.which("initdb") or os.environ.get("SAGESPAN_PG_BIN", "/usr/lib/postgresql/16/bin") + "/initdb").parent
 PORT = int(os.environ.get("SAGESPAN_TEST_PG_PORT", "54331"))
 
 
@@ -38,27 +38,58 @@ class Cluster:
         self.runner: list[str] = []
 
     def __enter__(self) -> "Cluster":
-        if os.geteuid() == 0:
+        if hasattr(os, "geteuid") and os.geteuid() == 0:
             subprocess.run(["chown", "-R", "nobody", str(self.dir)], check=True)
             self.runner = ["runuser", "-u", "nobody", "--"]
-        subprocess.run([*self.runner, str(PG_BIN / "initdb"), "-D", str(self.data), "-A", "trust", "-U", "postgres", "--no-sync"], check=True, capture_output=True)
-        subprocess.run([*self.runner, str(PG_BIN / "pg_ctl"), "-D", str(self.data), "-o", f"-p {PORT} -k {self.dir} -c listen_addresses=''", "-l", str(self.dir / "log"), "start", "-w"], check=True, capture_output=True)
+        # No pipes: on Windows the postmaster would inherit a captured stdout and the launcher would block forever.
+        quiet = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+        subprocess.run([*self.runner, str(PG_BIN / "initdb"), "-D", str(self.data), "-A", "trust", "-U", "postgres", "--no-sync"], check=True, **quiet)
+        if os.name == "nt":
+            # Windows: loopback TCP (no Unix-socket directory semantics to rely on).
+            opts = f"-p {PORT} -c listen_addresses=127.0.0.1"
+            self.dsn = f"host=127.0.0.1 port={PORT} user=postgres dbname=postgres"
+        else:
+            opts = f"-p {PORT} -k {self.dir} -c listen_addresses=''"
+            self.dsn = f"host={self.dir} port={PORT} user=postgres dbname=postgres"
+        subprocess.run([*self.runner, str(PG_BIN / "pg_ctl"), "-D", str(self.data), "-o", opts, "-l", str(self.dir / "log"), "start", "-w", "-t", "60"], check=True, timeout=120, **quiet)
         time.sleep(0.5)
-        self.dsn = f"host={self.dir} port={PORT} user=postgres dbname=postgres"
         return self
 
     def __exit__(self, *exc: object) -> None:
-        subprocess.run([*self.runner, str(PG_BIN / "pg_ctl"), "-D", str(self.data), "stop", "-m", "immediate"], check=False, capture_output=True)
+        subprocess.run([*self.runner, str(PG_BIN / "pg_ctl"), "-D", str(self.data), "stop", "-m", "immediate"], check=False, timeout=60, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         shutil.rmtree(self.dir, ignore_errors=True)
 
 
 def psql(dsn: str, sql: str, label: str) -> tuple[bool, str]:
-    proc = subprocess.run(
-        ["psql", dsn, "-v", "ON_ERROR_STOP=1", "-q", "-X", "-f", "-"],
-        input=sql, text=True, capture_output=True,
-    )
-    out = (proc.stdout + proc.stderr).strip()
-    return proc.returncode == 0, out
+    """Execute a SQL script; uses the psql binary when present, otherwise psycopg (same ON_ERROR_STOP semantics)."""
+    if shutil.which("psql"):
+        proc = subprocess.run(
+            ["psql", dsn, "-v", "ON_ERROR_STOP=1", "-q", "-X", "-f", "-"],
+            input=sql, text=True, capture_output=True,
+        )
+        out = (proc.stdout + proc.stderr).strip()
+        return proc.returncode == 0, out
+    try:
+        import psycopg  # type: ignore[import-not-found]
+    except ModuleNotFoundError:
+        return False, "neither the psql binary nor the psycopg package is available"
+    try:
+        with psycopg.connect(dsn, autocommit=True) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                notes: list[str] = []
+                # drain any result sets (plan/finish/select lines) for diagnostics
+                while True:
+                    try:
+                        rows = cur.fetchall()
+                        notes.extend(str(r[0]) for r in rows if r)
+                    except psycopg.ProgrammingError:
+                        pass
+                    if not cur.nextset():
+                        break
+        return True, chr(10).join(notes)
+    except psycopg.Error as exc:  # type: ignore[attr-defined]
+        return False, f"{label}: {exc.__class__.__name__}: {exc}"
 
 
 def has_pgtap(dsn: str) -> bool:

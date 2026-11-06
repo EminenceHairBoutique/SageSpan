@@ -9,12 +9,16 @@ and checksums used.
 
 ```bash
 cd services/calculator
-python -m venv .venv
-# Windows: .venv\Scripts\activate   |   POSIX: source .venv/bin/activate
-pip install -r requirements.txt
-set CALC_DEMO_MODE=1            # POSIX: export CALC_DEMO_MODE=1
-uvicorn app.main:app --port 8010 --reload
+python -m venv .venv                      # first time only
+# PowerShell: .\.venv\Scripts\Activate.ps1   |   POSIX: source .venv/bin/activate
+python -m pip install -r requirements.txt
+python scripts/dev.py                     # sets CALC_DEMO_MODE=1 for this process; port 8010, reload
 ```
+
+Running uvicorn directly needs the variable set in your shell's syntax:
+PowerShell `$env:CALC_DEMO_MODE = "1"`, cmd.exe `set CALC_DEMO_MODE=1`,
+bash `export CALC_DEMO_MODE=1`. (In PowerShell, `set X=1` does not set an
+environment variable.)
 
 OpenAPI UI: http://127.0.0.1:8010/docs
 

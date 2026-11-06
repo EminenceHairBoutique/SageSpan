@@ -40,6 +40,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "packet.export",
     "org.manage_policy",
   ],
+  // ADVISOR holds the approval *capability*; whether an advisor may approve is decided by firm
+  // policy (approver_roles, default COMPLIANCE only). See approvalDecision().
   ADVISOR: [
     "household.read",
     "import.create",
@@ -50,6 +52,7 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "check.run",
     "review.comment",
     "review.disposition",
+    "review.approve",
     "packet.export",
   ],
   // Analysts reconcile, resolve conflicts in favour of primary evidence, freeze and run checks,
@@ -61,6 +64,36 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
 export function can(role: Role | null | undefined, permission: Permission): boolean {
   if (!role) return false;
   return ROLE_PERMISSIONS[role].includes(permission);
+}
+
+/**
+ * Approval matrix (audit finding N-05): approval = capability × firm policy.
+ *
+ * - Capability: only COMPLIANCE and ADVISOR can ever hold `review.approve`.
+ * - Firm policy: `policies.approver_roles` names which capable roles may approve
+ *   (default COMPLIANCE only; ADVISOR is a configurable option for small firms
+ *   where the lead advisor is the designated reviewer).
+ *
+ * Both tiers evaluate exactly this rule: TypeScript via `approvalDecision`,
+ * SQL via `app.record_review` (assert_role COMPLIANCE/ADVISOR, then approver_roles).
+ */
+export const APPROVAL_CAPABLE_ROLES: readonly Role[] = ["COMPLIANCE", "ADVISOR"];
+
+export type ApprovalDecision = { allowed: true } | { allowed: false; code: "PERMISSION_DENIED" | "NOT_AN_APPROVER"; message: string };
+
+export function approvalDecision(role: Role | null | undefined, approverRoles: readonly Role[]): ApprovalDecision {
+  if (!role || !APPROVAL_CAPABLE_ROLES.includes(role) || !can(role, "review.approve")) {
+    return { allowed: false, code: "PERMISSION_DENIED", message: `Permission denied: role ${role ?? "none"} lacks review.approve` };
+  }
+  const policy = approverRoles.filter((r) => APPROVAL_CAPABLE_ROLES.includes(r));
+  if (!policy.includes(role)) {
+    return { allowed: false, code: "NOT_AN_APPROVER", message: `Firm policy allows approval by ${policy.length ? policy.join(", ") : "COMPLIANCE"} only.` };
+  }
+  return { allowed: true };
+}
+
+export function canApprove(role: Role | null | undefined, approverRoles: readonly Role[]): boolean {
+  return approvalDecision(role, approverRoles).allowed;
 }
 
 export class PermissionDeniedError extends Error {
