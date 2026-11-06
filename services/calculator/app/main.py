@@ -61,16 +61,6 @@ async def validation_exc_handler(_: Request, exc: RequestValidationError):
     return JSONResponse(status_code=422, content={"error": {"code": "VALIDATION_ERROR", "message": "Request did not match the contract.", "details": details}})
 
 
-@app.get("/health", response_model=HealthResponse, tags=["system"])
-async def health(request: Request) -> HealthResponse:
-    return HealthResponse(status="ok", engine_name=ENGINE_NAME, engine_version=ENGINE_VERSION, demo_mode=request.app.state.settings.demo_mode)
-
-
-@app.get("/v1/rules", response_model=RuleSetListResponse, tags=["rules"], responses={401: ERROR_RESPONSES[401]})
-async def list_rules(_: OrgContext = Depends(require_service_auth)) -> RuleSetListResponse:
-    return RuleSetListResponse(rule_sets=[RuleSetRef(**r.ref()) for r in ALL_RULE_SETS], engine_name=ENGINE_NAME, engine_version=ENGINE_VERSION)
-
-
 # Every declared error response carries an explicit description so the OpenAPI
 # document does not depend on the interpreter's HTTP status phrase table
 # (Python 3.13 renamed 422 from "Unprocessable Entity" to "Unprocessable Content").
@@ -80,6 +70,16 @@ ERROR_RESPONSES = {
     404: {"model": ErrorResponse, "description": "Unknown rule set"},
     422: {"model": ErrorResponse, "description": "Request did not match the contract (field paths only; submitted values are never echoed)"},
 }
+
+
+@app.get("/health", response_model=HealthResponse, tags=["system"])
+async def health(request: Request) -> HealthResponse:
+    return HealthResponse(status="ok", engine_name=ENGINE_NAME, engine_version=ENGINE_VERSION, demo_mode=request.app.state.settings.demo_mode)
+
+
+@app.get("/v1/rules", response_model=RuleSetListResponse, tags=["rules"], responses={401: ERROR_RESPONSES[401]})
+async def list_rules(_: OrgContext = Depends(require_service_auth)) -> RuleSetListResponse:
+    return RuleSetListResponse(rule_sets=[RuleSetRef(**r.ref()) for r in ALL_RULE_SETS], engine_name=ENGINE_NAME, engine_version=ENGINE_VERSION)
 
 
 @app.get("/v1/rules/{rule_set_id}", response_model=RuleSetRef, tags=["rules"], responses={401: ERROR_RESPONSES[401], 404: ERROR_RESPONSES[404]})

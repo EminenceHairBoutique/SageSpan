@@ -1436,7 +1436,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Missing server-resolved tenant header"
           },
           "401": {
             "content": {
@@ -1446,7 +1446,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or invalid service token"
           },
           "422": {
             "content": {
@@ -1456,7 +1456,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Request did not match the contract (field paths only; submitted values are never echoed)"
           }
         },
         "summary": "Check Rmd",
@@ -1512,6 +1512,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Missing or invalid service token"
           },
           "422": {
             "content": {
@@ -1587,6 +1597,16 @@
             },
             "description": "Successful Response"
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Missing or invalid service token"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1595,7 +1615,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Unknown rule set"
           },
           "422": {
             "content": {
