@@ -38,7 +38,7 @@ export function PersonalShell({ actor, workspaceLabel, quiet, personas, children
             </span>
             <span>
               <span className="block font-heading text-base font-bold leading-tight text-ink">{brand.name}</span>
-              <span className="block text-[11px] text-ink-faint">Personal · demo</span>
+              <span className="block text-caption text-ink-faint">Personal · demo</span>
             </span>
           </Link>
           <PersonalNav items={PERSONAL_NAV} />
@@ -77,7 +77,7 @@ export function PersonalShell({ actor, workspaceLabel, quiet, personas, children
             </div>
             <PersonalNav items={PERSONAL_NAV} mobile />
           </header>
-          <main className="px-4 py-6 md:px-8 md:py-8">{children}</main>
+          <main id="main" tabIndex={-1} className="px-4 py-6 md:px-8 md:py-8">{children}</main>
         </div>
       </div>
     </div>

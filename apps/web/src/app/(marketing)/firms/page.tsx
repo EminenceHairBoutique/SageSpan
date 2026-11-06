@@ -17,7 +17,7 @@ const classifications: Array<{ key: keyof typeof DISCREPANCY_LABELS; text: strin
 
 export default function FirmsPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-14 md:px-6">
+    <main id="main" className="mx-auto max-w-6xl px-4 py-14 md:px-6">
       <SectionHeading eyebrow="For advisors, RIA firms and compliance teams" title="Planning Intelligence and Assurance Intelligence on one trusted foundation">
         Build and explain a client&apos;s plan, then independently challenge its calculations, assumptions, completeness and evidence. Two linked, separately permissioned capabilities; neither lets an AI proposal certify itself.
       </SectionHeading>

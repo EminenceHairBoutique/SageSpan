@@ -32,7 +32,7 @@ export function ConsoleShell({ actor, personas, orgName, children, basePath = "/
             </span>
             <span>
               <span className="block font-heading text-base font-bold leading-tight text-ink">{brand.name}</span>
-              <span className="block text-[11px] text-ink-faint">Advisor &amp; Assurance · demo</span>
+              <span className="block text-caption text-ink-faint">Advisor &amp; Assurance · demo</span>
             </span>
           </Link>
           <nav className="mt-8 space-y-1" aria-label="Console">
@@ -65,7 +65,7 @@ export function ConsoleShell({ actor, personas, orgName, children, basePath = "/
               <PersonaSwitcher personas={personas} current={actor.user_id} />
             </div>
           </header>
-          <main className="px-4 py-6 md:px-8 md:py-8">{children}</main>
+          <main id="main" tabIndex={-1} className="px-4 py-6 md:px-8 md:py-8">{children}</main>
         </div>
       </div>
     </div>

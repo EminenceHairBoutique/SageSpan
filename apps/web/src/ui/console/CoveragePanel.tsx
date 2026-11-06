@@ -1,33 +1,20 @@
-import { REVIEW_OUTCOME_DESCRIPTIONS, REVIEW_OUTCOME_LABELS, approvalReadiness, coverageSummary, type AccountCoverage, type ReviewOutcome } from "@sagespan/contracts";
+import { REVIEW_OUTCOME_DESCRIPTIONS, REVIEW_OUTCOME_LABELS, approvalReadiness, coverageSummary } from "@sagespan/contracts";
 import type { HouseholdBundle } from "@/domain/queries";
+import { humanize, shortHash } from "@/ui/format";
+import { Alert, Td, Th } from "@/ui/primitives";
+import { CoverageChip } from "@/ui/status";
 
 export type HouseholdBundleLike = Pick<HouseholdBundle, "currentSnapshot" | "checkRuns" | "discrepancies" | "reviews" | "accounts">;
-import { Alert, Chip, Td, Th } from "@/ui/primitives";
+
+/** The typed outcome chip now lives in ui/status (design system §6.4); re-exported so existing imports keep working. */
+export { OutcomeChip } from "@/ui/status";
 
 /**
  * PR-002 coverage panel (S-06 / N-02). Reads the latest attempt per account on the
  * current snapshot and states, in plain words, what an approval would mean right
  * now. Nothing here is computed from amounts; it reads stored run fields.
+ * Coverage labels come from `CoverageChip` (founder decision D5 pending).
  */
-const COVERAGE_LABEL: Record<AccountCoverage, { text: string; tone: "teal" | "slate" | "amber" | "conflict" | "neutral" }> = {
-  VERIFIED: { text: "Verified (PASS)", tone: "teal" },
-  NOT_REQUIRED: { text: "Verified (not required)", tone: "teal" },
-  UNSUPPORTED: { text: "Outside supported scope", tone: "amber" },
-  INDETERMINATE: { text: "Indeterminate", tone: "amber" },
-  ERROR: { text: "Latest attempt failed", tone: "conflict" },
-  NOT_RUN: { text: "Not run", tone: "neutral" },
-};
-
-export function OutcomeChip({ outcome }: { outcome: ReviewOutcome | null }) {
-  if (!outcome) return <Chip tone="neutral">not approved</Chip>;
-  const tone = outcome === "SUPPORTED_CHECK_VERIFIED" ? "teal" : outcome === "APPROVED_WITH_EXCEPTIONS" ? "navy" : "amber";
-  return (
-    <Chip tone={tone} title={REVIEW_OUTCOME_DESCRIPTIONS[outcome]}>
-      {REVIEW_OUTCOME_LABELS[outcome]}
-    </Chip>
-  );
-}
-
 export function CoveragePanel({ b }: { b: HouseholdBundleLike }) {
   const snap = b.currentSnapshot;
   if (!snap) return null;
@@ -35,6 +22,7 @@ export function CoveragePanel({ b }: { b: HouseholdBundleLike }) {
   const readiness = approvalReadiness(summary);
   const approval = b.reviews.find((r) => r.snapshot_id === snap.id && r.decision === "APPROVED") ?? null;
   const labelOf = (ref: string) => b.accounts.find((a) => a.id === ref)?.label ?? ref;
+  const policyVersion = shortHash(snap.canonical_payload.policy.policy_sha256);
   return (
     <div className="space-y-3" data-testid="coverage-panel">
       <table className="w-full">
@@ -49,17 +37,16 @@ export function CoveragePanel({ b }: { b: HouseholdBundleLike }) {
         <tbody className="divide-y divide-line">
           {summary.rows.map((r) => {
             const acct = snap.canonical_payload.accounts.find((a) => a.id === r.account_ref);
-            const c = COVERAGE_LABEL[r.coverage];
             return (
               <tr key={`${r.check_type}:${r.account_ref}`}>
                 <Td>
                   <span className="font-medium">{labelOf(r.account_ref)}</span>
-                  <span className="ml-2 text-xs text-ink-muted">{acct?.account_type.toLowerCase().replace(/_/g, " ") ?? "—"}</span>
+                  <span className="ml-2 text-caption text-ink-muted">{acct ? humanize(acct.account_type) : "—"}</span>
                 </Td>
-                <Td className="text-xs">{r.latest_run_id ? <code>{r.latest_run_id}</code> : "—"}</Td>
+                <Td className="text-caption">{r.latest_run_id ? <code>{r.latest_run_id}</code> : "—"}</Td>
                 <Td>
-                  <Chip tone={c.tone}>{c.text}</Chip>
-                  {r.coverage_status && r.coverage !== "ERROR" && <span className="ml-2 text-xs text-ink-muted">{r.coverage_status.toLowerCase().replace(/_/g, " ")}</span>}
+                  <CoverageChip coverage={r.coverage} />
+                  {r.coverage_status && r.coverage !== "ERROR" && <span className="ml-2 text-caption text-ink-muted">{humanize(r.coverage_status)}</span>}
                 </Td>
                 <Td align="right">{r.superseded_run_ids.length ? `${r.superseded_run_ids.length} kept as history` : "—"}</Td>
               </tr>
@@ -72,16 +59,16 @@ export function CoveragePanel({ b }: { b: HouseholdBundleLike }) {
           {REVIEW_OUTCOME_DESCRIPTIONS[approval.coverage_outcome]} {summary.verified + summary.not_required} of {summary.accounts_in_scope} account(s) verified; {summary.unsupported + summary.indeterminate} outside supported scope.
         </Alert>
       ) : readiness.ready ? (
-        <Alert tone={readiness.outcome === "SUPPORTED_CHECK_VERIFIED" ? "teal" : "amber"} title={`If approved now: ${REVIEW_OUTCOME_LABELS[readiness.outcome]}`}>
+        <Alert tone={readiness.outcome === "SUPPORTED_CHECK_VERIFIED" ? "teal" : "amber"} role="status" title={`If approved now: ${REVIEW_OUTCOME_LABELS[readiness.outcome]}`}>
           {REVIEW_OUTCOME_DESCRIPTIONS[readiness.outcome]}
         </Alert>
       ) : (
-        <Alert tone="conflict" title={`Approval blocked: ${readiness.code.toLowerCase().replace(/_/g, " ")}`}>
+        <Alert tone="conflict" title={`Approval blocked: ${humanize(readiness.code)}`}>
           {readiness.message}
         </Alert>
       )}
-      <p className="text-xs text-ink-faint">
-        Only the latest attempt per account counts; {summary.superseded_attempts} earlier attempt(s) on this snapshot are kept as history. Policy at freeze: tolerance ±{snap.canonical_payload.policy.tolerance.absolute} / {snap.canonical_payload.policy.tolerance.relative} (version {snap.canonical_payload.policy.policy_sha256.slice(0, 12)}…).
+      <p className="text-caption text-ink-faint">
+        Only the latest attempt per account counts; {summary.superseded_attempts} earlier attempt(s) on this snapshot are kept as history. Policy at freeze: tolerance ±{snap.canonical_payload.policy.tolerance.absolute} / {snap.canonical_payload.policy.tolerance.relative} (version <span title={policyVersion.full}>{policyVersion.short}</span>).
       </p>
     </div>
   );
