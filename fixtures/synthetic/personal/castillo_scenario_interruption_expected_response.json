@@ -1,0 +1,162 @@
+{
+  "check_type": "PERSONAL_SCENARIO",
+  "result_status": "COMPUTED",
+  "infeasible_reason": null,
+  "as_of_date": "2026-11-01",
+  "scenario": {
+    "kind": "INCOME_INTERRUPTION",
+    "monthly_amount": null,
+    "goal_ref": null,
+    "destination": null,
+    "stream_ref": "inc_castillo_contract",
+    "months": 1,
+    "start_date": null
+  },
+  "baseline_metrics": {
+    "income_typical_monthly": "4970.00",
+    "income_low_monthly": "4000.00",
+    "monthly_essential": "3024.50",
+    "monthly_discretionary_typical": "442.00",
+    "margin_typical": "1503.50",
+    "margin_low": "533.50",
+    "margin_essential_only_low": "975.50",
+    "liquid_total": "3650.00",
+    "essential_buffer_months": "1.21",
+    "lowest_projected_cash": "1756.60",
+    "lowest_projected_date": "2026-11-06",
+    "end_projected_cash": "7547.27",
+    "first_floor_breach_date": null
+  },
+  "scenario_metrics": {
+    "income_typical_monthly": "1200.00",
+    "income_low_monthly": "1180.00",
+    "monthly_essential": "3024.50",
+    "monthly_discretionary_typical": "442.00",
+    "margin_typical": "-2266.50",
+    "margin_low": "-2286.50",
+    "margin_essential_only_low": "-1844.50",
+    "liquid_total": "3650.00",
+    "essential_buffer_months": "1.21",
+    "lowest_projected_cash": "405.73",
+    "lowest_projected_date": "2026-12-14",
+    "end_projected_cash": "4747.27",
+    "first_floor_breach_date": "2026-12-01"
+  },
+  "delta": {
+    "margin_typical": "-3770.00",
+    "margin_low": "-2820.00",
+    "monthly_discretionary_typical": "0.00",
+    "lowest_projected_cash": "-1350.87",
+    "end_projected_cash": "-2800.00"
+  },
+  "interruption": {
+    "stream_ref": "inc_castillo_contract",
+    "start_date": "2026-11-01",
+    "end_date": "2026-12-01",
+    "months": 1,
+    "stream_typical_monthly": "3750.00",
+    "income_forgone_typical": "3750.00",
+    "payments_skipped_in_horizon": 1,
+    "amount_skipped_in_horizon": "2800.00",
+    "cash_above_floor": "2150.00",
+    "margin_typical_during": "-2266.50",
+    "margin_essential_only_during": "-1824.50",
+    "runway_months_typical_spending": "0.95",
+    "runway_months_essentials_only": "1.18",
+    "cash_above_floor_covers_interruption": false,
+    "horizon_covers_interruption": true
+  },
+  "goal_changes": [],
+  "new_flags": [
+    {
+      "code": "FLOOR_BREACH_PROJECTED",
+      "severity": "HIGH",
+      "message": "The dated outlook drops below your cash floor on 2026-12-01.",
+      "refs": []
+    },
+    {
+      "code": "RUNWAY_SHORTER_THAN_INTERRUPTION",
+      "severity": "HIGH",
+      "message": "At typical spending, cash above your floor would last about 0.95 month(s), shorter than the 1-month interruption.",
+      "refs": [
+        "inc_castillo_contract"
+      ]
+    }
+  ],
+  "resolved_flag_codes": [],
+  "assumptions": [
+    "Everything not named by the scenario is held at the baseline inputs.",
+    "Design contract work pays nothing from 2026-11-01 until 2026-12-01 (1 month(s)); other streams continue as observed."
+  ],
+  "receipt": {
+    "receipt_version": "sagespan.receipt.v1",
+    "engine_name": "sagespan-calculator",
+    "engine_version": "0.1.0",
+    "request_hash": "e4987533922e81a1dab3e31d7529d67e7c17204f09e53391a92f21ec0c094ece",
+    "run_hash": "ff9889475755566e3526cc2cf3f5900d8404fddcc40696aa3dcc772f758bacb2",
+    "computed_at": "2026-11-06T12:00:00Z",
+    "org_context": {
+      "org_id": "ws_castillo_personal"
+    },
+    "snapshot_ref": null,
+    "rule_sets": [
+      {
+        "rule_set_id": "personal.cashflow_scenario",
+        "version": "2026.1",
+        "status": "PUBLISHED",
+        "checksum": "ca199cf7b9d7c903c73f88a0ab49fc45e60640503a3ea74eaf00f9b3232da9ea",
+        "effective_from": "2026-01-01",
+        "effective_to": null,
+        "sources": [
+          {
+            "title": "CFPB, Financial well-being resources",
+            "citation": "Four elements of financial well-being: control over day-to-day finances, capacity to absorb a shock, on track to meet goals, freedom to make choices (design reference only)",
+            "url": "https://www.consumerfinance.gov/consumer-tools/educator-tool/financial-well-being-resources/"
+          }
+        ]
+      },
+      {
+        "rule_set_id": "personal.cashflow_baseline",
+        "version": "2026.1",
+        "status": "PUBLISHED",
+        "checksum": "9fef6d0e1053c80a51763b6230287b195e057859fc640f78d72173877916c9f7",
+        "effective_from": "2026-01-01",
+        "effective_to": null,
+        "sources": [
+          {
+            "title": "CFPB, Financial well-being resources",
+            "citation": "Four elements of financial well-being: control over day-to-day finances, capacity to absorb a shock, on track to meet goals, freedom to make choices (design reference only)",
+            "url": "https://www.consumerfinance.gov/consumer-tools/educator-tool/financial-well-being-resources/"
+          }
+        ]
+      }
+    ],
+    "inputs_used": {
+      "as_of_date": "2026-11-01",
+      "horizon_days": 90,
+      "scenario_kind": "INCOME_INTERRUPTION",
+      "baseline_inputs": {
+        "as_of_date": "2026-11-01",
+        "horizon_days": 90,
+        "cash_floor": "1500.00",
+        "buffer_target_months": "2",
+        "cash_accounts": 2,
+        "income_streams": 2,
+        "observed_months": 6,
+        "obligations": 9,
+        "variable_spending_categories": 4,
+        "liabilities": 2,
+        "goals": 2
+      },
+      "workspace_ref": "ws_castillo_personal",
+      "input_hash": null
+    },
+    "formula": "scenario = baseline(inputs with one stated change); delta = scenario - baseline; runway = cash_above_floor / monthly_shortfall",
+    "limitations": [
+      "Illustrative what-if on user-reported inputs: one stated change, everything else held at the baseline. Not a forecast and not advice.",
+      "The dated outlook covers the baseline horizon only; effects after the horizon are reported as monthly figures, not dated cash.",
+      "Income interruption models the loss of one stream's payments only; it does not model benefits, severance, taxes, new income or spending the household would cut in response.",
+      "No investment returns, tax, benefits eligibility, insurance or credit effects are modelled."
+    ]
+  }
+}

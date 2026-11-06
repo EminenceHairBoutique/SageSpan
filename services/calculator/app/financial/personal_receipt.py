@@ -5,11 +5,12 @@ from datetime import datetime, timezone
 
 from .. import ENGINE_NAME, ENGINE_VERSION
 from ..schemas import OrgContext, Receipt, RuleSetRef
-from ..schemas_personal import DebtPathsRequest, DebtPathsResponse, PersonalClarityRequest, PersonalClarityResponse
+from ..schemas_personal import DebtPathsRequest, DebtPathsResponse, PersonalClarityRequest, PersonalClarityResponse, PersonalScenarioRequest, PersonalScenarioResponse
 from .canonical import canonical_hash
 from .cashflow import CASHFLOW_LIMITATIONS, compute_clarity
 from .debt import DEBT_LIMITATIONS, compute_debt_paths
-from .methods import PERSONAL_CASHFLOW_BASELINE, PERSONAL_DEBT_AMORTISATION
+from .methods import PERSONAL_CASHFLOW_BASELINE, PERSONAL_CASHFLOW_SCENARIO, PERSONAL_DEBT_AMORTISATION
+from .scenario import SCENARIO_LIMITATIONS, compute_scenario
 
 
 def _receipt(request_payload: dict, result_core: dict, method_refs: list[RuleSetRef], org_id: str, inputs_used: dict, formula: str, limitations: tuple[str, ...], now: datetime | None) -> Receipt:
@@ -105,5 +106,51 @@ def run_debt_paths(req: DebtPathsRequest, org_id: str, now: datetime | None = No
         results=results,
         assumptions=assumptions,
         flags=flags,
+        receipt=receipt,
+    )
+
+
+def run_personal_scenario(req: PersonalScenarioRequest, org_id: str, now: datetime | None = None) -> PersonalScenarioResponse:
+    c = compute_scenario(req)
+    method_refs = [RuleSetRef(**PERSONAL_CASHFLOW_SCENARIO.ref()), RuleSetRef(**PERSONAL_CASHFLOW_BASELINE.ref())]
+    result_core = {
+        "result_status": c.result_status,
+        "infeasible_reason": c.infeasible_reason,
+        "scenario": req.scenario.model_dump(mode="json"),
+        "baseline_metrics": c.baseline.model_dump(mode="json"),
+        "scenario_metrics": c.scenario.model_dump(mode="json"),
+        "delta": c.delta.model_dump(mode="json"),
+        "interruption": c.interruption.model_dump(mode="json") if c.interruption else None,
+        "goal_changes": [g.model_dump(mode="json") for g in c.goal_changes],
+        "new_flags": [f.model_dump(mode="json") for f in c.new_flags],
+        "resolved_flag_codes": c.resolved_flag_codes,
+    }
+    inputs_used = dict(c.inputs_used)
+    inputs_used["workspace_ref"] = req.workspace_ref
+    inputs_used["input_hash"] = req.input_hash
+    receipt = _receipt(
+        req.model_dump(mode="json"),
+        result_core,
+        method_refs,
+        org_id,
+        inputs_used,
+        "scenario = baseline(inputs with one stated change); delta = scenario - baseline; runway = cash_above_floor / monthly_shortfall",
+        SCENARIO_LIMITATIONS,
+        now,
+    )
+    return PersonalScenarioResponse(
+        check_type="PERSONAL_SCENARIO",
+        result_status=c.result_status,  # type: ignore[arg-type]
+        infeasible_reason=c.infeasible_reason,
+        as_of_date=req.baseline.as_of_date,
+        scenario=req.scenario,
+        baseline_metrics=c.baseline,
+        scenario_metrics=c.scenario,
+        delta=c.delta,
+        interruption=c.interruption,
+        goal_changes=c.goal_changes,
+        new_flags=c.new_flags,
+        resolved_flag_codes=c.resolved_flag_codes,
+        assumptions=c.assumptions,
         receipt=receipt,
     )

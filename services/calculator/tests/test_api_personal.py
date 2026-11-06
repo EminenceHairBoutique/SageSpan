@@ -54,6 +54,39 @@ def test_debt_paths_endpoint(client):
 def test_methods_registry_is_separate_from_regulatory_rule_sets(client):
     methods = {m["rule_set_id"] for m in client.get("/v1/methods", headers=AUTH).json()["method_sets"]}
     rules = {r["rule_set_id"] for r in client.get("/v1/rules", headers=AUTH).json()["rule_sets"]}
-    assert methods == {"personal.cashflow_baseline", "personal.debt_amortization"}
+    assert methods == {"personal.cashflow_baseline", "personal.debt_amortization", "personal.cashflow_scenario"}
     assert not (methods & rules), "methodology sets must not leak into the regulatory registry that seeds migration 0006"
     assert client.get("/v1/methods").status_code == 401
+
+
+def test_personal_scenario_endpoint_income_interruption(client):
+    body = {
+        "schema_version": "sagespan.personal-scenario.v1",
+        "baseline": castillo_payload(),
+        "scenario": {"kind": "INCOME_INTERRUPTION", "stream_ref": "inc_castillo_contract", "months": 1},
+        "workspace_ref": "ws_castillo_personal",
+    }
+    assert client.post("/v1/personal/scenario", json=body).status_code == 401
+    r = client.post("/v1/personal/scenario", json=body, headers=WS_AUTH)
+    assert r.status_code == 200, r.text
+    out = r.json()
+    assert out["check_type"] == "PERSONAL_SCENARIO" and out["result_status"] == "COMPUTED"
+    assert out["scenario_metrics"]["margin_typical"] == "-2266.50"
+    assert out["interruption"]["runway_months_typical_spending"] == "0.95"
+    assert out["receipt"]["rule_sets"][0]["rule_set_id"] == "personal.cashflow_scenario"
+
+
+def test_personal_scenario_endpoint_rejects_mismatched_spec_fields(client):
+    body = {
+        "schema_version": "sagespan.personal-scenario.v1",
+        "baseline": castillo_payload(),
+        "scenario": {"kind": "SPENDING_CHANGE", "monthly_amount": "-100.00", "months": 3},
+    }
+    r = client.post("/v1/personal/scenario", json=body, headers=WS_AUTH)
+    assert r.status_code == 422 and "2150" not in r.text
+
+
+def test_methods_lists_scenario_set(client):
+    r = client.get("/v1/methods", headers=AUTH)
+    ids = {m["rule_set_id"] for m in r.json()["method_sets"]}
+    assert "personal.cashflow_scenario" in ids

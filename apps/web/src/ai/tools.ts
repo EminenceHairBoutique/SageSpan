@@ -55,7 +55,7 @@ export function dispatchTool(ctx: GroundingContext, tool: string, args: Record<s
         parameters: Object.fromEntries(Object.entries((args.parameters as Record<string, unknown>) ?? {}).filter(([, v]) => ["string", "number", "boolean"].includes(typeof v))) as ScenarioProposal["parameters"],
         status: "PROPOSED_NOT_AUTHORITATIVE",
         executable_now: (EXECUTABLE_SCENARIO_KINDS as readonly string[]).includes(kind),
-        engine_required: (EXECUTABLE_SCENARIO_KINDS as readonly string[]).includes(kind) ? "personal.debt_amortization" : "PLAN-001 (not implemented)",
+        engine_required: kind === "DEBT_EXTRA_PAYMENT" ? "personal.debt_amortization" : (EXECUTABLE_SCENARIO_KINDS as readonly string[]).includes(kind) ? "personal.cashflow_scenario" : "PLAN-001 (not implemented)",
       };
       result = proposal;
       break;

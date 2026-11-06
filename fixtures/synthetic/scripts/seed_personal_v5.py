@@ -26,7 +26,7 @@ GOAL_KIND = {"goal_castillo_reserve": "EMERGENCY_RESERVE", "goal_castillo_move":
 def main() -> None:
     seed = json.loads(SEED.read_text(encoding="utf-8"))
     req = json.loads(REQ.read_text(encoding="utf-8"))
-    seed["state_version"] = "sagespan.demo-state.v2"
+    seed["state_version"] = "sagespan.demo-state.v3"
 
     seed["principals"] = [
         {"id": PR, "display_name": "Maya Castillo", "simulated": True},
@@ -91,6 +91,7 @@ def main() -> None:
             "expected_amount": s.get("expected_amount"),
             "next_expected_date": s.get("next_expected_date"),
             "data_state": s["data_state"],
+            "retired": False,
         }
         for s in req["income_streams"]
     ]
@@ -106,6 +107,7 @@ def main() -> None:
             "essential": o["essential"],
             "liability_id": o.get("liability_ref"),
             "data_state": o.get("data_state", "USER_REPORTED"),
+            "retired": False,
         }
         for o in req["obligations"]
     ]
@@ -118,6 +120,7 @@ def main() -> None:
             "essential": v["essential"],
             "transfers_excluded": True,
             "data_state": v.get("data_state", "USER_REPORTED"),
+            "retired": False,
         }
         for v in req["variable_spending"]
     ]
@@ -136,6 +139,7 @@ def main() -> None:
             "promo_apr_expires": x.get("promo_apr_expires"),
             "due_day_of_month": x.get("due_day_of_month"),
             "data_state": x.get("data_state", "USER_REPORTED"),
+            "retired": False,
         }
         for x in req["liabilities"]
     ]
@@ -150,9 +154,11 @@ def main() -> None:
             "target_date": g.get("target_date"),
             "monthly_contribution": g.get("monthly_contribution"),
             "funded_from_account_id": "cash_castillo_savings" if g["goal_ref"] == "goal_castillo_reserve" else None,
+            "retired": False,
         }
         for g in req["goals"]
     ]
+    seed["personal_record_revisions"] = []
     seed["retirement_intakes"] = [
         {
             "workspace_id": WS,

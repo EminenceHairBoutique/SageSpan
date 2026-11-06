@@ -100,7 +100,39 @@ PERSONAL_DEBT_AMORTISATION = RuleSet(
     ),
 )
 
-METHODOLOGY_SETS: tuple[RuleSet, ...] = (PERSONAL_CASHFLOW_BASELINE, PERSONAL_DEBT_AMORTISATION)
+PERSONAL_CASHFLOW_SCENARIO = RuleSet(
+    rule_set_id="personal.cashflow_scenario",
+    version="2026.1",
+    status="PUBLISHED",
+    effective_from=date(2026, 1, 1),
+    effective_to=None,
+    description=(
+        "What-if comparison on the personal cash-flow baseline: exactly one bounded change (spending change, added monthly "
+        "saving, or a 1-12 month interruption of one income stream) applied to a copy of the baseline inputs, with baseline and "
+        "scenario computed by personal.cashflow_baseline@2026.1 and reported side by side with the delta, runway and flag changes."
+    ),
+    sources=(CFPB_WELLBEING,),
+    parameters={
+        "depends_on": "personal.cashflow_baseline@2026.1",
+        "one_change_per_scenario": True,
+        "spending_change_model": "ADDITIONAL_NON_ESSENTIAL_VARIABLE_CATEGORY_WITH_SIGNED_TYPICAL_AMOUNT",
+        "spending_reduction_feasibility": "REDUCTION_MUST_NOT_EXCEED_TYPICAL_MONTHLY_DISCRETIONARY",
+        "savings_change_liquid": "MARGINS_FALL_BY_AMOUNT; DATED_OUTLOOK_UNCHANGED",
+        "savings_change_illiquid": "NON_ESSENTIAL_MONTHLY_OBLIGATION_FROM_START_DATE",
+        "interruption_window": "[start_date, start_date + months) using calendar-month arithmetic clamped to month end",
+        "interruption_outlook": "BASELINE_INPUTS_WITH_STREAM_PAYMENT_DATES_IN_WINDOW_SKIPPED",
+        "interruption_margin_during": "TYPICAL_INCOME_OF_REMAINING_STREAMS - ESSENTIAL - TYPICAL_DISCRETIONARY",
+        "runway_formula": "cash_above_floor / monthly_shortfall (2 dp); null when no shortfall",
+        "rounding": "ROUND_HALF_UP_TO_CENTS_AT_OUTPUT",
+    },
+    limitations=(
+        INTERNAL_METHOD_NOTE,
+        "An illustration of one stated change with everything else held constant; not a forecast of behaviour, benefits, taxes or new income.",
+        "Dated effects are limited to the baseline horizon; longer interruptions are reported as monthly figures and runway only.",
+    ),
+)
+
+METHODOLOGY_SETS: tuple[RuleSet, ...] = (PERSONAL_CASHFLOW_BASELINE, PERSONAL_DEBT_AMORTISATION, PERSONAL_CASHFLOW_SCENARIO)
 
 
 def get_method(method_id: str) -> RuleSet | None:

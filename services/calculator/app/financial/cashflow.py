@@ -180,7 +180,9 @@ class ClarityComputation:
     inputs_used: dict = field(default_factory=dict)
 
 
-def compute_clarity(req: PersonalClarityRequest) -> ClarityComputation:  # noqa: C901 - deliberately linear and explicit
+def compute_clarity(req: PersonalClarityRequest, income_blackouts: dict[str, tuple[date, date]] | None = None) -> ClarityComputation:  # noqa: C901 - deliberately linear and explicit
+    """`income_blackouts` maps stream_ref -> [start, end) during which that stream pays nothing (scenario engine only)."""
+    blackouts = income_blackouts or {}
     flags: list[Flag] = []
     dq: list[DataQualityItem] = []
     as_of = req.as_of_date
@@ -316,7 +318,10 @@ def compute_clarity(req: PersonalClarityRequest) -> ClarityComputation:  # noqa:
             if s.cadence != "ONE_TIME" and s.next_expected_date is None:
                 flags.append(Flag(code="INCOME_DATE_UNKNOWN", severity="LOW", message=f"No next expected date for {s.label or s.stream_ref}; it is excluded from the dated outlook.", refs=[s.stream_ref]))
             continue
+        window = blackouts.get(s.stream_ref)
         for d in occurrences(s.next_expected_date, s.cadence, as_of, end):
+            if window is not None and window[0] <= d < window[1]:
+                continue
             push(d, OutlookEvent(date=d, ref=s.stream_ref, kind="INCOME", amount=round_cents(amt)))
     for o in req.obligations:
         for d in occurrences(o.next_due_date, o.cadence, as_of, end):

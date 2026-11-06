@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
-import type { WorkspaceActor, WorkspaceRole } from "@sagespan/contracts";
-import { loadSeed } from "@/domain/seed";
+import type { DataState, WorkspaceActor, WorkspaceRole } from "@sagespan/contracts";
+import { getStore } from "@/domain/store";
 import { NotFoundError, UnauthenticatedError } from "./types";
 
 /**
@@ -10,6 +10,10 @@ import { NotFoundError, UnauthenticatedError } from "./types";
  * firm personas never changes who the personal workspace belongs to. Production
  * identity (Supabase Auth) arrives with PR-003 and replaces this file's cookie
  * lookup only; the WorkspaceActor shape stays.
+ *
+ * PERS-002: personas are read from the demo store, not the static seed, so a
+ * workspace created by "Start fresh" resolves like the seeded one. The cookie
+ * names a principal; membership, role and workspace are always re-derived here.
  */
 export const PRINCIPAL_COOKIE = "sagespan_demo_principal";
 export const DEFAULT_PRINCIPAL_ID = "pr_castillo";
@@ -22,8 +26,8 @@ export interface PersonalPersona {
   status: "ACTIVE" | "INVITED" | "REVOKED";
 }
 
-export function listPersonalPersonas(): PersonalPersona[] {
-  const seed = loadSeed();
+export function listPersonalPersonas(state: DataState = getStore().read()): PersonalPersona[] {
+  const seed = state;
   return seed.workspace_memberships
     .filter((m) => seed.workspaces.find((w) => w.id === m.workspace_id)?.kind !== "FIRM")
     .map((m) => ({
@@ -40,7 +44,7 @@ export type PersonalActor = Extract<WorkspaceActor, { scope: "PERSONAL" | "HOUSE
 export async function getPersonalActor(): Promise<PersonalActor> {
   const jar = await cookies();
   const wanted = jar.get(PRINCIPAL_COOKIE)?.value ?? DEFAULT_PRINCIPAL_ID;
-  const seed = loadSeed();
+  const seed = getStore().read();
   const membership = seed.workspace_memberships.find((m) => m.principal_id === wanted && m.status === "ACTIVE") ?? seed.workspace_memberships.find((m) => m.principal_id === DEFAULT_PRINCIPAL_ID && m.status === "ACTIVE");
   if (!membership) throw new UnauthenticatedError("No demo individual available");
   const ws = seed.workspaces.find((w) => w.id === membership.workspace_id);

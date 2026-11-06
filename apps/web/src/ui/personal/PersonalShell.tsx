@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { FlaskConical, Leaf } from "lucide-react";
-import type { PersonalActor } from "@/auth/personal-actor";
+import { FlaskConical, Leaf, Sparkles } from "lucide-react";
+import type { PersonalActor, PersonalPersona } from "@/auth/personal-actor";
+import { switchPrincipalAction } from "@/server/personal-actions";
 import { brand } from "@/config/brand";
 import { PersonalNav } from "./PersonalNav";
 
-export const PERSONAL_SYNTHETIC_BANNER = "Synthetic demonstration. Maya Castillo is a fictional person with fictional finances; no bank, card or account is connected. Nothing here is financial advice.";
+export const PERSONAL_SYNTHETIC_BANNER = "Synthetic demonstration. Every person here is fictional with fictional finances; no bank, card or account is connected. Nothing here is financial advice.";
 
 export const PERSONAL_NAV = [
   { href: "/demo/personal", label: "Overview" },
@@ -21,7 +22,8 @@ export const PERSONAL_NAV = [
   { href: "/demo/personal/privacy", label: "Privacy" },
 ] as const;
 
-export function PersonalShell({ actor, workspaceLabel, quiet, children }: { actor: PersonalActor; workspaceLabel: string; quiet: boolean; children: ReactNode }) {
+export function PersonalShell({ actor, workspaceLabel, quiet, personas, children }: { actor: PersonalActor; workspaceLabel: string; quiet: boolean; personas: PersonalPersona[]; children: ReactNode }) {
+  const active = personas.filter((p) => p.status === "ACTIVE");
   return (
     <div className="min-h-screen bg-canvas">
       <div role="status" className="flex items-center justify-center gap-2 bg-amber-100 px-4 py-2 text-center text-xs font-semibold text-amber-700">
@@ -46,6 +48,23 @@ export function PersonalShell({ actor, workspaceLabel, quiet, children }: { acto
               Signed in as <span className="font-semibold text-ink">{actor.display_name}</span> ({actor.workspace_role.toLowerCase()})
             </p>
             <p className="mt-1">Simulated individual, not an authenticated identity.{quiet ? " Quiet mode on." : ""}</p>
+            {active.length > 1 && (
+              <form action={switchPrincipalAction} className="mt-2 flex gap-1">
+                <select name="principal" defaultValue={actor.principal_id} className="min-w-0 flex-1 rounded border border-line-strong bg-surface px-1.5 py-1 text-xs" aria-label="Switch person">
+                  {active.map((p) => (
+                    <option key={p.principal_id} value={p.principal_id}>
+                      {p.display_name}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit" className="rounded border border-line-strong px-2 py-1 text-xs font-semibold hover:bg-surface">
+                  Switch
+                </button>
+              </form>
+            )}
+            <Link href="/demo/personal/intake/welcome" className="mt-2 flex items-center gap-1 text-xs font-semibold text-teal-700 hover:underline">
+              <Sparkles size={12} aria-hidden /> Start fresh with your own numbers
+            </Link>
           </div>
         </aside>
         <div className="min-w-0 flex-1">

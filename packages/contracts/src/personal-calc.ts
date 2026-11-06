@@ -249,3 +249,123 @@ export const DebtPathsResponseSchema = z.object({
 export type DebtPathsResponse = z.infer<typeof DebtPathsResponseSchema>;
 
 export const MethodSetListResponseSchema = z.object({ method_sets: z.array(RuleSetRefSchema), engine_name: z.string(), engine_version: z.string() });
+
+// ---------------------------------------------------------------- what-if scenarios (PERS-002c)
+export const PERSONAL_SCENARIO_KINDS = ["SPENDING_CHANGE", "SAVINGS_CHANGE", "INCOME_INTERRUPTION"] as const;
+export type PersonalScenarioKind = (typeof PERSONAL_SCENARIO_KINDS)[number];
+export const PERSONAL_SCENARIO_KIND_LABELS: Record<PersonalScenarioKind, string> = {
+  SPENDING_CHANGE: "Spend more or less each month",
+  SAVINGS_CHANGE: "Set aside more each month",
+  INCOME_INTERRUPTION: "One income stream stops for a while",
+};
+export const SAVINGS_DESTINATIONS = ["LIQUID", "ILLIQUID"] as const;
+
+/**
+ * Exactly one bounded change. The service validates which fields belong to which
+ * kind; this mirror enforces the same so a bad form never reaches the engine.
+ */
+export const ScenarioSpecSchema = z
+  .strictObject({
+    kind: z.enum(PERSONAL_SCENARIO_KINDS),
+    monthly_amount: DecimalString.nullable().optional(),
+    goal_ref: z.string().min(1).nullable().optional(),
+    destination: z.enum(SAVINGS_DESTINATIONS).nullable().optional(),
+    stream_ref: z.string().min(1).nullable().optional(),
+    months: z.number().int().min(1).max(12).nullable().optional(),
+    start_date: IsoDate.nullable().optional(),
+  })
+  .superRefine((s, ctx) => {
+    const allowed: Record<PersonalScenarioKind, string[]> = {
+      SPENDING_CHANGE: ["monthly_amount"],
+      SAVINGS_CHANGE: ["monthly_amount", "goal_ref", "destination", "start_date"],
+      INCOME_INTERRUPTION: ["stream_ref", "months", "start_date"],
+    };
+    for (const k of ["monthly_amount", "goal_ref", "destination", "stream_ref", "months", "start_date"] as const) {
+      if (s[k] != null && !allowed[s.kind].includes(k)) ctx.addIssue({ code: "custom", path: [k], message: `not valid for ${s.kind}` });
+    }
+    if (s.kind !== "INCOME_INTERRUPTION" && s.monthly_amount == null) ctx.addIssue({ code: "custom", path: ["monthly_amount"], message: "required" });
+    if (s.kind === "SPENDING_CHANGE" && s.monthly_amount != null && Number(s.monthly_amount) === 0) ctx.addIssue({ code: "custom", path: ["monthly_amount"], message: "must be non-zero" });
+    if (s.kind === "SAVINGS_CHANGE" && s.monthly_amount != null && !(Number(s.monthly_amount) > 0)) ctx.addIssue({ code: "custom", path: ["monthly_amount"], message: "must be positive" });
+    if (s.kind === "INCOME_INTERRUPTION" && (s.stream_ref == null || s.months == null)) ctx.addIssue({ code: "custom", path: ["stream_ref"], message: "stream_ref and months are required" });
+  });
+export type ScenarioSpec = z.infer<typeof ScenarioSpecSchema>;
+
+export const PersonalScenarioRequestSchema = z.strictObject({
+  schema_version: z.literal("sagespan.personal-scenario.v1"),
+  baseline: PersonalClarityRequestSchema,
+  scenario: ScenarioSpecSchema,
+  workspace_ref: z.string().nullable().optional(),
+  input_hash: z.string().regex(/^[0-9a-f]{64}$/).nullable().optional(),
+});
+export type PersonalScenarioRequest = z.infer<typeof PersonalScenarioRequestSchema>;
+
+export const ScenarioMetricsSchema = z.object({
+  income_typical_monthly: DecimalString.nullable().optional(),
+  income_low_monthly: DecimalString.nullable().optional(),
+  monthly_essential: DecimalString,
+  monthly_discretionary_typical: DecimalString,
+  margin_typical: DecimalString.nullable().optional(),
+  margin_low: DecimalString.nullable().optional(),
+  margin_essential_only_low: DecimalString.nullable().optional(),
+  liquid_total: DecimalString,
+  essential_buffer_months: DecimalString.nullable().optional(),
+  lowest_projected_cash: DecimalString,
+  lowest_projected_date: IsoDate,
+  end_projected_cash: DecimalString,
+  first_floor_breach_date: IsoDate.nullable().optional(),
+});
+export type ScenarioMetrics = z.infer<typeof ScenarioMetricsSchema>;
+
+export const PersonalScenarioResponseSchema = z.object({
+  check_type: z.literal("PERSONAL_SCENARIO"),
+  result_status: z.enum(["COMPUTED", "INSUFFICIENT_DATA", "INFEASIBLE"]),
+  infeasible_reason: z.string().nullable().optional(),
+  as_of_date: IsoDate,
+  scenario: ScenarioSpecSchema,
+  baseline_metrics: ScenarioMetricsSchema,
+  scenario_metrics: ScenarioMetricsSchema,
+  delta: z.object({
+    margin_typical: DecimalString.nullable().optional(),
+    margin_low: DecimalString.nullable().optional(),
+    monthly_discretionary_typical: DecimalString.nullable().optional(),
+    lowest_projected_cash: DecimalString.nullable().optional(),
+    end_projected_cash: DecimalString.nullable().optional(),
+  }),
+  interruption: z
+    .object({
+      stream_ref: z.string(),
+      start_date: IsoDate,
+      end_date: IsoDate,
+      months: z.number().int(),
+      stream_typical_monthly: DecimalString.nullable().optional(),
+      income_forgone_typical: DecimalString.nullable().optional(),
+      payments_skipped_in_horizon: z.number().int(),
+      amount_skipped_in_horizon: DecimalString,
+      cash_above_floor: DecimalString,
+      margin_typical_during: DecimalString,
+      margin_essential_only_during: DecimalString,
+      runway_months_typical_spending: DecimalString.nullable().optional(),
+      runway_months_essentials_only: DecimalString.nullable().optional(),
+      cash_above_floor_covers_interruption: z.boolean(),
+      horizon_covers_interruption: z.boolean(),
+    })
+    .nullable()
+    .optional(),
+  goal_changes: z
+    .array(
+      z.object({
+        goal_ref: z.string(),
+        label: z.string(),
+        baseline_months_to_target: z.number().int().nullable().optional(),
+        scenario_months_to_target: z.number().int().nullable().optional(),
+        baseline_on_track: z.boolean().nullable().optional(),
+        scenario_on_track: z.boolean().nullable().optional(),
+      }),
+    )
+    .default([]),
+  new_flags: z.array(FlagSchema).default([]),
+  resolved_flag_codes: z.array(z.string()).default([]),
+  assumptions: z.array(z.string()).default([]),
+  receipt: ReceiptSchema,
+});
+export type PersonalScenarioResponse = z.infer<typeof PersonalScenarioResponseSchema>;

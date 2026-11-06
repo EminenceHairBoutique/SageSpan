@@ -1,0 +1,248 @@
+{
+  "schema_version": "sagespan.personal-scenario.v1",
+  "baseline": {
+    "schema_version": "sagespan.personal-clarity.v1",
+    "as_of_date": "2026-11-01",
+    "horizon_days": 90,
+    "policy": {
+      "cash_floor": "1500.00",
+      "buffer_target_months": "2"
+    },
+    "workspace_ref": "ws_castillo_personal",
+    "cash_accounts": [
+      {
+        "account_ref": "cash_castillo_checking",
+        "label": "Everyday checking",
+        "balance": "2150.00",
+        "currency": "USD",
+        "balance_as_of": "2026-11-01",
+        "liquid": true,
+        "data_state": "USER_REPORTED"
+      },
+      {
+        "account_ref": "cash_castillo_savings",
+        "label": "Savings",
+        "balance": "1500.00",
+        "currency": "USD",
+        "balance_as_of": "2026-10-31",
+        "liquid": true,
+        "data_state": "USER_REPORTED"
+      }
+    ],
+    "income_streams": [
+      {
+        "stream_ref": "inc_castillo_contract",
+        "label": "Design contract work",
+        "kind": "SELF_EMPLOYMENT",
+        "cadence": "MONTHLY",
+        "reliability": "IRREGULAR",
+        "observed_monthly_amounts": [
+          "3100.00",
+          "4650.00",
+          "2800.00",
+          "5200.00",
+          "3400.00",
+          "4100.00"
+        ],
+        "next_expected_date": "2026-11-15",
+        "data_state": "USER_REPORTED"
+      },
+      {
+        "stream_ref": "inc_castillo_parttime",
+        "label": "Part-time hourly job",
+        "kind": "HOURLY",
+        "cadence": "BIWEEKLY",
+        "reliability": "REGULAR",
+        "observed_monthly_amounts": [
+          "1180.00",
+          "1220.00",
+          "1200.00",
+          "1180.00",
+          "1240.00",
+          "1200.00"
+        ],
+        "expected_amount": "600.00",
+        "next_expected_date": "2026-11-07",
+        "data_state": "USER_REPORTED"
+      }
+    ],
+    "obligations": [
+      {
+        "obligation_ref": "obl_castillo_rent",
+        "label": "Rent",
+        "category": "HOUSING",
+        "amount": "1450.00",
+        "cadence": "MONTHLY",
+        "next_due_date": "2026-11-01",
+        "essential": true
+      },
+      {
+        "obligation_ref": "obl_castillo_utilities",
+        "label": "Electric and gas",
+        "category": "UTILITIES",
+        "amount": "185.00",
+        "cadence": "MONTHLY",
+        "next_due_date": "2026-11-12",
+        "essential": true
+      },
+      {
+        "obligation_ref": "obl_castillo_car_insurance",
+        "label": "Car insurance",
+        "category": "INSURANCE",
+        "amount": "142.00",
+        "cadence": "MONTHLY",
+        "next_due_date": "2026-11-20",
+        "essential": true
+      },
+      {
+        "obligation_ref": "obl_castillo_phone",
+        "label": "Phone",
+        "category": "UTILITIES",
+        "amount": "65.00",
+        "cadence": "MONTHLY",
+        "next_due_date": "2026-11-18",
+        "essential": true
+      },
+      {
+        "obligation_ref": "obl_castillo_car_loan_min",
+        "label": "Car loan payment",
+        "category": "DEBT_MINIMUM",
+        "amount": "310.00",
+        "cadence": "MONTHLY",
+        "next_due_date": "2026-11-05",
+        "essential": true,
+        "liability_ref": "liab_castillo_car"
+      },
+      {
+        "obligation_ref": "obl_castillo_card_min",
+        "label": "Credit card minimum",
+        "category": "DEBT_MINIMUM",
+        "amount": "145.00",
+        "cadence": "MONTHLY",
+        "next_due_date": "2026-11-21",
+        "essential": true,
+        "liability_ref": "liab_castillo_card"
+      },
+      {
+        "obligation_ref": "obl_castillo_renters_insurance",
+        "label": "Renters insurance (annual)",
+        "category": "INSURANCE",
+        "amount": "240.00",
+        "cadence": "ANNUAL",
+        "next_due_date": "2027-01-15",
+        "essential": true
+      },
+      {
+        "obligation_ref": "obl_castillo_streaming",
+        "label": "Streaming bundle",
+        "category": "SUBSCRIPTION",
+        "amount": "32.00",
+        "cadence": "MONTHLY",
+        "next_due_date": "2026-11-09",
+        "essential": false
+      },
+      {
+        "obligation_ref": "obl_castillo_gym",
+        "label": "Gym",
+        "category": "SUBSCRIPTION",
+        "amount": "45.00",
+        "cadence": "MONTHLY",
+        "next_due_date": "2026-11-03",
+        "essential": false
+      }
+    ],
+    "variable_spending": [
+      {
+        "category": "Groceries",
+        "observed_monthly_amounts": [
+          "520.00",
+          "560.00",
+          "540.00",
+          "610.00",
+          "530.00",
+          "575.00"
+        ],
+        "essential": true
+      },
+      {
+        "category": "Fuel and transit",
+        "observed_monthly_amounts": [
+          "160.00",
+          "140.00",
+          "180.00",
+          "150.00",
+          "170.00",
+          "155.00"
+        ],
+        "essential": true
+      },
+      {
+        "category": "Dining out",
+        "observed_monthly_amounts": [
+          "240.00",
+          "310.00",
+          "180.00",
+          "350.00",
+          "260.00",
+          "220.00"
+        ],
+        "essential": false
+      },
+      {
+        "category": "Shopping",
+        "observed_monthly_amounts": [
+          "120.00",
+          "90.00",
+          "260.00",
+          "140.00",
+          "110.00",
+          "95.00"
+        ],
+        "essential": false
+      }
+    ],
+    "liabilities": [
+      {
+        "liability_ref": "liab_castillo_card",
+        "label": "Rewards credit card",
+        "balance": "4820.00",
+        "apr_percent": "24.99",
+        "minimum_payment": "145.00",
+        "rate_type": "VARIABLE",
+        "due_day_of_month": 21
+      },
+      {
+        "liability_ref": "liab_castillo_car",
+        "label": "Car loan",
+        "balance": "11300.00",
+        "apr_percent": "6.90",
+        "minimum_payment": "310.00",
+        "rate_type": "FIXED",
+        "due_day_of_month": 5
+      }
+    ],
+    "goals": [
+      {
+        "goal_ref": "goal_castillo_reserve",
+        "label": "Emergency reserve",
+        "target_amount": "6000.00",
+        "saved_amount": "1500.00",
+        "monthly_contribution": "200.00"
+      },
+      {
+        "goal_ref": "goal_castillo_move",
+        "label": "Moving deposit",
+        "target_amount": "3000.00",
+        "saved_amount": "400.00",
+        "target_date": "2027-06-01",
+        "monthly_contribution": "150.00"
+      }
+    ]
+  },
+  "scenario": {
+    "kind": "INCOME_INTERRUPTION",
+    "stream_ref": "inc_castillo_contract",
+    "months": 1
+  },
+  "workspace_ref": "ws_castillo_personal"
+}

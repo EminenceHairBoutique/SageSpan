@@ -1,5 +1,6 @@
 import { formatMoney } from "@sagespan/contracts";
 import { DataStateChip, Money, Stat } from "@/ui/personal/components";
+import { AddRecord, EditRecord, VariableSpendingFields } from "@/ui/personal/RecordForms";
 import { Alert, Card, Chip } from "@/ui/primitives";
 import { loadPersonal } from "../load";
 
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function SpendingPage() {
   const { b, insights } = await loadPersonal({ ensureBaseline: true });
   const { clarity, clarityRun } = insights;
+  const isOwner = b.membership.role === "OWNER";
   return (
     <div className="space-y-6">
       <div>
@@ -40,9 +42,22 @@ export default async function SpendingPage() {
                 </li>
               ))}
             </ul>
+            {v.observed_monthly_amounts.length === 0 && <p className="text-xs text-ink-faint">No months recorded yet; this category is marked missing.</p>}
             <p className="mt-2 text-xs text-ink-faint">{v.transfers_excluded ? "Transfers and refunds excluded." : "Transfers may be included; totals could be overstated."}</p>
+            {isOwner && (
+              <EditRecord type="VARIABLE_SPENDING" recordRef={v.id} name={v.category}>
+                <VariableSpendingFields r={v} />
+              </EditRecord>
+            )}
           </Card>
         ))}
+        {isOwner && (
+          <Card title="Add a spending category" subtitle="Observed monthly totals you know; nothing is estimated for you.">
+            <AddRecord type="VARIABLE_SPENDING" title="Add a category">
+              <VariableSpendingFields />
+            </AddRecord>
+          </Card>
+        )}
         <Card title="Subscriptions and non-essential commitments" subtitle="Recurring items you marked as discretionary.">
           <ul className="space-y-1 text-sm">
             {b.obligations
@@ -54,7 +69,7 @@ export default async function SpendingPage() {
                 </li>
               ))}
           </ul>
-          <p className="mt-3 text-xs text-ink-faint">Detection of recurring charges from transactions (with transfer/refund de-duplication) is a later milestone (PERS-002); today these are manual entries.</p>
+          <p className="mt-3 text-xs text-ink-faint">Detection of recurring charges from transactions (with transfer/refund de-duplication) is a later milestone (PERS-002b); today these are manual entries, editable under Cash flow.</p>
         </Card>
       </div>
     </div>

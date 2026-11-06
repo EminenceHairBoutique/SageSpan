@@ -1,5 +1,6 @@
 import { formatMoney, parseCents } from "@sagespan/contracts";
 import { DataStateChip, DisclosureList, Money, Stat } from "@/ui/personal/components";
+import { AddRecord, CashAccountFields, EditRecord, IncomeStreamFields, ObligationFields } from "@/ui/personal/RecordForms";
 import { Alert, Card, Chip, Td, Th } from "@/ui/primitives";
 import { loadPersonal } from "../load";
 
@@ -11,6 +12,8 @@ export default async function CashFlowPage() {
   const { b, insights, labels } = await loadPersonal({ ensureBaseline: true });
   const { clarity, clarityRun } = insights;
   const income = clarity?.income;
+  const isOwner = b.membership.role === "OWNER";
+  const liabilityOptions = b.liabilities.map((l) => ({ id: l.id, label: l.label }));
   return (
     <div className="space-y-6">
       <div>
@@ -64,9 +67,21 @@ export default async function CashFlowPage() {
                       {formatMoney(a)}
                     </li>
                   ))}
+                  {s.observed_monthly_amounts.length === 0 && <li className="text-xs text-ink-faint">no months recorded yet</li>}
                 </ul>
+                {isOwner && (
+                  <EditRecord type="INCOME_STREAM" recordRef={s.id} name={s.label}>
+                    <IncomeStreamFields r={s} />
+                  </EditRecord>
+                )}
               </div>
             ))}
+            {b.incomeStreams.length === 0 && <p className="text-sm text-ink-muted">No income recorded yet.</p>}
+            {isOwner && (
+              <AddRecord type="INCOME_STREAM" title="Add an income stream">
+                <IncomeStreamFields />
+              </AddRecord>
+            )}
           </div>
         </Card>
         <Card title="Recurring commitments" subtitle="Essential items count toward the buffer; the rest are discretionary.">
@@ -76,6 +91,7 @@ export default async function CashFlowPage() {
                 <Th>Item</Th>
                 <Th>Next due</Th>
                 <Th align="right">Amount</Th>
+                <Th />
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -92,12 +108,57 @@ export default async function CashFlowPage() {
                     </Td>
                     <Td>{o.next_due_date}</Td>
                     <Td align="right">{formatMoney(o.amount)}</Td>
+                    <Td>
+                      {isOwner && (
+                        <EditRecord type="OBLIGATION" recordRef={o.id} name={o.label}>
+                          <ObligationFields r={o} liabilities={liabilityOptions} />
+                        </EditRecord>
+                      )}
+                    </Td>
                   </tr>
                 ))}
             </tbody>
           </table>
+          {b.obligations.length === 0 && <p className="text-sm text-ink-muted">No commitments recorded yet.</p>}
+          {isOwner && (
+            <div className="mt-3">
+              <AddRecord type="OBLIGATION" title="Add a recurring commitment">
+                <ObligationFields liabilities={liabilityOptions} />
+              </AddRecord>
+            </div>
+          )}
         </Card>
       </div>
+
+      <Card title="Cash accounts" subtitle="Liquid accounts count toward your buffer; a balance update creates a new revision and the old one is kept.">
+        <div className="grid gap-3 md:grid-cols-2">
+          {b.cashAccounts.map((a) => (
+            <div key={a.account_ref} className="rounded-lg border border-line p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold">{a.label}</p>
+                <div className="flex gap-2">
+                  <Chip tone="neutral">{a.kind.toLowerCase().replace(/_/g, " ")}{a.liquid ? "" : " · not liquid"}</Chip>
+                  <DataStateChip state={a.data_state} />
+                </div>
+              </div>
+              <p className="mt-1 text-sm tabular">{formatMoney(a.balance)} <span className="text-xs text-ink-muted">as of {a.balance_as_of} · revision {a.revision}</span></p>
+              {isOwner && (
+                <EditRecord type="CASH_ACCOUNT" recordRef={a.account_ref} name={a.label}>
+                  <CashAccountFields r={a} />
+                </EditRecord>
+              )}
+            </div>
+          ))}
+        </div>
+        {b.cashAccounts.length === 0 && <p className="text-sm text-ink-muted">No cash accounts recorded yet; the buffer and outlook start from zero until you add one.</p>}
+        {isOwner && (
+          <div className="mt-3">
+            <AddRecord type="CASH_ACCOUNT" title="Add a cash account">
+              <CashAccountFields />
+            </AddRecord>
+          </div>
+        )}
+      </Card>
 
       {clarity && clarityRun && (
         <Card title={`Dated outlook, next ${clarity.outlook.horizon_days} days`} subtitle={`Starts from ${formatMoney(clarity.outlook.start_cash)} liquid cash. Lowest point ${formatMoney(clarity.outlook.lowest_projected_cash)} on ${clarity.outlook.lowest_projected_date}; ends at ${formatMoney(clarity.outlook.end_projected_cash)}. Usual discretionary spending is spread evenly per day.`}>

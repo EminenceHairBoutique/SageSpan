@@ -13,7 +13,7 @@
 6. **Methodology sets vs regulatory rule sets.** Consumer calculation conventions are registered in `app/financial/methods.py` (`METHODOLOGY_SETS`), **separate** from `ALL_RULE_SETS`, because `ALL_RULE_SETS` generates the applied, forward-only migration `0006_seed_rule_sets.sql`. Method sets will be seeded by a new migration when the personal engines are persisted to Postgres. `/v1/methods` exposes them; `/v1/rules` is unchanged.
 7. **Decision policy is code in contracts, not an LLM.** `decision-policy.v1` evaluates engine outputs: hard constraints reject, explicit weights rank, at most three primary actions, tiers 3–4 disabled. It performs no arithmetic on amounts.
 8. **AI is a server-owned orchestrator over an evidence resolver.** Both audiences use the same orchestrator, validator and tool allowlist; only the resolver differs (`resolveFirmContext` vs `resolvePersonalContext`), each authorising with the existing checks and loading nothing outside the scope.
-9. **Demo state v2.** `DataState.state_version` is `sagespan.demo-state.v2`; an older file is reseeded (synthetic only). Firm collections are unchanged; new collections are additive.
+9. **Demo state versioning.** `DataState.state_version` is `sagespan.demo-state.v3` (v2 added the V5 collections; v3, PERS-002, adds `personal_record_revisions` and the `retired` flag on personal records); an older file is reseeded (synthetic only). Firm collections are unchanged; new collections are additive.
 
 ## Alternatives considered
 
