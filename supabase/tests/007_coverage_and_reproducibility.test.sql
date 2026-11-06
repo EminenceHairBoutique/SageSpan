@@ -160,8 +160,8 @@ select tests.clear_auth();
 select is((select count(*) from information_schema.routine_privileges where specific_schema = 'app' and grantee = 'PUBLIC'), 0::bigint, 'N-04 PUBLIC still holds no EXECUTE in schema app');
 select results_eq(
   $$ select distinct routine_name::text from information_schema.routine_privileges where specific_schema = 'app' and grantee = 'authenticated' order by 1 $$,
-  $$ values ('build_snapshot_payload'), ('can_transition'), ('canonical_json'), ('confirm_fact'), ('coverage_summary'), ('current_role_in'), ('current_user_id'), ('disposition_discrepancy'), ('document_exception'), ('freeze_snapshot'), ('has_role'), ('is_member'), ('latest_check_runs'), ('member_orgs'), ('policy_record'), ('record_check_run'), ('record_review'), ('resolve_conflict'), ('send_to_review'), ('set_reconciliation_status'), ('sha256_canonical'), ('verify_audit_chain') $$,
-  'N-04 authenticated may execute exactly the sanctioned entry points (0007 adds policy_record, latest_check_runs, coverage_summary)');
+  $$ values ('accept_invitation'), ('build_snapshot_payload'), ('can_read_workspace_domain'), ('can_transition'), ('canonical_json'), ('confirm_fact'), ('coverage_summary'), ('create_personal_workspace'), ('current_role_in'), ('current_user_id'), ('disposition_discrepancy'), ('document_exception'), ('freeze_snapshot'), ('grant_consent'), ('has_role'), ('invite_participant'), ('is_member'), ('is_workspace_member'), ('is_workspace_owner'), ('latest_check_runs'), ('member_orgs'), ('my_workspace_access'), ('policy_record'), ('record_check_run'), ('record_review'), ('require_principal'), ('resolve_conflict'), ('revoke_consent'), ('revoke_membership'), ('send_to_review'), ('set_reconciliation_status'), ('sha256_canonical'), ('verify_audit_chain') $$,
+  'N-04 authenticated may execute exactly the sanctioned entry points (0007 adds policy_record, latest_check_runs, coverage_summary; 0008 adds the workspace/consent entry points)');
 
 select * from finish();
 rollback;

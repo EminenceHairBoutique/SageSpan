@@ -137,7 +137,15 @@ def main() -> int:
             print("pgtap: real extension")
         failed = 0
         for t in TESTS:
-            ok, out = psql(dsn, preprocess(t, use_shim), t.name)
+            text = preprocess(t, use_shim)
+            ok, out = psql(dsn, text, t.name)
+            if ok and use_shim:
+                # Real pgTAP fails a file whose plan(n) disagrees with the tests run; the shim's plan() is a no-op,
+                # so enforce the same contract here (every shim assertion prints exactly one "ok - ..." row).
+                planned = re.search(r"^select plan\((\d+)\);", text, flags=re.M)
+                ran = len(re.findall(r"^\s*ok - ", out, flags=re.M))
+                if planned and int(planned.group(1)) != ran:
+                    ok, out = False, f"plan mismatch: planned {planned.group(1)} tests but ran {ran}"
             print(f"{'PASS' if ok else 'FAIL'} {t.name}")
             if not ok:
                 failed += 1

@@ -6,7 +6,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 create schema if not exists tests;
 \ir 000_helpers.sql
-select plan(58);
+select plan(71);
 
 select tests.make_user('20000000-0000-0000-0000-0000000000a1', 'analyst@c.test');
 select tests.make_user('20000000-0000-0000-0000-0000000000a2', 'advisor@c.test');
@@ -219,8 +219,8 @@ select tests.clear_auth();
 select is((select count(*) from information_schema.routine_privileges where specific_schema = 'app' and grantee = 'PUBLIC'), 0::bigint, 'N-04 PUBLIC holds no EXECUTE in schema app');
 select results_eq(
   $$ select distinct routine_name::text from information_schema.routine_privileges where specific_schema = 'app' and grantee = 'authenticated' order by 1 $$,
-  $$ values ('build_snapshot_payload'), ('can_transition'), ('canonical_json'), ('confirm_fact'), ('coverage_summary'), ('current_role_in'), ('current_user_id'), ('disposition_discrepancy'), ('document_exception'), ('freeze_snapshot'), ('has_role'), ('is_member'), ('latest_check_runs'), ('member_orgs'), ('policy_record'), ('record_check_run'), ('record_review'), ('resolve_conflict'), ('send_to_review'), ('set_reconciliation_status'), ('sha256_canonical'), ('verify_audit_chain') $$,
-  'N-04 authenticated may execute exactly the sanctioned entry points (inventory as of migration 0007)');
+  $$ values ('accept_invitation'), ('build_snapshot_payload'), ('can_read_workspace_domain'), ('can_transition'), ('canonical_json'), ('confirm_fact'), ('coverage_summary'), ('create_personal_workspace'), ('current_role_in'), ('current_user_id'), ('disposition_discrepancy'), ('document_exception'), ('freeze_snapshot'), ('grant_consent'), ('has_role'), ('invite_participant'), ('is_member'), ('is_workspace_member'), ('is_workspace_owner'), ('latest_check_runs'), ('member_orgs'), ('my_workspace_access'), ('policy_record'), ('record_check_run'), ('record_review'), ('require_principal'), ('resolve_conflict'), ('revoke_consent'), ('revoke_membership'), ('send_to_review'), ('set_reconciliation_status'), ('sha256_canonical'), ('verify_audit_chain') $$,
+  'N-04 authenticated may execute exactly the sanctioned entry points (inventory as of migration 0008)');
 select is((select count(*) from information_schema.routine_privileges where specific_schema = 'app' and grantee = 'authenticated' and routine_name in ('transition_household', 'append_audit', 'assert_role')), 0::bigint, 'N-04 internal functions are not executable by authenticated');
 
 select * from finish();
