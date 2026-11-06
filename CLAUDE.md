@@ -101,27 +101,6 @@ The uploaded V3 `CLAUDE.md` recorded these **2026-11-05 milestone results**:
 
 **Do not infer:** these files are merged into `master`, that current SQL migrations remain numbered as stated, that a site feature is already shipped, or that any of these tests were rerun in this session. Re-check before changing code.
 
-## 5a. V5 session 1 record (2026-11-06, `feat/v5-dual-market`) — verify before relying on it
-
-Executed in a Linux build environment (Node 22.23, Python 3.13 from `uv.lock`, Chrome for Testing 153):
-
-| Suite | Result |
-|---|---|
-| Calculator pytest (`uv run --locked python -m pytest`) | 99 passed (69 + 30 new: `test_personal_clarity.py`, `test_debt_paths.py`, `test_api_personal.py`) |
-| `export_rule_sets_sql.py --check` / `export_canonical_sql_test.py --check` | unchanged (migration 0006 untouched) |
-| OpenAPI | regenerated from the locked env; drift test green |
-| Contracts Vitest | 38 passed (23 + 15 in `v5-contracts.test.ts`) |
-| Web Vitest (calculator up) | 85 passed (44 + 30 `ai-evals.test.ts` + 11 `personal.test.ts`) |
-| typecheck / lint / `next build` | clean; 43 routes |
-| Playwright | 11 passed (`assurance-flow.spec.ts` 4 incl. full Patel flow, `dual-market.spec.ts` 7) |
-| SQL harness, real Supabase | **not run** (no PostgreSQL in that environment; never real-stack validated) |
-
-**Added (synthetic only):** `/demo/personal/*` (11 routes) with the Castillo fixture; `services/calculator/app/financial/{cashflow,debt,methods,personal_receipt}.py` + `schemas_personal.py` and endpoints `/v1/personal/clarity`, `/v1/personal/debt-paths`, `/v1/methods`; `packages/contracts/src/{workspace,personal,personal-calc,decisions,decision-policy}.ts` and `src/ai/*`; `apps/web/src/ai/*` (resolver, provider, tools, validator, orchestrator, 28 evals); `apps/web/src/domain/personal/*`, `domain/ai/feedback.ts`; firm console nav + pages; marketing pages `/personal`, `/retirement`, `/firms` (`/product` redirects), `/how-it-works`; `DataState` v2 (older demo-state files reseed). **Methodology sets are a separate registry from `ALL_RULE_SETS`** so migration 0006 stays applied-and-unchanged (ADR-V5-001 §6).
-
-**Conventions added:** the web tier never sums or divides money (the debt engine accepts `extra_monthly_payment` and `cash_accounts` so it totals them); every personal run re-derives the request hash, requires `sagespan-calculator` and a PUBLISHED method set, and records ERROR without amounts otherwise; AI output is validated server-side (`result-validator.ts`) and a model can never set VERIFIED/APPROVED; reviewer and user feedback are append-only events; tiers 3–4 are disabled in `decisions.ts`.
-
-**Local run:** `npm run dev:calc` then `npm run dev:web`; Personal at `/demo/personal`, firm at `/demo/app`. Playwright can use an installed Chrome via `SAGESPAN_E2E_CHROME_PATH` and a non-`.venv` interpreter via `SAGESPAN_CALC_PYTHON`.
-
 ## 6. Known historical blockers and next safe sequence
 
 As recorded at the V3 milestone, these items were **not complete** (verify if still true):
@@ -135,10 +114,10 @@ As recorded at the V3 milestone, these items were **not complete** (verify if st
 
 1. **Baseline reconciliation:** verify Git state/PR-001 integration, preserve uncommitted changes, inventory current B2C/B2B code, determine which historic defects persist, run available tests.
 2. **PR-001 residual work (if needed)** and real-stack security; do not duplicate already merged fixes.
-3. **PR-002** financial coverage, frozen request reproducibility and retry semantics. **Delivered on `feat/pr-002-coverage` (migration `0007_coverage_and_reproducibility.sql`, snapshot payload v2, `packages/contracts/src/coverage.ts`); shim PostgreSQL 16 + CI postgres:15 only — real-stack validation still pending (PR-003).** See `docs/engineering/V5_SESSION_3_PR_002_REPORT.md`.
-4. **DUAL-000/001** shared B2C+B2B product routing/workspace shells, manual-entry-first synthetic personal finance and explicit permission model. **Delivered in V5 session 1 (synthetic).**
-5. **AI-000/001** contracts, mocked orchestration, 28-case evaluation suite and evidence-grounded synthetic "Analyze Plan" drafts. **Delivered on an offline deterministic provider in V5 session 1; live adapter not implemented.**
-6. **PERS-001/002** validated deterministic cash flow/debt/goal planning and a feasible, transparent recommendation queue. **PERS-001 slice + debt-paths engine delivered (session 1); PERS-002a record add/edit/retire, PERS-002b "Start fresh" intake and PERS-002c what-if scenarios (`personal.cashflow_scenario@2026.1`) delivered on `feat/pers-002-intake` (session 2, synthetic).** Recurring-charge detection from transactions (PERS-002d) remains proposed. See `docs/engineering/V5_SESSION_2_PERS_002_REPORT.md`.
+3. **PR-002** financial coverage, frozen request reproducibility and retry semantics.
+4. **DUAL-000/001** shared B2C+B2B product routing/workspace shells, manual-entry-first synthetic personal finance and explicit permission model. Safe synthetic UIs may proceed in a separate branch while security is being completed.
+5. **AI-000/001** contracts, mocked orchestration, 28-case evaluation suite and evidence-grounded synthetic "Analyze Plan" drafts.
+6. **PERS-001/002** validated deterministic cash flow/debt/goal planning and a feasible, transparent recommendation queue.
 7. **PR-003/DATA-001** real scoped auth, private storage, legal/vendor consent; **SCENARIO-001** independent annual retirement projection engine; then AI-002–005, verified import formats and professional evidence export.
 
 **Release gates:** G0 isolated synthetic demo → G1 security/trust remediation → G2 approval/coverage correctness → G3 real-data technical/consent controls → G4 named professional and legal signoffs for relevant features → G5 measured controlled customer pilots. Never enable a downstream capability solely because UI or a prompt exists.
