@@ -4,45 +4,102 @@
 |---|---|
 | `migrations/0001_types.sql` | Enumerated types mirroring `packages/contracts/src/enums.ts`. |
 | `migrations/0002_core_tables.sql` | Normalised, tenant-scoped tables with composite `(org_id, id)` foreign keys that make cross-organisation references impossible; typed fact columns with an exactly-one-value check. |
-| `migrations/0003_rls.sql` | Row-level security on every table (forced), membership-based helper functions, per-role write policies, read-only rule registry, no anon access. |
+| `migrations/0003_rls.sql` | Row-level security on every table, membership-based helper functions, per-role write policies, read-only rule registry, no anon access. |
 | `migrations/0004_workflow_functions.sql` | SECURITY DEFINER workflow functions (`freeze_snapshot`, `resolve_conflict`, `document_exception`, `record_review`, `append_audit`), the transition matrix, and immutability triggers for snapshots, facts, reviews, check runs, packets and audit events. |
-| `tests/*.test.sql` | pgTAP tests: tenant isolation, role permissions and workflow, immutability and hash chain, constraints and self-escalation. |
+| `migrations/0005_trust_boundaries.sql` | PR-001 hardening (forward-only, replaces functions in place): privilege inventory (revoke all, grant explicitly), column-level `households` grant plus the `app.workflow_fn` sentinel trigger, serialised audit chain (`audit_chain_heads`, `seq`, derived `actor_type`, event allow-list, `verify_audit_chain`), `canonical_json`/`sha256_canonical`, full freeze verification with required facts, `confirm_fact`, `record_check_run` against the rule-set registry, service-only document registration, write-once dispositions, approver matrix in `record_review`, `set_reconciliation_status` and `send_to_review` entry points. |
+| `migrations/0006_seed_rule_sets.sql` | **Generated** by `services/calculator/scripts/export_rule_sets_sql.py` from the Python rule registry: six rule sets (five PUBLISHED RMD sets, one DRAFT tax set) with checksums and 62 parameters. `tests/test_rule_set_seed.py` fails when it drifts. |
+| `tests/000_helpers.sql` | Test-only schema `tests`: users, JWT impersonation, `authenticate_service()`, `seed_household()`, `calc_request()` / `calc_response()` (synthetic receipts), `set_workflow()` (sentinel-wrapped). |
+| `tests/001`–`004` | Tenant isolation (12), roles and workflow (20), immutability and hash chain (10), constraints (8). |
+| `tests/005_trust_boundaries.test.sql` | The audit probes inverted into 58 assertions: every S-/N- finding in PR-001 scope as `throws_ok` with the expected SQLSTATE, plus the positive paths and the exact inventory of functions executable by `authenticated`. |
+| `tests/006_canonical_json.test.sql` | **Generated** by `services/calculator/scripts/export_canonical_sql_test.py` from `fixtures/synthetic/canonical`: proves `app.canonical_json` is byte-identical to the Python and TypeScript canonicalisers (9 assertions). |
+| `tests/probes/` | Exploratory probes (`run_probe.py <file.sql>`), including `advisor_equivalent.sql`, a local stand-in for the Supabase Security Advisor queries. Probes are evidence, not tests. |
 
 ## Running
 
+On the real stack (requires Docker; **not yet run for this repository**):
+
 ```bash
-supabase start          # requires Docker
-supabase db reset       # applies migrations
+supabase start
+supabase db reset       # applies migrations 0001–0006
 supabase test db        # runs tests/*.test.sql with pgTAP
 ```
 
+Without Docker, against any PostgreSQL 15–18 (this is what CI runs):
+
+```bash
+python supabase/tests/run_sql_tests.py          # uses PGHOST/PGPORT/PGUSER if set, else an embedded cluster
+```
+
+The runner looks for `initdb`/`pg_ctl` on `PATH` or in `SAGESPAN_PG_BIN`
+(for example the `embedded-postgres` npm binaries) and listens on
+`SAGESPAN_TEST_PG_PORT` (default 54329). It applies the shims
+`tests/shim_supabase.sql` (roles `anon`/`authenticated`/`service_role` with
+`BYPASSRLS`, `auth.users`, `auth.uid()` reading `request.jwt.claims`) and
+`tests/shim_pgtap.sql` (`plan`, `is`, `lives_ok`, `throws_ok`, `results_eq`,
+`finish`; failures raise instead of printing `not ok`), then every migration,
+then every `*.test.sql` in its own transaction. When the real pgTAP extension
+is available the shim is skipped.
+
 ## Execution status
 
-Executed on 2026-11-05 against a real PostgreSQL cluster (16 locally; CI pins `postgres:15` to match `config.toml`'s `db.major_version`) via
-`python supabase/tests/run_sql_tests.py`: all four migrations applied and all
-four test files passed (45 assertions: tenant isolation 12, roles and workflow
-16, immutability and hash chain 9, constraints 8). The same runner is the
-`database` job in `.github/workflows/ci.yml`.
+* 2026-11-05 (PR-001): 6 migrations applied and **6/6 test files, 117
+  assertions** passed on PostgreSQL 18.6 (embedded, Windows) via the runner.
+  CI's `database` job runs the same files on `postgres:15` (matching
+  `config.toml` `db.major_version`).
+* The real Supabase stack (`supabase test db`) has still not been executed.
+  Until it has, RLS must not be described as production-proven.
 
-The runner provides two shims for plain Postgres (never applied on Supabase):
-`tests/shim_supabase.sql` (roles `anon`/`authenticated`/`service_role`,
-`auth.users`, `auth.uid()` reading `request.jwt.claims`) and
-`tests/shim_pgtap.sql` (`plan`, `is`, `lives_ok`, `throws_ok`, `results_eq`,
-`finish`; failures raise instead of printing `not ok`). When the real pgTAP
-extension is available the shim is skipped. `supabase test db` on the local
-stack remains the authoritative run before any deployment.
+## Decisions recorded in 0005
 
-Two test-side fixes were needed to execute: the `tests` schema is now granted
-to `anon`/`authenticated` (the files switch role mid-run and call the
-helpers again), and the anon assertion in `001` expects `42501`, since anon
-has no usage on the `app` schema at all.
+* **`app` stays in `[api] schemas`** (`config.toml`): the SECURITY DEFINER
+  entry points (`freeze_snapshot`, `resolve_conflict`, `document_exception`,
+  `confirm_fact`, `record_check_run`, `disposition_discrepancy`,
+  `record_review`, `set_reconciliation_status`, `send_to_review`,
+  `build_snapshot_payload`, `verify_audit_chain`, `canonical_json`,
+  `sha256_canonical`) are meant to be called over PostgREST RPC by the
+  application server with the user's JWT. Every entry point asserts
+  membership and role *on entry* (`assert_role` / `assert_member`) before
+  touching data, so exposure of the schema does not widen what a caller can
+  do. Internal functions (`transition_household`, `assert_role`,
+  `append_audit`, `audit_core`, `request_role`, `is_privileged_session`,
+  trigger functions) are not executable by `authenticated` at all.
+* **Explicit grant block at the end of every migration.** Functions created or
+  replaced in a migration were observed to carry the built-in PUBLIC EXECUTE
+  grant (`=X/`) despite `alter default privileges`, so 0005 ends with
+  `revoke execute on all functions in schema app from public, anon,
+  authenticated, service_role` followed by explicit grants. Later migrations
+  that create functions must repeat that block; `005` asserts the exact list
+  executable by `authenticated` and the advisor-equivalent probe lists
+  anything executable by PUBLIC or `anon`.
+* **`enable` rather than `force row level security`.** The workflow
+  functions are SECURITY DEFINER and owned by `postgres`, which also owns the
+  tables; with FORCE the owner would be subject to the policies inside those
+  functions and every function would need its own policy bypass. `authenticated`
+  and `anon` are not owners and remain fully governed by RLS; `service_role`
+  has `BYPASSRLS` as on Supabase. This must be re-checked on the real stack,
+  where `postgres` is not a superuser.
+* **Audit events are service-written only.** `append_audit(org, event_type,
+  entity_type, entity_id, summary, payload)` is executable by `service_role`
+  only; workflow functions call it internally. `actor_type` is derived, never
+  supplied. The chain is per organisation, serialised by an advisory lock on
+  `audit_chain_heads`, with `seq` in the hashed core and uniqueness on both
+  `(org_id, seq)` and `(org_id, previous_event_hash)`, which makes a fork
+  impossible to commit.
+* **Documents are registered by the service only.** `authenticated` can no
+  longer insert `source_documents`; the server-side path that stores bytes,
+  hashes them and registers the row is the next piece of work (PR-003).
+* **The required-fact completeness gate now runs in SQL too**
+  (`app.rmd_required_facts`, used by `freeze_snapshot`), mirroring the
+  application tier's freeze gate.
 
 ## Notes
 
 * The service role bypasses RLS and must only be used by trusted server-side
   maintenance paths; it never reaches a browser.
 * `app.record_review` always records `auth.uid()` as the reviewer, so an admin
-  cannot forge another user's review.
-* The required-fact completeness gate (which facts the RMD check needs, with
-  as-of validation) is evaluated in the application tier; the database enforces
-  conflict gating, state transitions, roles, identities and immutability.
+  cannot forge another user's review; the approver matrix (`COMPLIANCE`,
+  `ADVISOR` capability × firm policy `approver_roles`) is the same table the
+  TypeScript tier uses (`approvalDecision` in `packages/contracts`).
+* The `tests` schema is granted to `anon`/`authenticated`/`service_role`
+  because the files switch role mid-run and call the helpers again; the anon
+  assertions expect `42501`, since anon has no usage on schema `app`.

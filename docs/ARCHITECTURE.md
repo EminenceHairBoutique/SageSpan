@@ -80,6 +80,26 @@ Defined once in `packages/contracts/src/workflow.ts` and mirrored in
 resolving a conflict after freeze re-opens `RECONCILIATION_PENDING`. Frozen
 snapshots, check runs, reviews and packets are never edited.
 
+## Trust boundaries (PR-001, 2026-11-05)
+
+* `src/domain/workflow.ts` is the only writer of `workflow_status`, `current_revision` and dispositions
+  (TypeScript equivalent of the SQL sentinel `app.workflow_fn`).
+* `src/domain/checks.ts` `verifyReceipt()` accepts a calculation response only when the re-derived
+  `request_hash` matches, the engine is `sagespan-calculator`, the receipt's `snapshot_ref` is the frozen
+  snapshot, and every cited rule set is PUBLISHED in the registry (`GET /v1/rules`) with the same checksum.
+  Anything else is an ERROR run with `RECEIPT_INTEGRITY_ERROR` and a `CHECK_RUN_FAILED` audit event.
+* `approveReview` requires `request_hash_verified === true` on every non-ERROR run and uses the shared
+  `approvalDecision()` matrix from `packages/contracts`.
+* `src/config/env.ts` is fail-closed in production (`NODE_ENV=production` and `SAGESPAN_DEMO_MODE` not
+  `1`); `src/instrumentation.ts` runs the check at server start.
+* Snapshot payload ordering is byte order (`byteCompare`), matching `app.canonical_json` /
+  `app.build_snapshot_payload` (`collate "C"`) and Python `sorted()`; shared fixtures in
+  `fixtures/synthetic/canonical` are hashed by all three tiers.
+* SQL entry points (`supabase/migrations/0005_trust_boundaries.sql`): `freeze_snapshot`, `resolve_conflict`,
+  `document_exception`, `confirm_fact`, `record_check_run`, `disposition_discrepancy`, `record_review`,
+  `set_reconciliation_status`, `send_to_review`, `build_snapshot_payload`, `verify_audit_chain`. Everything
+  else in schema `app` is internal; see `supabase/README.md`.
+
 ## Calculation service
 
 * `app/schemas.py` strict Pydantic contracts; `app/financial/rules.py` versioned
@@ -91,6 +111,10 @@ snapshots, check runs, reviews and packets are never edited.
   `tests/test_api.py` fails on drift.
 * Long-running work (rule-impact previews, bulk re-checks) is designed to run
   on a worker behind a queue, not in Vercel request handlers.
+* Environment: `pyproject.toml` requires Python 3.12–3.13 and `uv.lock` pins every package;
+  CI installs with `uv sync --locked`. `scripts/export_rule_sets_sql.py` and
+  `scripts/export_canonical_sql_test.py` generate `supabase/migrations/0006_seed_rule_sets.sql` and
+  `supabase/tests/006_canonical_json.test.sql`; tests fail on drift (`--check`).
 
 ## Production path and what still requires configuration
 
@@ -105,7 +129,12 @@ Not implemented in this build:
    query-layer change, not a workflow rewrite.
 2. Session resolution in `src/auth/actor.ts` (Supabase Auth → membership → role).
 3. Object storage for uploaded documents (only hashes are kept in the demo).
-4. Running `supabase test db` on the real local stack before deployment (the SQL tests already execute on plain Postgres 16 via `supabase/tests/run_sql_tests.py` and in CI).
+4. Running `supabase test db` on the real local stack before deployment (the SQL tests execute on plain
+   PostgreSQL via `supabase/tests/run_sql_tests.py`: 6 files, 117 assertions locally on 18.6 and in CI on 15).
+5. The server-side document path (store bytes, hash, register `source_documents` with the service role);
+   since PR-001 `authenticated` cannot register documents (planned as PR-003).
+6. PR-002: S-06 coverage-aware approval, S-07 request derived solely from the frozen snapshot, N-02 transient
+   ERROR runs no longer blocking approval permanently.
 
 Until those are done, `/app/*` renders a gate page rather than pretending to
 authenticate.
@@ -113,10 +142,10 @@ authenticate.
 ## Local development
 
 ```bash
-# terminal 1: calculation service (first run: create .venv and pip install -r requirements.txt)
+# terminal 1: calculation service (Python 3.12 or 3.13; `pip install uv` once)
 cd services/calculator
-source .venv/bin/activate        # PowerShell: .\.venv\Scripts\Activate.ps1
-python scripts/dev.py            # demo mode on port 8010, any shell
+uv sync --locked --extra dev     # creates/updates .venv from uv.lock
+uv run python scripts/dev.py     # demo mode on port 8010, any shell
 
 # terminal 2: web
 npm install
