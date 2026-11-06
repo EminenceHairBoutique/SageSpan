@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  calculator:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: services/calculator } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]"
+      - run: python -m pytest -q
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run lint --workspaces --if-present
+      - run: npm run typecheck --workspaces --if-present
+      - run: npm run test --workspaces --if-present
+      - run: npm run build --workspace apps/web
+
+  database:
+    # Applies supabase/migrations and runs supabase/tests/*.test.sql on a real
+    # Postgres 16 using the Supabase/pgTAP shims (no Docker-in-Docker needed).
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        # Throwaway CI database: trust auth on the loopback service, so no password exists anywhere.
+        env: { POSTGRES_HOST_AUTH_METHOD: trust }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update -q && sudo apt-get install -y -q postgresql-client
+      - run: python supabase/tests/run_sql_tests.py
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGDATABASE: postgres

@@ -26,7 +26,7 @@ insert into app.source_documents (id, org_id, household_id, source_kind, filenam
 -- Anonymous: nothing is visible.
 select tests.clear_auth();
 set local role anon;
-select is((select count(*) from app.households), 0::bigint, 'anon sees no households');
+select throws_ok($$ select count(*) from app.households $$, '42501', null, 'anon has no access to the app schema at all');
 select throws_ok($$ insert into app.households (org_id, label, tax_year) values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'x', 2026) $$, '42501', null, 'anon cannot insert households');
 reset role;
 

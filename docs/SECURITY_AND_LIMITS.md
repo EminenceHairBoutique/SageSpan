@@ -39,9 +39,9 @@ implements. It is not a certification, an audit, or legal advice.
 | Web domain: service unavailable → visible error, no local math | Passing (vitest) |
 | Calculation service: token required, tenant header required, body `org_id` rejected | Passing (pytest) |
 | Browser: forged API approval as viewer → 403; Northline cannot open Patel; full Patel flow against the real engine | Passing (Playwright, 4 scenarios, 2026-11-05) |
-| SQL: RLS tenant isolation, role/workflow, immutability, constraints | **Written, not executed** (Docker/Supabase stack unavailable on the build machine). Parsed with `pglast` for syntax only. |
+| SQL: RLS tenant isolation, role/workflow, immutability, constraints | **Executed 2026-11-05 on PostgreSQL 16** via `supabase/tests/run_sql_tests.py` (Supabase/pgTAP shims, no Docker): 4 migrations applied, 4/4 test files, 45 assertions passed. Runs in CI (`database` job). `supabase test db` on the real stack remains the pre-deployment gate. |
 
-Never mark the SQL tests as passed until `supabase test db` has run.
+The shim run proves the policies and functions on plain Postgres; the real-stack run (`supabase test db`, Docker) is still required before any deployment and must not be reported as done until it has run.
 
 ## Release gates (from the founder documents)
 

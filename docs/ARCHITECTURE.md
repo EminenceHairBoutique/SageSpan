@@ -105,7 +105,7 @@ Not implemented in this build:
    query-layer change, not a workflow rewrite.
 2. Session resolution in `src/auth/actor.ts` (Supabase Auth → membership → role).
 3. Object storage for uploaded documents (only hashes are kept in the demo).
-4. Running `supabase test db` (needs Docker) to execute the RLS tests.
+4. Running `supabase test db` on the real local stack before deployment (the SQL tests already execute on plain Postgres 16 via `supabase/tests/run_sql_tests.py` and in CI).
 
 Until those are done, `/app/*` renders a gate page rather than pretending to
 authenticate.

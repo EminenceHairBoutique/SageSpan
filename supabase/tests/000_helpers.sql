@@ -24,3 +24,8 @@ begin
   perform set_config('request.jwt.claims', '', true);
   perform set_config('role', 'postgres', true);
 end $$;
+
+-- Tests switch to the anon/authenticated roles mid-file and then call these
+-- helpers again, so those roles need to reach the tests schema.
+grant usage on schema tests to anon, authenticated;
+grant execute on all functions in schema tests to anon, authenticated;

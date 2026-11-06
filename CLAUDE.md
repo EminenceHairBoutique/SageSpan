@@ -46,12 +46,12 @@ numbers when the calculation service is unavailable.
 * `packages/contracts` Vitest: 15 passed; `tsc` clean.
 * `apps/web` Vitest: 24 passed (includes live-service integration when the service is running); `tsc` clean; ESLint 0 problems; `next build` succeeds.
 * Playwright: 4 scenarios (public nav + pricing calculator, unsupported import rejection, Patel conflict → resolution → exception → freeze → RMD check → forged-approval 403 → disposition → review → approval → packet export, cross-tenant 404).
-* SQL: all nine files parse with `pglast`; **pgTAP tests not executed** (Docker not running on the build machine).
+* SQL: all nine files parse with `pglast`. The pgTAP suite was **executed on plain PostgreSQL 16** via `supabase/tests/run_sql_tests.py` (Supabase/pgTAP shims; PR #1): 4 migrations applied, 4/4 test files, 45 assertions; the same runner is the `database` job in `.github/workflows/ci.yml`. `supabase test db` on the real stack has still not been run.
 
 ### Not done / requires configuration
 
 * Supabase store adapter and session resolution (`apps/web/src/auth/actor.ts`, `src/domain/store.ts`); `/app/*` shows a gate.
-* Executing `supabase test db`; object storage for uploads; member management; PDF rendering; real export-format mapping (two formats is a 90-day gate).
+* Executing `supabase test db` on the real Supabase stack (Docker); object storage for uploads; member management; PDF rendering; real export-format mapping (two formats is a 90-day gate).
 * P1 tax module stays DRAFT until benchmarked.
 
 ## Repository collision (2026-11-05) — resolved: `services/calculator` kept
@@ -95,6 +95,7 @@ so `supabase db reset` / `supabase test db` can be run once Docker is available.
 * Engine golden case verified: `640000.00 / 25.5 = 25098.039215… → 25098.04`; Patel request hash `7e51cc1e…` and run hash `797be471…` recorded in `fixtures/synthetic/calc`.
 * Finding fixed during build: an approval denied inside a rolled-back transaction lost its `APPROVAL_DENIED` audit event; denials are now written in a separate committed write (`attemptApproval`).
 * Finding fixed during build: server components passed function props to a client form (RSC violation); success messages now travel in action results.
-* Docker was not running, so Supabase migrations/tests are syntax-checked only (`pglast`).
+* Docker was not running, so Supabase migrations/tests were syntax-checked only (`pglast`) in this session; PR #1 (a parallel session) later executed them on plain PostgreSQL 16 with shims and added CI.
 * Final verification: pytest 64/64; contracts Vitest 15/15; web Vitest 24/24 (live-service integration included); `tsc` clean in both packages; ESLint 0 problems; `next build` clean (no warnings); Playwright 4/4.
-* The founder committed the tree twice during the session ("First Commit", "Pt 2"); later fixes in this session are uncommitted modifications. A parallel implementation (see the collision notice) remains untracked.
+* The founder committed the tree twice during the session ("First Commit", "Pt 2"); the session's fixes were then committed and pushed as `7e0c79f` on `master`. The parallel implementation (see the collision notice) was archived.
+* PR #1 (`feat/ci-and-executed-sql-tests`) was merged with `master` here, its doc conflict resolved, and its CI made green: `calculator`, `database` (SQL suite on PostgreSQL 16) and `web` all pass. Two fixes came out of that: the OpenAPI contract now declares explicit error-response descriptions (Python 3.12 and 3.13+ name HTTP 422 differently), and the CI database job uses trust auth with no password literal. GitGuardian still flags the throwaway `postgres` password in two earlier commits of that branch; those incidents live in history, not in the tree.
