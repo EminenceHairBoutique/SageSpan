@@ -46,4 +46,8 @@ jobs:
       - run: sudo apt-get update -q && sudo apt-get install -y -q postgresql-client
       - run: python supabase/tests/run_sql_tests.py
         env:
-          SAGESPAN_TEST_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres

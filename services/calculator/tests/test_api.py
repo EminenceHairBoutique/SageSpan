@@ -71,11 +71,33 @@ def test_rules_endpoint_lists_published_and_draft_distinctly(client):
     assert client.get("/v1/rules").status_code == 401
 
 
+def _structural_diff(live, committed, path="$", out=None):
+    """Path-level differences between two JSON documents (order-sensitive for lists)."""
+    out = [] if out is None else out
+    if isinstance(live, dict) and isinstance(committed, dict):
+        for key in sorted(set(live) | set(committed)):
+            if key not in live:
+                out.append(f"{path}.{key}: only in committed")
+            elif key not in committed:
+                out.append(f"{path}.{key}: only in live")
+            else:
+                _structural_diff(live[key], committed[key], f"{path}.{key}", out)
+    elif isinstance(live, list) and isinstance(committed, list):
+        if len(live) != len(committed):
+            out.append(f"{path}: list length live={len(live)} committed={len(committed)}")
+        for i, (a, b) in enumerate(zip(live, committed)):
+            _structural_diff(a, b, f"{path}[{i}]", out)
+    elif live != committed:
+        out.append(f"{path}: live={json.dumps(live)[:80]} committed={json.dumps(committed)[:80]}")
+    return out
+
+
 def test_openapi_contract_matches_committed_document(client):
     assert CONTRACT_PATH.exists(), f"missing {CONTRACT_PATH}; run python scripts/export_openapi.py"
     committed = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
     live = client.get("/openapi.json").json()
-    assert live == committed, "OpenAPI drift: run python scripts/export_openapi.py and review the diff"
+    differences = _structural_diff(live, committed)
+    assert not differences, "OpenAPI drift (run python scripts/export_openapi.py and review):\n" + "\n".join(differences[:40])
     assert "/v1/checks/rmd" in live["paths"]
     schema = live["components"]["schemas"]["RmdCheckRequest"]
     assert schema.get("additionalProperties") is False
