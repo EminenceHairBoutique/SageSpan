@@ -31,7 +31,7 @@ try:
     text = probe.read_text().replace("\\ir 000_helpers.sql", (r.HERE / "000_helpers.sql").read_text())
     ok, out = r.psql(dsn, text, probe.name)
     for line in out.splitlines():
-        if line.startswith("PROBE") or "ERROR" in line:
+        if line.startswith("PROBE") or "ERROR" in line or not ok:
             print(line)
     sys.exit(0 if ok else 1)
 finally:

@@ -1,0 +1,12 @@
+{
+  "quote": "He said \"freeze\" twice",
+  "backslash": "C:\\Users\\synthetic\\path",
+  "newline_tab": "line one\nline two\ttabbed",
+  "control": "bell\u0007 and nul-adjacent \u0001 and del \u007f",
+  "unicode": "Café — 日本語 — emoji 🧾 — ñ",
+  "solidus": "a/b/c",
+  "key with spaces": "value",
+  "Zcapital": "uppercase keys sort before lowercase in byte order",
+  "_underscore": "underscore sorts after uppercase, before lowercase",
+  "1digit": "digits sort before letters"
+}

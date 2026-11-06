@@ -1,0 +1,15 @@
+{
+  "zeta": "last key alphabetically but first in file",
+  "alpha": {
+    "nested": [1, 2, 3, {"b": "2", "a": "1"}],
+    "empty_object": {},
+    "empty_array": [],
+    "flag": true,
+    "nothing": null,
+    "negative": -5,
+    "zero": 0
+  },
+  "money": "25098.04",
+  "big_integer": 640000,
+  "tax_year": 2026
+}
