@@ -18,7 +18,7 @@ supabase test db        # runs tests/*.test.sql with pgTAP
 
 ## Execution status
 
-Executed on 2026-11-05 against a real PostgreSQL 16 cluster via
+Executed on 2026-11-05 against a real PostgreSQL cluster (16 locally; CI pins `postgres:15` to match `config.toml`'s `db.major_version`) via
 `python supabase/tests/run_sql_tests.py`: all four migrations applied and all
 four test files passed (45 assertions: tenant isolation 12, roles and workflow
 16, immutability and hash chain 9, constraints 8). The same runner is the
