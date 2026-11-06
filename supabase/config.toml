@@ -29,7 +29,11 @@ jwt_expiry = 3600
 enable_signup = false
 
 [auth.email]
-enable_signup = false
+# The e-mail/password PROVIDER must be on for password sign-in (PR-003b, realstack harness).
+# Self-service sign-up remains off through [auth] enable_signup = false above; accounts are
+# created by an administrator. (`enable_signup` here used to mean "provider enabled" and is
+# deprecated in favour of `enabled`.)
+enabled = true
 enable_confirmations = true
 
 [storage]
