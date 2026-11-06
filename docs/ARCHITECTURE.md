@@ -113,13 +113,14 @@ authenticate.
 ## Local development
 
 ```bash
-# terminal 1: calculation service
-cd services/calculator && python -m venv .venv && .venv\Scripts\activate && pip install -r requirements.txt
-set CALC_DEMO_MODE=1 && uvicorn app.main:app --port 8010 --reload
+# terminal 1: calculation service (first run: create .venv and pip install -r requirements.txt)
+cd services/calculator
+source .venv/bin/activate        # PowerShell: .\.venv\Scripts\Activate.ps1
+python scripts/dev.py            # demo mode on port 8010, any shell
 
 # terminal 2: web
 npm install
-copy .env.example apps\web\.env.local
+cp .env.example apps/web/.env.local   # PowerShell: Copy-Item .env.example apps\web\.env.local
 npm run dev:web          # http://localhost:3000
 ```
 

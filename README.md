@@ -29,20 +29,59 @@ docs/                  Architecture, financial methodology, security & limits, r
 
 Prerequisites: Node 20+, Python 3.12+.
 
-```bash
-# 1) calculation service
-cd services/calculator
+**1) Calculation service — first time only** (from the repository root):
+
+```powershell
+# Windows PowerShell
+cd services\calculator
 python -m venv .venv
-.venv\Scripts\activate            # POSIX: source .venv/bin/activate
-pip install -r requirements.txt
-set CALC_DEMO_MODE=1              # POSIX: export CALC_DEMO_MODE=1
-uvicorn app.main:app --port 8010 --reload
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
 ```bash
-# 2) web (from the repository root)
+# macOS / Linux
+cd services/calculator
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+**Start it** (any shell, from `services/calculator` with the venv active):
+
+```bash
+python scripts/dev.py            # http://127.0.0.1:8010, demo mode, auto-reload
+```
+
+`scripts/dev.py` sets `CALC_DEMO_MODE=1` for its own process, so it works the
+same in PowerShell, cmd.exe and bash. To run uvicorn directly instead, set the
+variable with your shell's syntax first:
+
+| Shell | Command |
+|---|---|
+| PowerShell | `$env:CALC_DEMO_MODE = "1"; uvicorn app.main:app --port 8010 --reload` |
+| cmd.exe | `set CALC_DEMO_MODE=1` then `uvicorn app.main:app --port 8010 --reload` |
+| bash / zsh | `CALC_DEMO_MODE=1 uvicorn app.main:app --port 8010 --reload` |
+
+Note: in PowerShell, `set X=1` does **not** set an environment variable (`set`
+is an alias for `Set-Variable`), which produces
+`RuntimeError: CALC_SERVICE_TOKEN is not set` at startup. Run `python -m venv
+.venv` only once; re-running it while the venv is active fails with
+`Unable to copy ... venvlauncher.exe` (harmless, the existing venv is fine).
+
+**2) Web** — in a second terminal, from the repository root:
+
+```powershell
+# Windows PowerShell
 npm install
-copy .env.example apps\web\.env.local      # POSIX: cp .env.example apps/web/.env.local
+Copy-Item .env.example apps\web\.env.local
+npm run dev:web
+```
+
+```bash
+# macOS / Linux
+npm install
+cp .env.example apps/web/.env.local
 npm run dev:web
 ```
 
