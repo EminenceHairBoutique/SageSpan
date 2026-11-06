@@ -33,9 +33,9 @@ export function ProductionHome({ identity, requestedPath }: { identity: Resolved
         }
       >
         <Alert tone="amber" title="What works in production today">
-          Your identity and tenant memberships are resolved against the database under row-level security. Your personal records (accounts, income, bills,
-          spending, debts, goals) are stored and edited at <Link href="/app/personal" className="underline">/app/personal</Link> (DATA-001). Not yet built for
-          production: calculated baselines, what-ifs and recommendations (DATA-002), and the firm console&apos;s plan workflow — no plan or review is shown or
+          Your identity and tenant memberships are resolved against the database under row-level security. Your Personal workspace — records, dated snapshots,
+          receipted baseline, flags and ranked next steps — lives at <Link href="/app/personal" className="underline">/app/personal</Link> (DATA-001/002, one atomic
+          write path). Not yet built for production: AI drafts for production workspaces and the firm console&apos;s plan workflow — no plan or review is shown or
           editable here.{requestedPath ? ` Requested: ${requestedPath}.` : ""} The synthetic demos remain at <Link href="/demo/personal" className="underline">/demo/personal</Link>{" "}
           and <Link href="/demo/app" className="underline">/demo/app</Link>.
         </Alert>

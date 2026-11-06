@@ -102,12 +102,12 @@ jobs:
       - run: npm ci
       - uses: supabase/setup-cli@v1
         with: { version: latest }
-      - name: Start the local stack (migrations 0001-0008 applied on start)
+      - name: Start the local stack (migrations 0001-0009 applied on start)
         run: supabase start -x studio,imgproxy,logflare,vector,edge-runtime
       - name: Reset to a clean database from supabase/migrations
         run: supabase db reset
       - name: pgTAP on the real stack
-        run: supabase test db supabase/tests/001_tenant_isolation.test.sql supabase/tests/002_roles_and_workflow.test.sql supabase/tests/003_immutability_and_chain.test.sql supabase/tests/004_constraints.test.sql supabase/tests/005_trust_boundaries.test.sql supabase/tests/006_canonical_json.test.sql supabase/tests/007_coverage_and_reproducibility.test.sql supabase/tests/008_workspaces_and_consent.test.sql
+        run: supabase test db supabase/tests/001_tenant_isolation.test.sql supabase/tests/002_roles_and_workflow.test.sql supabase/tests/003_immutability_and_chain.test.sql supabase/tests/004_constraints.test.sql supabase/tests/005_trust_boundaries.test.sql supabase/tests/006_canonical_json.test.sql supabase/tests/007_coverage_and_reproducibility.test.sql supabase/tests/008_workspaces_and_consent.test.sql supabase/tests/009_personal_runs_and_atomic_apply.test.sql
       - name: Real JWT / PostgREST / RLS harness
         run: |
           eval "$(supabase status -o env)"

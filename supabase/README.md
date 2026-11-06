@@ -10,11 +10,12 @@
 | `migrations/0006_seed_rule_sets.sql` | **Generated** by `services/calculator/scripts/export_rule_sets_sql.py` from the Python rule registry: six rule sets (five PUBLISHED RMD sets, one DRAFT tax set) with checksums and 62 parameters. `tests/test_rule_set_seed.py` fails when it drifts. |
 | `migrations/0007_coverage_and_reproducibility.sql` | PR-002: `app.review_outcome`, snapshot payload v2, `policy_record`, `latest_check_runs`, `coverage_summary`, `clock_timestamp()` on check runs. |
 | `migrations/0008_workspaces_and_consent.sql` | PR-003a: `principals` (= `auth.users`), `workspaces` (PERSONAL / HOUSEHOLD / FIRM), `workspace_memberships` with share domains, `consent_grants` (to a person or a firm; expiring, revocable, versioned), per-workspace hashed event log, the personal record tables with one share domain each, `can_read_workspace_domain` / `my_workspace_access`, SECURITY DEFINER entry points (`require_principal`, `create_personal_workspace`, `invite_participant`, `accept_invitation`, `revoke_membership`, `grant_consent`, `revoke_consent`). RLS is ENABLE-not-FORCE like 0005. |
+| `migrations/0009_personal_runs_and_atomic_apply.sql` | DATA-002: `personal_snapshots`, `personal_calc_runs` (S-05 shape CHECK), `user_decisions`, `retirement_intakes`; `can_read_personal_runs`; **`apply_personal_changes`** — the single atomic write path for every personal table (direct INSERT/UPDATE revoked from `authenticated`); `create_personal_workspace` replaced to seed the intake. |
 | `tests/000_helpers.sql` | Test-only schema `tests`: users, JWT impersonation, `authenticate_service()`, `seed_household()`, `calc_request()` / `calc_response()` (synthetic receipts), `set_workflow()` (sentinel-wrapped). |
 | `tests/001`–`004` | Tenant isolation (12), roles and workflow (23), immutability and hash chain (11), constraints (8). |
 | `tests/005_trust_boundaries.test.sql` | The audit probes inverted into 71 assertions: every S-/N- finding in PR-001 scope as `throws_ok` with the expected SQLSTATE, plus the positive paths and the exact inventory of functions executable by `authenticated`. |
 | `tests/006_canonical_json.test.sql` | **Generated** by `services/calculator/scripts/export_canonical_sql_test.py` from `fixtures/synthetic/canonical`: proves `app.canonical_json` is byte-identical to the Python and TypeScript canonicalisers (9 assertions). |
-| `tests/007_*`, `tests/008_*` | PR-002 (43) and PR-003a (74: two firms, three consumers, invitation lifecycle, one-domain household sharing, firm grant, expiry, revocation, refused direct writes, event chain, N-04 inventory). |
+| `tests/007_*`, `tests/008_*`, `tests/009_*` | PR-002 (43), PR-003a (78, writes through the entry point since 0009) and DATA-002 (50: forged columns overwritten, allow-lists, mid-plan rollback, S-05 refusals, one CURRENT snapshot, read scope, N-04) — PR-003a originally (74: two firms, three consumers, invitation lifecycle, one-domain household sharing, firm grant, expiry, revocation, refused direct writes, event chain, N-04 inventory). |
 | `realstack/run.mjs` | **Real-stack harness** (Node, `@supabase/supabase-js`): creates synthetic users through GoTrue admin, signs them in for real JWTs and asserts allowed/denied PostgREST reads, RPC entry points and refused writes under RLS. Needs `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (`supabase status -o env`). Run by the CI `realstack` job after `supabase start`, `db reset` and `supabase test db`. |
 | `tests/probes/` | Exploratory probes (`run_probe.py <file.sql>`), including `advisor_equivalent.sql`, a local stand-in for the Supabase Security Advisor queries. Probes are evidence, not tests. |
 
@@ -24,7 +25,7 @@ On the real stack (requires Docker; runs in the CI `realstack` job; not yet run 
 
 ```bash
 supabase start -x studio,imgproxy,logflare,vector,edge-runtime
-supabase db reset                                  # applies migrations 0001–0008
+supabase db reset                                  # applies migrations 0001–0009
 supabase test db supabase/tests/00*.test.sql       # genuine pgTAP; plan counts are enforced
 eval "$(supabase status -o env)"
 SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" node supabase/realstack/run.mjs

@@ -6,12 +6,11 @@ import { getPersonalActor, listPersonalPersonas, PRINCIPAL_COOKIE, type Personal
 import { errorResult, type ActionResult } from "@/domain/errors";
 import { recordUserDecision, updateCashBalance, updatePersonalPolicy, updateRetirementIntake } from "@/domain/personal/mutations";
 import { refreshPersonalBaseline, runPersonalScenario } from "@/domain/personal/runs";
-import { ScenarioSpecSchema, type ScenarioSpec } from "@sagespan/contracts";
-import { amount, recordInputFromForm, recordType } from "./personal-form";
+
+import { amount, recordInputFromForm, recordType, scenarioSpecFromForm } from "./personal-form";
 import { createPersonalRecord, retirePersonalRecord, updatePersonalRecord } from "@/domain/personal/records";
 import { startFreshWorkspace } from "@/domain/personal/intake";
 import { redirect } from "next/navigation";
-import { DomainError } from "@/domain/errors";
 import { getStore } from "@/domain/store";
 import { runPersonalUnderstand } from "@/ai/review-orchestrator";
 import { recordAiFeedback } from "@/domain/ai/feedback";
@@ -109,29 +108,6 @@ export async function personalAiFeedbackAction(_prev: ActionResult<{ message: st
     getStore().mutate((s) => recordAiFeedback(s, { principal_id: actor.principal_id, role: `WORKSPACE_${actor.workspace_role}`, scope: { kind: "PERSONAL_WORKSPACE", workspace_id: actor.workspace_id } }, { ai_run_id: str(formData, "ai_run_id"), finding_id: str(formData, "finding_id"), action: str(formData, "action") as "ACCEPT" | "EDIT" | "DISMISS" | "REQUEST_EVIDENCE", edited_text: str(formData, "edited_text") || null, rationale: str(formData, "rationale") }));
     return { message: "Feedback recorded as a separate versioned event. The assistant's original output is unchanged." };
   });
-}
-
-
-/** Build a ScenarioSpec from the what-if form. Blank fields are omitted so the shared contract decides what each kind needs. */
-function scenarioSpecFromForm(fd: FormData): ScenarioSpec {
-  const kind = str(fd, "kind");
-  const raw: Record<string, unknown> = { kind };
-  const amount = str(fd, "monthly_amount").replace(/[$,\s]/g, "");
-  if (kind === "SPENDING_CHANGE") {
-    const direction = str(fd, "direction") === "MORE" ? "" : "-";
-    if (amount) raw.monthly_amount = `${direction}${amount.replace(/^-/, "")}`;
-  } else if (kind === "SAVINGS_CHANGE") {
-    if (amount) raw.monthly_amount = amount;
-    if (str(fd, "goal_ref")) raw.goal_ref = str(fd, "goal_ref");
-    raw.destination = str(fd, "destination") === "ILLIQUID" ? "ILLIQUID" : "LIQUID";
-  } else if (kind === "INCOME_INTERRUPTION") {
-    if (str(fd, "stream_ref")) raw.stream_ref = str(fd, "stream_ref");
-    if (str(fd, "months")) raw.months = Number(str(fd, "months"));
-    if (str(fd, "start_date")) raw.start_date = str(fd, "start_date");
-  }
-  const parsed = ScenarioSpecSchema.safeParse(raw);
-  if (!parsed.success) throw new DomainError("VALIDATION", parsed.error.issues.map((i) => `${i.path.join(".") || "scenario"}: ${i.message}`).join("; "));
-  return parsed.data;
 }
 
 export async function runScenarioAction(_prev: ActionResult<{ message: string }> | null, formData: FormData): Res<{ message: string }> {

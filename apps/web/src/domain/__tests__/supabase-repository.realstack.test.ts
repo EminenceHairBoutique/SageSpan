@@ -8,7 +8,9 @@ import { randomBytes } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PersonalActor } from "@/auth/personal-actor";
-import { updatePersonalPolicy } from "@/domain/personal/mutations";
+import { updatePersonalPolicy, updateRetirementIntake, recordUserDecision } from "@/domain/personal/mutations";
+import { applySnapshot } from "@/domain/personal/snapshot";
+import { personalBundle } from "@/domain/personal/queries";
 import { createPersonalRecord, retirePersonalRecord, updatePersonalRecord } from "@/domain/personal/records";
 import { SupabasePersonalRepository } from "@/domain/personal/supabase-repository";
 
@@ -100,6 +102,42 @@ describe.skipIf(!live)("SupabasePersonalRepository on a real Supabase stack", ()
     await expect(repo.mutate((v) => createPersonalRecord(v, repo.actor, "GOAL", { label: "x", kind: "OTHER", target_amount: "1", saved_amount: "0" }))).rejects.toMatchObject({ code: "PERMISSION_DENIED" });
     const direct = await ben.schema("app").from("savings_goals").insert({ workspace_id: wsId, label: "x", kind: "OTHER", target_amount: 1 });
     expect(direct.error?.code).toBe("42501");
+  }, 60_000);
+
+  it("DATA-002: snapshot + verified run + decision + retirement intake persist atomically and read back; the participant sees none of the computed layer", async () => {
+    const repo = new SupabasePersonalRepository(ana, actorFor(anaId, "OWNER", []));
+    const snap = await repo.mutate((v) => applySnapshot(personalBundle(v, repo.actor), repo.actor, v, "a".repeat(64), "2026-11-05"));
+    expect(snap.created).toBe(true);
+    await repo.mutate((v) => {
+      const current = v.personal_snapshots.find((s) => s.status === "CURRENT")!;
+      v.personal_calc_runs.push({ id: "pcr_x", workspace_id: wsId, snapshot_id: current.id, check_type: "PERSONAL_CLARITY", request_sha256: "b".repeat(64), request_hash_verified: true, engine_name: "sagespan-calculator", engine_version: "0.1.0", method_set_versions: { "personal.clarity": "2026.1" }, response: { result_status: "COMPUTED" }, run_status: "COMPUTED", error: null, executed_at: new Date().toISOString() });
+      v.personal_calc_runs.push({ id: "pcr_y", workspace_id: wsId, snapshot_id: current.id, check_type: "DEBT_PATHS", request_sha256: "", request_hash_verified: false, engine_name: null, engine_version: null, method_set_versions: {}, response: null, run_status: "ERROR", error: { code: "SERVICE_UNAVAILABLE", message: "down" }, executed_at: new Date().toISOString() });
+      recordUserDecision(v, repo.actor, "rec_floor_1", "DONE", "");
+      updateRetirementIntake(v, repo.actor, { current_age: "41" });
+    });
+    const b = await repo.bundle();
+    expect(b.currentSnapshot).toMatchObject({ revision: 1, content_sha256: "a".repeat(64), created_by: anaId });
+    expect(b.runs.map((r) => r.run_status).sort()).toEqual(["COMPUTED", "ERROR"]);
+    expect(b.runs.find((r) => r.run_status === "ERROR")!.response).toBeNull();
+    expect(b.decisions.map((d) => d.decision)).toEqual(["DONE"]);
+    expect(b.retirement?.current_age).toBe(41);
+    // a changed hash supersedes the old snapshot and creates revision 2, in one call
+    const again = await repo.mutate((v) => applySnapshot(personalBundle(v, repo.actor), repo.actor, v, "c".repeat(64), "2026-11-06"));
+    expect(again.created).toBe(true);
+    const b2 = await repo.bundle();
+    expect(b2.snapshots.map((s) => `${s.revision}:${s.status}`)).toEqual(["2:CURRENT", "1:SUPERSEDED"]);
+    // the database refuses an unverified "success"
+    await expect(
+      repo.mutate((v) => {
+        v.personal_calc_runs.push({ id: "pcr_bad", workspace_id: wsId, snapshot_id: b2.currentSnapshot!.id, check_type: "DEBT_PATHS", request_sha256: "d".repeat(64), request_hash_verified: false, engine_name: "sagespan-calculator", engine_version: null, method_set_versions: {}, response: { x: 1 }, run_status: "COMPUTED", error: null, executed_at: new Date().toISOString() });
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    const benRepo = new SupabasePersonalRepository(ben, actorFor(benId, "PARTICIPANT", ["SAVINGS_GOALS"]));
+    const bb = await benRepo.bundle();
+    expect(bb.snapshots).toEqual([]);
+    expect(bb.runs).toEqual([]);
+    expect(bb.decisions).toEqual([]);
+    expect(bb.retirement).toBeNull();
   }, 60_000);
 
   it("a stranger's repository sees no workspace (NOT_FOUND), not an empty one", async () => {

@@ -1,11 +1,41 @@
-import { DebtPathsResponseSchema, PersonalClarityResponseSchema, PersonalScenarioResponseSchema, evaluateDecisionPolicy, type DebtPathsResponse, type PersonalCalcRun, type PersonalClarityResponse, type PersonalScenarioResponse, type PolicyOutput, type RuleSetRef, type ScenarioSpec } from "@sagespan/contracts";
+import { DebtPathsResponseSchema, PersonalClarityResponseSchema, PersonalScenarioResponseSchema, evaluateDecisionPolicy, type DataState, type DebtPathsResponse, type PersonalCalcRun, type PersonalClarityResponse, type PersonalScenarioResponse, type PolicyOutput, type RuleSetRef, type ScenarioSpec } from "@sagespan/contracts";
 import type { PersonalActor } from "@/auth/personal-actor";
 import { CalcServiceError, callDebtPaths, callPersonalClarity, callPersonalScenario, fetchMethodSets, type PersonalCalcResult } from "@/provenance/calc-client";
 import { TRUSTED_ENGINE_NAME } from "../checks";
 import { newId, nowIso } from "../ids";
 import type { Store } from "../store";
 import { currentRun, personalBundle, personalLabels, type PersonalBundle } from "./queries";
-import { buildDebtPathsRequest, buildScenarioRequest, ensureCurrentSnapshot } from "./snapshot";
+import { applySnapshot, buildClarityRequest, buildDebtPathsRequest, buildScenarioRequest, snapshotContentHash } from "./snapshot";
+
+/**
+ * DATA-002: the runs work against ANY backend through this minimal data source — the demo
+ * file store (via `storeSource`) or the production Supabase repository (which implements the
+ * same two methods and persists the delta atomically). `mutate` receives a DataState-shaped
+ * view; the domain code never knows which backend it is talking to.
+ */
+export interface PersonalDataSource {
+  readonly actor: PersonalActor;
+  bundle(): Promise<PersonalBundle>;
+  mutate<T>(fn: (view: DataState) => T): Promise<T>;
+}
+
+export function storeSource(store: Store, actor: PersonalActor): PersonalDataSource {
+  return {
+    actor,
+    bundle: async () => personalBundle(store.read(), actor),
+    mutate: async (fn) => store.mutate(fn),
+  };
+}
+
+/** Make the CURRENT snapshot match the live records, persisting the change through the source. */
+async function ensureSnapshot(source: PersonalDataSource): Promise<{ b: PersonalBundle; snapshotId: string; created: boolean; inputHash: string; request: ReturnType<typeof buildClarityRequest> }> {
+  const b = await source.bundle();
+  const request = buildClarityRequest(b);
+  const hash = await snapshotContentHash(request);
+  const { snapshot, created } = await source.mutate((view) => applySnapshot(personalBundle(view, source.actor), source.actor, view, hash, request.as_of_date));
+  const fresh = created ? await source.bundle() : b;
+  return { b: fresh, snapshotId: snapshot.id, created, inputHash: hash, request: { ...request, input_hash: hash } };
+}
 
 /**
  * Personal engine runs. Mirrors the firm check-run discipline (audit S-04):
@@ -41,13 +71,16 @@ function errorRun(b: PersonalBundle, snapshotId: string, checkType: PersonalCalc
   return { id: newId("pcr"), workspace_id: b.workspace.id, snapshot_id: snapshotId, check_type: checkType, request_sha256: requestHash, request_hash_verified: false, engine_name: null, engine_version: null, method_set_versions: {}, response: null, run_status: "ERROR", error: { code, message }, executed_at: nowIso() };
 }
 
-/** Build (or reuse) the current snapshot and record receipted clarity + debt-path runs for it. */
+/** Build (or reuse) the current snapshot and record receipted clarity + debt-path runs for it (demo store signature). */
 export async function refreshPersonalBaseline(store: Store, actor: PersonalActor, opts: { force?: boolean } = {}): Promise<RefreshOutcome> {
-  const state = store.read();
-  const b = personalBundle(state, actor);
-  const { snapshot, created, request } = await ensureCurrentSnapshot(b, actor, state);
-  if (created) store.write(state);
-  const fresh = personalBundle(store.read(), actor);
+  return refreshBaseline(storeSource(store, actor), opts);
+}
+
+/** Backend-independent baseline refresh: snapshot → clarity → debt paths, each receipt verified before anything is stored. */
+export async function refreshBaseline(source: PersonalDataSource, opts: { force?: boolean } = {}): Promise<RefreshOutcome> {
+  const { b, snapshotId, created, inputHash, request } = await ensureSnapshot(source);
+  const snapshot = { id: snapshotId, content_sha256: inputHash };
+  const fresh = b;
   const existingClarity = currentRun(fresh, "PERSONAL_CLARITY");
   const existingDebt = currentRun(fresh, "DEBT_PATHS");
   if (!opts.force && existingClarity && existingClarity.run_status !== "ERROR" && (existingDebt || fresh.liabilities.length === 0)) {
@@ -58,7 +91,6 @@ export async function refreshPersonalBaseline(store: Store, actor: PersonalActor
     return { snapshotId: snapshot.id, snapshotCreated: created, clarity: existingClarity, debt: existingDebt, errors: [{ check: "PERSONAL_CLARITY", code: existingClarity.error?.code ?? "ERROR", message: existingClarity.error?.message ?? "Previous attempt failed" }] };
   }
   const errors: RefreshOutcome["errors"] = [];
-  const inputHash = snapshot.content_sha256;
   let registry: RuleSetRef[] = [];
   try {
     registry = (await fetchMethodSets(b.workspace.id)).method_sets;
@@ -133,7 +165,7 @@ export async function refreshPersonalBaseline(store: Store, actor: PersonalActor
     }
   }
 
-  store.mutate((s) => {
+  await source.mutate((s) => {
     s.personal_calc_runs.push(clarityRun);
     if (debtRun) s.personal_calc_runs.push(debtRun);
   });
@@ -189,13 +221,13 @@ export function personalInsights(b: PersonalBundle): PersonalInsights {
  * to that snapshot. A failed call is recorded as an ERROR run with no amounts.
  */
 export async function runPersonalScenario(store: Store, actor: PersonalActor, spec: ScenarioSpec): Promise<PersonalCalcRun> {
-  if (actor.workspace_role !== "OWNER") throw new CalcServiceError("FORBIDDEN", "Only the workspace owner can run what-if scenarios.");
-  const state = store.read();
-  const b = personalBundle(state, actor);
-  const { snapshot, created } = await ensureCurrentSnapshot(b, actor, state);
-  if (created) store.write(state);
-  const fresh = personalBundle(store.read(), actor);
-  const inputHash = snapshot.content_sha256;
+  return runScenario(storeSource(store, actor), spec);
+}
+
+export async function runScenario(source: PersonalDataSource, spec: ScenarioSpec): Promise<PersonalCalcRun> {
+  if (source.actor.workspace_role !== "OWNER") throw new CalcServiceError("FORBIDDEN", "Only the workspace owner can run what-if scenarios.");
+  const { b: fresh, snapshotId, inputHash } = await ensureSnapshot(source);
+  const snapshot = { id: snapshotId };
   const request = buildScenarioRequest(fresh, spec, inputHash);
   let run: PersonalCalcRun;
   try {
@@ -225,7 +257,7 @@ export async function runPersonalScenario(store: Store, actor: PersonalActor, sp
     const err = e instanceof CalcServiceError ? e : new CalcServiceError("SERVICE_ERROR", e instanceof Error ? e.message : String(e));
     run = errorRun(fresh, snapshot.id, "PERSONAL_SCENARIO", "", err.code, err.message);
   }
-  store.mutate((s) => {
+  await source.mutate((s) => {
     s.personal_calc_runs.push(run);
   });
   return run;

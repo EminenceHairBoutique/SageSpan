@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { getProductionIdentity } from "@/auth/actor";
 import { createSupabaseServerClient } from "@/auth/supabase-server";
 import { DomainError, errorResult, type ActionResult } from "@/domain/errors";
-import { updatePersonalPolicy } from "@/domain/personal/mutations";
+import { recordUserDecision, updatePersonalPolicy } from "@/domain/personal/mutations";
+import { refreshBaseline, runScenario } from "@/domain/personal/runs";
+import { scenarioSpecFromForm } from "./personal-form";
 import { createPersonalRecord, retirePersonalRecord, updatePersonalRecord } from "@/domain/personal/records";
 import { productionPersonalRepository, type PersonalRepository } from "@/domain/personal/repository";
 import { StartFreshSchema } from "@/domain/personal/intake";
@@ -15,8 +17,9 @@ import { recordInputFromForm, recordType, str } from "./personal-form";
  * DATA-001 — production (/app/personal) actions. Same domain functions as the demo
  * (`records.ts`, `mutations.ts`), different repository: every write lands in Supabase
  * under the signed-in user's session and is accepted or refused by RLS (0008), not by
- * anything in this file. Nothing here recomputes a baseline: receipted runs for
- * production workspaces arrive with DATA-002.
+ * anything in this file. DATA-002: record writes also refresh the receipted baseline through
+ * the same `runs.ts` the demo uses; the calculator does the arithmetic, the receipt is verified
+ * here, and snapshot + runs are stored atomically with the records.
  */
 type Res<T = undefined> = Promise<ActionResult<T>>;
 
@@ -40,7 +43,9 @@ export async function appSaveRecordAction(_prev: ActionResult<{ message: string;
     const row = await repo.mutate((v) => (ref ? updatePersonalRecord(v, repo.actor, type, ref, input) : createPersonalRecord(v, repo.actor, type, input)));
     const outRef = type === "CASH_ACCOUNT" ? (row as { account_ref: string }).account_ref : (row as { id: string }).id;
     const label = "label" in (row as object) ? (row as { label: string }).label : (row as { category: string }).category;
-    return { ref: outRef, message: `${ref ? "Updated" : "Added"} "${label}" as a new revision; the previous version is kept in history.` };
+    const refresh = await refreshBaseline(repo, { force: true });
+    const tail = refresh.errors.length ? " The baseline could not be recomputed right now; the previous figures are kept until the calculation service answers." : " Your baseline was recomputed from a new snapshot.";
+    return { ref: outRef, message: `${ref ? "Updated" : "Added"} "${label}" as a new revision; the previous version is kept in history.${tail}` };
   });
 }
 
@@ -48,6 +53,7 @@ export async function appRetireRecordAction(_prev: ActionResult<{ message: strin
   return run(async (repo) => {
     const type = recordType(formData);
     const out = await repo.mutate((v) => retirePersonalRecord(v, repo.actor, type, str(formData, "record_ref")));
+    await refreshBaseline(repo, { force: true });
     return { message: out.retired.length > 1 ? `Retired ${out.retired.length} records (the debt and its linked payments). History is kept.` : "Retired. The record stays in history and leaves your live picture." };
   });
 }
@@ -62,7 +68,37 @@ export async function appUpdatePolicyAction(_prev: ActionResult<{ message: strin
         notification_mode: (str(formData, "notification_mode") || undefined) as "NORMAL" | "QUIET" | undefined,
       }),
     );
-    return { message: "Your guardrails were saved." };
+    await refreshBaseline(repo, { force: true });
+    return { message: "Your guardrails were saved and the baseline recomputed." };
+  });
+}
+
+export async function appRefreshBaselineAction(_prev: ActionResult<{ message: string }> | null, _formData: FormData): Res<{ message: string }> {
+  void _prev;
+  void _formData;
+  return run(async (repo) => {
+    const out = await refreshBaseline(repo, { force: true });
+    if (out.errors.length) {
+      const first = out.errors[0]!;
+      throw Object.assign(new Error(`${first.message} (${first.code})`), { name: "CalcServiceError" });
+    }
+    return { message: `Baseline refreshed from snapshot with receipts${out.debt ? " (clarity + debt paths)" : ""}.` };
+  });
+}
+
+export async function appDecideAction(_prev: ActionResult<{ message: string }> | null, formData: FormData): Res<{ message: string }> {
+  return run(async (repo) => {
+    const ev = await repo.mutate((v) => recordUserDecision(v, repo.actor, str(formData, "recommendation_id"), str(formData, "decision"), str(formData, "note")));
+    return { message: `Recorded "${ev.decision}". This is an event in your history; nothing else changed.` };
+  });
+}
+
+export async function appRunScenarioAction(_prev: ActionResult<{ message: string }> | null, formData: FormData): Res<{ message: string }> {
+  return run(async (repo) => {
+    const spec = scenarioSpecFromForm(formData);
+    const out = await runScenario(repo, spec);
+    if (out.run_status === "ERROR") throw Object.assign(new Error(`${out.error?.message ?? "Scenario failed"} (${out.error?.code ?? "ERROR"})`), { name: "CalcServiceError" });
+    return { message: out.run_status === "INFEASIBLE" ? "The engine reports this change cannot be applied to your inputs. Nothing was estimated." : "What-if computed with a receipt; nothing in your records changed." };
   });
 }
 

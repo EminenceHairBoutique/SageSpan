@@ -141,8 +141,9 @@ describe("row mapping", () => {
 
 // ---------------------------------------------------------------- mocked PostgREST
 type Call = { table: string; op: string; args: unknown; filters: Array<[string, unknown]>; select?: string };
-function mockClient(tables: Record<string, Row[]>, opts: { failOn?: string; zeroRowsOn?: string } = {}) {
+function mockClient(tables: Record<string, Row[]>, opts: { failOn?: string; zeroRowsOn?: string; rpcError?: { code: string; message: string } } = {}) {
   const calls: Call[] = [];
+  const rpcs: Array<{ fn: string; args: Record<string, unknown> }> = [];
   const builder = (table: string) => {
     const call: Call = { table, op: "select", args: null, filters: [] };
     calls.push(call);
@@ -183,8 +184,12 @@ function mockClient(tables: Record<string, Row[]>, opts: { failOn?: string; zero
     };
     return api;
   };
-  const client = { schema: () => ({ from: builder }) };
-  return { client: client as never, calls };
+  const rpc = (fn: string, args: Record<string, unknown>) => {
+    rpcs.push({ fn, args });
+    return Promise.resolve(opts.rpcError ? { data: null, error: opts.rpcError } : { data: { inserted: 1, updated: 0, events: 1 }, error: null });
+  };
+  const client = { schema: () => ({ from: builder, rpc }) };
+  return { client: client as never, calls, rpcs };
 }
 type Row = Record<string, unknown>;
 
@@ -200,6 +205,10 @@ const DB: Record<string, Row[]> = {
   liabilities: [],
   savings_goals: [],
   personal_record_revisions: [],
+  personal_snapshots: [],
+  personal_calc_runs: [],
+  user_decisions: [],
+  retirement_intakes: [{ workspace_id: WS, current_age: null, target_retirement_age: null, annual_retirement_spending: null, retirement_assets_total: null, retirement_assets_as_of: null, annual_contributions: null, expected_pension_annual: null, social_security_estimate_annual: null, social_security_estimate_source: null, life_span_low: null, life_span_high: null, states: {}, updated_at: "" }],
   principals: [{ id: ANA, display_name: "Ana" }],
 };
 
@@ -221,26 +230,69 @@ describe("SupabasePersonalRepository over a mocked PostgREST builder", () => {
     await expect(new SupabasePersonalRepository(client, ACTOR).bundle()).rejects.toThrow(/not found/i);
   });
 
-  it("mutate persists updates then inserts (revisions last), verifies one row per write, and remaps the returned record's ids", async () => {
-    const { client, calls } = mockClient(DB);
+  it("mutate sends the whole delta as ONE apply_personal_changes RPC (atomic) and remaps the returned record's ids", async () => {
+    const { client, calls, rpcs } = mockClient(DB);
     const repo = new SupabasePersonalRepository(client, ACTOR);
     const row = await repo.mutate((v) => createPersonalRecord(v, ACTOR, "LIABILITY", { label: "Card", kind: "CREDIT_CARD", balance: "1800", balance_as_of: "2026-10-31", apr_percent: "24.99", minimum_payment: "55", rate_type: "FIXED" }));
     expect(row.id).toMatch(UUID);
-    const writes = calls.filter((c) => c.op !== "select");
-    expect(writes.map((c) => `${c.table}:${c.op}`)).toEqual(["liabilities:insert", "personal_record_revisions:insert"]);
-    expect((writes[0]!.args as Row[])[0]!.id).toBe(row.id);
-    expect(writes.every((c) => c.select === "id")).toBe(true);
+    expect(calls.filter((c) => c.op !== "select")).toEqual([]); // no direct PostgREST writes any more
+    expect(rpcs).toHaveLength(1);
+    expect(rpcs[0]!.fn).toBe("apply_personal_changes");
+    const args = rpcs[0]!.args as { p_workspace: string; p_plan: { inserts: Array<{ table: string; rows: Row[] }>; updates: unknown[]; profile: unknown } };
+    expect(args.p_workspace).toBe(WS);
+    expect(args.p_plan.inserts.map((i) => i.table)).toEqual(["liabilities", "personal_record_revisions"]);
+    expect(args.p_plan.inserts[0]!.rows[0]!.id).toBe(row.id);
+    expect(args.p_plan.updates).toEqual([]);
+    expect(args.p_plan.profile).toBeNull();
   });
 
-  it("a refused write (RLS / privilege) surfaces as DATA_PARTIAL_WRITE naming what already landed", async () => {
-    const { client } = mockClient(DB, { failOn: "personal_record_revisions:insert" });
+  it("a mutation with no delta sends no RPC", async () => {
+    const { client, rpcs } = mockClient(DB);
     const repo = new SupabasePersonalRepository(client, ACTOR);
-    await expect(repo.mutate((v) => createPersonalRecord(v, ACTOR, "GOAL", { label: "Move", kind: "MOVE", target_amount: "6000", saved_amount: "0" }))).rejects.toMatchObject({ code: "DATA_PARTIAL_WRITE", message: expect.stringMatching(/Already written: savings_goals×1/) });
+    await repo.mutate(() => undefined);
+    expect(rpcs).toEqual([]);
   });
 
-  it("an update that touches zero rows (policy hid the row) is an error, not a silent success", async () => {
-    const { client } = mockClient(DB, { zeroRowsOn: "cash_accounts:update" });
-    const repo = new SupabasePersonalRepository(client, ACTOR);
-    await expect(repo.mutate((v) => updatePersonalRecord(v, ACTOR, "CASH_ACCOUNT", "r1", { label: "Checking", kind: "CHECKING", balance: "1", balance_as_of: "2026-11-01" }))).rejects.toMatchObject({ code: "DATA_PARTIAL_WRITE", message: expect.stringMatching(/no row updated/) });
+  it("a refused RPC maps SQLSTATE to a domain code and states that nothing was saved", async () => {
+    const notFound = new SupabasePersonalRepository(mockClient(DB, { rpcError: { code: "P0002", message: "NOT_FOUND" } }).client, ACTOR);
+    await expect(notFound.mutate((v) => createPersonalRecord(v, ACTOR, "GOAL", { label: "Move", kind: "MOVE", target_amount: "6000", saved_amount: "0" }))).rejects.toMatchObject({ code: "NOT_FOUND", message: expect.stringMatching(/Nothing was saved/) });
+    const shape = new SupabasePersonalRepository(mockClient(DB, { rpcError: { code: "23514", message: "check constraint" } }).client, ACTOR);
+    await expect(shape.mutate((v) => createPersonalRecord(v, ACTOR, "GOAL", { label: "Move", kind: "MOVE", target_amount: "6000", saved_amount: "0" }))).rejects.toMatchObject({ code: "VALIDATION" });
+    const priv = new SupabasePersonalRepository(mockClient(DB, { rpcError: { code: "42501", message: "IMMUTABLE" } }).client, ACTOR);
+    await expect(priv.mutate((v) => createPersonalRecord(v, ACTOR, "GOAL", { label: "Move", kind: "MOVE", target_amount: "6000", saved_amount: "0" }))).rejects.toMatchObject({ code: "PERMISSION_DENIED" });
+  });
+
+  it("DATA-002: a baseline refresh plan supersedes the old snapshot (status only), inserts the new one before its runs, and keeps ERROR runs amount-free", async () => {
+    const view = seededView();
+    const OLD = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    view.personal_snapshots.push({ id: OLD, workspace_id: WS, revision: 1, as_of_date: "2026-10-31", content_sha256: "a".repeat(64), created_at: "2026-11-01T00:00:00Z", created_by: ANA, status: "CURRENT" });
+    const before = structuredClone(view);
+    const old = view.personal_snapshots[0]!;
+    old.status = "SUPERSEDED";
+    view.personal_snapshots.push({ id: "psnap_new", workspace_id: WS, revision: 2, as_of_date: "2026-11-05", content_sha256: "b".repeat(64), created_at: "2026-11-05T00:00:00Z", created_by: ANA, status: "CURRENT" });
+    view.personal_calc_runs.push({ id: "pcr_1", workspace_id: WS, snapshot_id: "psnap_new", check_type: "PERSONAL_CLARITY", request_sha256: "c".repeat(64), request_hash_verified: true, engine_name: "sagespan-calculator", engine_version: "0.1.0", method_set_versions: { "personal.clarity": "2026.1" }, response: { result_status: "COMPUTED" }, run_status: "COMPUTED", error: null, executed_at: "2026-11-05T00:00:01Z" });
+    view.personal_calc_runs.push({ id: "pcr_2", workspace_id: WS, snapshot_id: "psnap_new", check_type: "DEBT_PATHS", request_sha256: "", request_hash_verified: false, engine_name: null, engine_version: null, method_set_versions: {}, response: null, run_status: "ERROR", error: { code: "SERVICE_UNAVAILABLE", message: "down" }, executed_at: "2026-11-05T00:00:02Z" });
+    view.user_decisions.push({ id: "dec_1", workspace_id: WS, recommendation_id: "rec_floor", principal_id: ANA, decision: "DONE", note: null, created_at: "2026-11-05T00:00:03Z" });
+    const plan = planPersist(before, view);
+    expect(plan.updates).toEqual([{ table: "personal_snapshots", id: OLD, row: { status: "SUPERSEDED" } }]);
+    expect(plan.inserts.map((i) => i.table)).toEqual(["personal_snapshots", "personal_calc_runs", "user_decisions"]);
+    const snap = plan.inserts[0]!.rows[0]!;
+    expect(String(snap.id)).toMatch(UUID);
+    const runs = plan.inserts[1]!.rows;
+    expect(runs.map((r) => r.snapshot_id)).toEqual([snap.id, snap.id]);
+    expect(runs[1]).toMatchObject({ run_status: "ERROR", response: null, request_hash_verified: false });
+    expect(plan.inserts[2]!.rows[0]).toMatchObject({ recommendation_id: "rec_floor", decision: "DONE" });
+    expect(plan.retirement).toBeNull();
+  });
+
+  it("DATA-002: a retirement intake change becomes an upsert row with the life-span range flattened", async () => {
+    const view = seededView();
+    view.retirement_intakes.push({ workspace_id: WS, current_age: null, target_retirement_age: null, annual_retirement_spending: null, retirement_assets_total: null, retirement_assets_as_of: null, annual_contributions: null, expected_pension_annual: null, social_security_estimate_annual: null, social_security_estimate_source: null, life_span_range: null, states: { current_age: "MISSING" }, updated_at: "" });
+    const before = structuredClone(view);
+    Object.assign(view.retirement_intakes[0]!, { current_age: 41, life_span_range: { low: 85, high: 95 }, states: { current_age: "USER_REPORTED" } });
+    const plan = planPersist(before, view);
+    expect(plan.retirement).toMatchObject({ current_age: 41, life_span_low: 85, life_span_high: 95, states: { current_age: "USER_REPORTED" } });
+    expect(plan.inserts).toEqual([]);
+    expect(plan.updates).toEqual([]);
   });
 });

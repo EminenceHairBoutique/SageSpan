@@ -100,8 +100,11 @@ try {
   lives(H, "Ana creates a HOUSEHOLD workspace");
   const pId = P.data, hId = H.data;
   throws(await app(A.client).rpc("create_personal_workspace", { p_kind: "FIRM", p_label: "x", p_display_name: "x", p_household_size: 1, p_cash_floor: 0 }), "P0001", "FIRM kind refused through the consumer entry point");
-  lives(await app(A.client).from("cash_accounts").insert({ account_ref: randomUUID(), workspace_id: pId, label: "Checking (synthetic)", kind: "CHECKING", balance: 3200, balance_as_of: "2026-10-31" }), "owner inserts a cash account into P (RLS insert policy)");
-  lives(await app(A.client).from("savings_goals").insert({ workspace_id: hId, label: "Move (synthetic)", kind: "MOVE", target_amount: 6000, saved_amount: 900 }), "owner inserts a goal into H");
+  // DATA-002: every personal write goes through the atomic entry point; direct INSERT is refused even for the owner.
+  lives(await app(A.client).rpc("apply_personal_changes", { p_workspace: pId, p_plan: { inserts: [{ table: "cash_accounts", rows: [{ id: randomUUID(), account_ref: randomUUID(), label: "Checking (synthetic)", kind: "CHECKING", balance: "3200.00", balance_as_of: "2026-10-31" }] }] } }), "owner writes a cash account into P through apply_personal_changes");
+  lives(await app(A.client).rpc("apply_personal_changes", { p_workspace: hId, p_plan: { inserts: [{ table: "savings_goals", rows: [{ id: randomUUID(), label: "Move (synthetic)", kind: "MOVE", target_amount: "6000.00", saved_amount: "900.00" }] }] } }), "owner writes a goal into H through apply_personal_changes");
+  throws(await app(A.client).from("cash_accounts").insert({ account_ref: randomUUID(), workspace_id: pId, label: "direct", kind: "CHECKING", balance: 1, balance_as_of: "2026-10-31" }), "42501", "S-02 even the owner cannot INSERT records directly (0009 revoked the privilege)");
+  throws(await app(A.client).rpc("apply_personal_changes", { p_workspace: hId, p_plan: { inserts: [{ table: "workspace_memberships", rows: [{ principal_id: ana.id, role: "OWNER", status: "ACTIVE" }] }] } }), "P0001", "S-02 the entry point refuses tables outside the personal record set");
   is((await app(A.client).from("workspaces").select("id")).data?.length, 2, "owner sees exactly her two workspaces");
   const accP = await app(A.client).rpc("my_workspace_access", { p_workspace: pId });
   is(accP.data?.[0]?.via, "MEMBERSHIP", "my_workspace_access(P) for Ana = MEMBERSHIP");
@@ -130,8 +133,9 @@ try {
   const accH = await app(B.client).rpc("my_workspace_access", { p_workspace: hId });
   is(accH.data?.[0]?.readable_domains, ["SAVINGS_GOALS"], "my_workspace_access(H) for Ben lists exactly SAVINGS_GOALS");
   throws(await app(B.client).from("savings_goals").insert({ workspace_id: hId, label: "Sneaky", kind: "OTHER", target_amount: 1 }), "42501", "participant cannot insert (RLS with check)");
-  const upd = await app(B.client).from("savings_goals").update({ saved_amount: 999999 }).eq("workspace_id", hId).select("id");
-  is(upd.data?.length ?? 0, 0, "participant update touches zero rows");
+  throws(await app(B.client).from("savings_goals").update({ saved_amount: 999999 }).eq("workspace_id", hId).select("id"), "42501", "participant cannot UPDATE directly (no privilege)");
+  throws(await app(B.client).rpc("apply_personal_changes", { p_workspace: hId, p_plan: { profile: { cash_floor: "1" } } }), "P0002", "participant calling the entry point gets non-disclosing NOT_FOUND");
+  is((await app(B.client).from("personal_snapshots").select("id")).data?.length, 0, "DATA-002: a one-domain participant reads no snapshots");
   is(Number((await app(A.client).from("savings_goals").select("saved_amount").eq("workspace_id", hId).single()).data?.saved_amount), 900, "goal unchanged");
 
   // ------------------------------------------------------------------ 4. Dee / firm
@@ -150,6 +154,17 @@ try {
   lives(await app(A.client).rpc("revoke_consent", { p_grant: g.data }), "Ana revokes");
   is((await app(D.client).from("cash_accounts").select("id")).data?.length, 0, "revocation takes effect immediately for the firm");
   is((await app(D.client).from("consent_grants").select("version").eq("id", g.data).single()).data?.version, 2, "the former grantee still sees the revoked grant (version 2) as history");
+
+  // ------------------------------------------------------------------ 4b. DATA-002: computed layer through the entry point
+  const snapId = randomUUID();
+  lives(await app(A.client).rpc("apply_personal_changes", { p_workspace: pId, p_plan: { inserts: [
+    { table: "personal_snapshots", rows: [{ id: snapId, revision: 1, as_of_date: "2026-10-31", content_sha256: "a".repeat(64), status: "CURRENT" }] },
+    { table: "personal_calc_runs", rows: [{ id: randomUUID(), snapshot_id: snapId, check_type: "PERSONAL_CLARITY", request_sha256: "b".repeat(64), request_hash_verified: true, engine_name: "sagespan-calculator", engine_version: "0.1.0", method_set_versions: { "personal.clarity": "2026.1" }, response: { result_status: "COMPUTED" }, run_status: "COMPUTED", error: null }] },
+  ] } }), "snapshot + verified run stored atomically");
+  throws(await app(A.client).rpc("apply_personal_changes", { p_workspace: pId, p_plan: { inserts: [{ table: "personal_calc_runs", rows: [{ snapshot_id: snapId, check_type: "DEBT_PATHS", request_sha256: "c".repeat(64), request_hash_verified: false, engine_name: "sagespan-calculator", response: { x: 1 }, run_status: "COMPUTED" }] }] } }), "23514", "S-05 an unverified 'COMPUTED' run is refused by the database");
+  is((await app(A.client).from("personal_calc_runs").select("id")).data?.length, 1, "owner reads her run");
+  is((await app(D.client).from("personal_calc_runs").select("id")).data?.length, 0, "revoked firm reads no runs");
+  throws(await app(A.client).from("personal_calc_runs").update({ run_status: "ERROR" }).eq("snapshot_id", snapId).select("id"), "42501", "runs are append-only (no privilege)");
 
   // ------------------------------------------------------------------ 5. anon key alone
   const anon = createClient(URL_, ANON, { auth: { persistSession: false, autoRefreshToken: false } });
