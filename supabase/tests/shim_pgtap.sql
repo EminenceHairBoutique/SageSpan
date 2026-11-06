@@ -48,15 +48,27 @@ begin
   raise exception 'not ok - %: expected an error, statement succeeded', descr using errcode = 'P0999';
 end $$;
 
+-- Mirrors real pgTAP: two cursors, row by row, compared as records with IS DISTINCT FROM. Comparing
+-- records (not text arrays) is what makes implicit-collation mismatches raise here as they do on Supabase.
 create or replace function extensions.results_eq(have text, want text, descr text default '') returns text
 language plpgsql as $$
-declare a text[]; b text[];
+declare c1 refcursor; c2 refcursor; r1 record; r2 record; f1 boolean; f2 boolean; i int := 0;
 begin
-  execute format('select coalesce(array_agg(r::text order by ord), ''{}'') from (select row_number() over () as ord, q from (%s) q) r', have) into a;
-  execute format('select coalesce(array_agg(r::text order by ord), ''{}'') from (select row_number() over () as ord, q from (%s) q) r', want) into b;
-  if a is distinct from b then
-    raise exception 'not ok - %: have % want %', descr, a, b using errcode = 'P0999';
-  end if;
+  open c1 for execute have;
+  open c2 for execute want;
+  loop
+    fetch c1 into r1; f1 := found;
+    fetch c2 into r2; f2 := found;
+    exit when not f1 and not f2;
+    i := i + 1;
+    if f1 <> f2 then
+      raise exception 'not ok - %: row counts differ at row % (have % want %)', descr, i, case when f1 then r1::text else '<none>' end, case when f2 then r2::text else '<none>' end using errcode = 'P0999';
+    end if;
+    if r1 is distinct from r2 then
+      raise exception 'not ok - %: row % differs: have % want %', descr, i, r1::text, r2::text using errcode = 'P0999';
+    end if;
+  end loop;
+  close c1; close c2;
   return 'ok - ' || descr;
 end $$;
 
