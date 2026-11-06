@@ -1,5 +1,5 @@
 import "server-only";
-import { DebtPathsResponseSchema, MethodSetListResponseSchema, PersonalClarityResponseSchema, RmdCheckResponseSchema, RuleSetListResponseSchema, ServiceErrorSchema, canonicalHash, type DebtPathsRequest, type DebtPathsResponse, type PersonalClarityRequest, type PersonalClarityResponse, type RmdCheckRequest, type RmdCheckResponse, type RuleSetRef } from "@sagespan/contracts";
+import { DebtPathsResponseSchema, MethodSetListResponseSchema, PersonalClarityResponseSchema, PersonalScenarioResponseSchema, RmdCheckResponseSchema, RuleSetListResponseSchema, ServiceErrorSchema, canonicalHash, type DebtPathsRequest, type DebtPathsResponse, type PersonalClarityRequest, type PersonalClarityResponse, type PersonalScenarioRequest, type PersonalScenarioResponse, type RmdCheckRequest, type RmdCheckResponse, type RuleSetRef } from "@sagespan/contracts";
 import { env } from "@/config/env";
 
 /**
@@ -118,6 +118,15 @@ export async function callDebtPaths(request: DebtPathsRequest, workspaceId: stri
   if (!res.ok) throw await readError(res);
   const parsed = DebtPathsResponseSchema.safeParse(await res.json());
   if (!parsed.success) throw new CalcServiceError("CONTRACT_MISMATCH", `Debt paths response did not match the expected contract: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}`);
+  const requestHash = await canonicalHash(request);
+  return { response: parsed.data, requestHash, requestHashVerified: requestHash === parsed.data.receipt.request_hash };
+}
+
+export async function callPersonalScenario(request: PersonalScenarioRequest, workspaceId: string): Promise<PersonalCalcResult<PersonalScenarioResponse>> {
+  const res = await doFetch("/v1/personal/scenario", { method: "POST", headers: headers(workspaceId), body: JSON.stringify(request) });
+  if (!res.ok) throw await readError(res);
+  const parsed = PersonalScenarioResponseSchema.safeParse(await res.json());
+  if (!parsed.success) throw new CalcServiceError("CONTRACT_MISMATCH", `Personal scenario response did not match the expected contract: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}`);
   const requestHash = await canonicalHash(request);
   return { response: parsed.data, requestHash, requestHashVerified: requestHash === parsed.data.receipt.request_hash };
 }

@@ -12,11 +12,19 @@ from . import ENGINE_NAME, ENGINE_VERSION
 from .auth import OrgContext, require_service_auth
 from .config import load_settings
 from .financial.methods import METHODOLOGY_SETS
-from .financial.personal_receipt import run_debt_paths, run_personal_clarity
+from .financial.personal_receipt import run_debt_paths, run_personal_clarity, run_personal_scenario
 from .financial.receipt import run_rmd_check
 from .financial.rules import ALL_RULE_SETS, get_rule_set
 from .schemas import ErrorResponse, HealthResponse, RmdCheckRequest, RmdCheckResponse, RuleSetListResponse, RuleSetRef
-from .schemas_personal import DebtPathsRequest, DebtPathsResponse, MethodSetListResponse, PersonalClarityRequest, PersonalClarityResponse
+from .schemas_personal import (
+    DebtPathsRequest,
+    DebtPathsResponse,
+    MethodSetListResponse,
+    PersonalClarityRequest,
+    PersonalClarityResponse,
+    PersonalScenarioRequest,
+    PersonalScenarioResponse,
+)
 
 log = logging.getLogger("sagespan.calculator")
 
@@ -146,3 +154,19 @@ async def personal_clarity(body: PersonalClarityRequest, ctx: OrgContext = Depen
 async def personal_debt_paths(body: DebtPathsRequest, ctx: OrgContext = Depends(require_service_auth)) -> DebtPathsResponse:
     """Compare debt payoff orderings (minimums only, avalanche, snowball, hybrid) on identical inputs under a fixed monthly budget and the user's cash floor."""
     return run_debt_paths(body, org_id=ctx.org_id)
+
+
+@app.post(
+    "/v1/personal/scenario",
+    response_model=PersonalScenarioResponse,
+    tags=["personal"],
+    responses={400: ERROR_RESPONSES[400], 401: ERROR_RESPONSES[401], 422: ERROR_RESPONSES[422]},
+)
+async def personal_scenario(body: PersonalScenarioRequest, ctx: OrgContext = Depends(require_service_auth)) -> PersonalScenarioResponse:
+    """What-if on the cash-flow baseline: one bounded change (spending change, added saving, or a 1-12 month income interruption).
+
+    Baseline and scenario are computed by the same engine and reported side by
+    side with the delta, runway and flag changes. INFEASIBLE is returned, not a
+    capped number, when the change cannot be applied to the stated inputs.
+    """
+    return run_personal_scenario(body, org_id=ctx.org_id)

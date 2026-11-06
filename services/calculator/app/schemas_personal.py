@@ -305,6 +305,125 @@ class DebtPathsResponse(StrictModel):
     receipt: Receipt
 
 
+# ----------------------------------------------------------------- what-if scenarios
+ScenarioKind = Literal["SPENDING_CHANGE", "SAVINGS_CHANGE", "INCOME_INTERRUPTION"]
+SavingsDestination = Literal["LIQUID", "ILLIQUID"]
+
+
+class ScenarioSpec(StrictModel):
+    """Exactly one bounded change. Fields not used by `kind` must be omitted."""
+
+    kind: ScenarioKind
+    monthly_amount: Optional[Decimal] = Field(None, description="SPENDING_CHANGE: signed change to typical monthly discretionary spending (negative = spend less). SAVINGS_CHANGE: positive amount set aside each month.")
+    goal_ref: Optional[str] = Field(None, description="SAVINGS_CHANGE only: goal whose monthly contribution increases by monthly_amount.")
+    destination: Optional[SavingsDestination] = Field(None, description="SAVINGS_CHANGE only: LIQUID keeps the money in liquid accounts (default); ILLIQUID moves it out of liquid cash monthly.")
+    stream_ref: Optional[str] = Field(None, description="INCOME_INTERRUPTION only: the income stream that pays nothing during the window.")
+    months: Optional[int] = Field(None, ge=1, le=12, description="INCOME_INTERRUPTION only: length of the interruption.")
+    start_date: Optional[date] = Field(None, description="SAVINGS_CHANGE (ILLIQUID) / INCOME_INTERRUPTION: first affected date; defaults to the baseline as_of_date.")
+
+    @model_validator(mode="after")
+    def _fields_match_kind(self) -> "ScenarioSpec":
+        allowed = {
+            "SPENDING_CHANGE": {"monthly_amount"},
+            "SAVINGS_CHANGE": {"monthly_amount", "goal_ref", "destination", "start_date"},
+            "INCOME_INTERRUPTION": {"stream_ref", "months", "start_date"},
+        }[self.kind]
+        present = {k for k in ("monthly_amount", "goal_ref", "destination", "stream_ref", "months", "start_date") if getattr(self, k) is not None}
+        stray = present - allowed
+        if stray:
+            raise ValueError(f"fields not valid for {self.kind}: {sorted(stray)}")
+        if self.kind in ("SPENDING_CHANGE", "SAVINGS_CHANGE"):
+            if self.monthly_amount is None:
+                raise ValueError("monthly_amount is required")
+            if self.kind == "SAVINGS_CHANGE" and self.monthly_amount <= 0:
+                raise ValueError("SAVINGS_CHANGE monthly_amount must be positive")
+            if self.kind == "SPENDING_CHANGE" and self.monthly_amount == 0:
+                raise ValueError("SPENDING_CHANGE monthly_amount must be non-zero")
+        if self.kind == "INCOME_INTERRUPTION" and (self.stream_ref is None or self.months is None):
+            raise ValueError("stream_ref and months are required")
+        if self.kind == "SAVINGS_CHANGE" and self.destination is None:
+            object.__setattr__(self, "destination", "LIQUID")
+        return self
+
+
+class PersonalScenarioRequest(StrictModel):
+    schema_version: Literal["sagespan.personal-scenario.v1"]
+    baseline: PersonalClarityRequest = Field(..., description="The full baseline request (built from the frozen personal snapshot). The scenario is applied to a copy of it.")
+    scenario: ScenarioSpec
+    workspace_ref: Optional[str] = None
+    input_hash: Optional[str] = Field(None, pattern=r"^[0-9a-f]{64}$", description="Caller-side SHA-256 of the personal snapshot the baseline was built from.")
+
+
+class ScenarioMetrics(StrictModel):
+    income_typical_monthly: Optional[Decimal] = None
+    income_low_monthly: Optional[Decimal] = None
+    monthly_essential: Decimal
+    monthly_discretionary_typical: Decimal
+    margin_typical: Optional[Decimal] = None
+    margin_low: Optional[Decimal] = None
+    margin_essential_only_low: Optional[Decimal] = None
+    liquid_total: Decimal
+    essential_buffer_months: Optional[Decimal] = None
+    lowest_projected_cash: Decimal
+    lowest_projected_date: date
+    end_projected_cash: Decimal
+    first_floor_breach_date: Optional[date] = None
+
+
+class ScenarioDelta(StrictModel):
+    """scenario minus baseline; null where either side is null."""
+
+    margin_typical: Optional[Decimal] = None
+    margin_low: Optional[Decimal] = None
+    monthly_discretionary_typical: Optional[Decimal] = None
+    lowest_projected_cash: Optional[Decimal] = None
+    end_projected_cash: Optional[Decimal] = None
+
+
+class IncomeInterruptionResult(StrictModel):
+    stream_ref: str
+    start_date: date
+    end_date: date = Field(..., description="Exclusive: payments on or after this date resume.")
+    months: int
+    stream_typical_monthly: Optional[Decimal] = Field(None, description="Median of the stream's own observed months.")
+    income_forgone_typical: Optional[Decimal] = Field(None, description="stream_typical_monthly x months.")
+    payments_skipped_in_horizon: int
+    amount_skipped_in_horizon: Decimal
+    cash_above_floor: Decimal
+    margin_typical_during: Decimal = Field(..., description="Typical income of the remaining streams minus essential and typical discretionary spending.")
+    margin_essential_only_during: Decimal = Field(..., description="Typical income of the remaining streams minus essential commitments only.")
+    runway_months_typical_spending: Optional[Decimal] = Field(None, description="cash_above_floor / monthly shortfall at typical spending; null when there is no shortfall.")
+    runway_months_essentials_only: Optional[Decimal] = Field(None, description="cash_above_floor / monthly shortfall if discretionary spending stopped; null when there is no shortfall.")
+    cash_above_floor_covers_interruption: bool = Field(..., description="True when runway at typical spending is at least the interruption length (or there is no shortfall).")
+    horizon_covers_interruption: bool = Field(..., description="False when the interruption ends after the dated outlook horizon; dated figures then show only part of it.")
+
+
+class GoalChange(StrictModel):
+    goal_ref: str
+    label: str
+    baseline_months_to_target: Optional[int] = None
+    scenario_months_to_target: Optional[int] = None
+    baseline_on_track: Optional[bool] = None
+    scenario_on_track: Optional[bool] = None
+
+
+class PersonalScenarioResponse(StrictModel):
+    check_type: Literal["PERSONAL_SCENARIO"]
+    result_status: Literal["COMPUTED", "INSUFFICIENT_DATA", "INFEASIBLE"] = Field(..., description="COMPUTED is an illustration of one stated change on the supplied inputs. It is not advice, not a forecast, and not a verification of the inputs.")
+    infeasible_reason: Optional[str] = None
+    as_of_date: date
+    scenario: ScenarioSpec
+    baseline_metrics: ScenarioMetrics
+    scenario_metrics: ScenarioMetrics
+    delta: ScenarioDelta
+    interruption: Optional[IncomeInterruptionResult] = None
+    goal_changes: list[GoalChange] = Field(default_factory=list)
+    new_flags: list[Flag] = Field(default_factory=list, description="Flags raised by the scenario run that the baseline did not raise.")
+    resolved_flag_codes: list[str] = Field(default_factory=list, description="Baseline flag codes that the scenario run no longer raises.")
+    assumptions: list[str] = Field(default_factory=list)
+    receipt: Receipt
+
+
 class MethodSetListResponse(StrictModel):
     method_sets: list["RuleSetRef"]
     engine_name: str

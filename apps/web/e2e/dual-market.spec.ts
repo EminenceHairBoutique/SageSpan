@@ -37,7 +37,7 @@ test("both audience paths are discoverable from the home page", async ({ page })
   await expect(page.getByRole("link", { name: "Sign In" }).first()).toBeVisible();
   await page.getByRole("link", { name: /Plan My Finances/ }).first().click();
   await expect(page).toHaveURL(/\/demo\/personal$/);
-  await expect(page.getByText(/Synthetic demonstration\. Maya Castillo is a fictional person/)).toBeVisible();
+  await expect(page.getByText(/Synthetic demonstration\. Every person here is fictional/)).toBeVisible();
   await page.goto("/");
   await page.getByRole("link", { name: "Explore for Firms" }).first().click();
   await expect(page).toHaveURL(/\/firms$/);
@@ -147,7 +147,7 @@ test("mobile: personal overview renders banner, navigation and content at 390px"
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   await page.goto("/demo/personal");
-  await expect(page.getByText(/Synthetic demonstration\. Maya Castillo/)).toBeVisible();
+  await expect(page.getByText(/Synthetic demonstration\. Every person here is fictional/)).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Personal workspace" }).first()).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByText("My next three steps")).toBeVisible({ timeout: 30_000 });

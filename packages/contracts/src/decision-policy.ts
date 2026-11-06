@@ -1,5 +1,6 @@
 import { authorityForTier, type DecisionTier, type Recommendation, type RecommendationPriority, type RecommendationScope } from "./decisions";
-import type { DebtPathsResponse, PersonalClarityResponse, Severity } from "./personal-calc";
+import type { DebtPathsResponse, PersonalClarityResponse, PersonalScenarioResponse, Severity } from "./personal-calc";
+import { PERSONAL_SCENARIO_KIND_LABELS } from "./personal-calc";
 import { formatMoney } from "./money";
 
 /**
@@ -24,6 +25,8 @@ export interface PolicyInput {
   clarity_run_id: string;
   debt?: DebtPathsResponse | null;
   debt_run_id?: string | null;
+  /** COMPUTED what-if runs on the same snapshot (newest first). The policy cites them; it never re-runs or extrapolates them. */
+  scenarios?: Array<{ run_id: string; response: PersonalScenarioResponse }> | null;
   /** Labels for refs so cards read in plain language (id -> label). */
   labels?: Record<string, string>;
   now?: Date;
@@ -462,6 +465,114 @@ export function generateCandidates(input: PolicyInput): { candidates: Candidate[
       input_reliability: 20,
       reversibility: 10,
     });
+  }
+
+  // --- what-ifs the user already ran on this snapshot (one per kind, newest wins). The user chose these; the policy only reads them back.
+  const seenKinds = new Set<string>();
+  for (const sc of input.scenarios ?? []) {
+    const r = sc.response;
+    if (r.result_status !== "COMPUTED" || seenKinds.has(r.scenario.kind)) continue;
+    seenKinds.add(r.scenario.kind);
+    const kindLabel = PERSONAL_SCENARIO_KIND_LABELS[r.scenario.kind];
+    if (r.scenario.kind === "INCOME_INTERRUPTION" && r.interruption) {
+      const i = r.interruption;
+      if (i.cash_above_floor_covers_interruption) {
+        rationale.push(`Income interruption what-if (${sc.run_id}): cash above the floor covers the ${i.months}-month gap; no action proposed.`);
+        continue;
+      }
+      candidates.push({
+        code: `RESILIENCE_${i.stream_ref}`,
+        scope: "CASH_FLOW",
+        classification: "DECISION_SUPPORT",
+        tier: 2,
+        title: `If ${label(input, i.stream_ref)} stopped, cash above your floor would last about ${i.runway_months_typical_spending ?? "—"} month(s)`,
+        observed: `You tested a ${i.months}-month interruption of ${label(input, i.stream_ref)}. With the remaining income, typical spending leaves ${money(i.margin_typical_during)} a month; essentials only, ${money(i.margin_essential_only_during)}. Cash above your floor is ${money(i.cash_above_floor)}.`,
+        why_it_matters: "Resilience is the gap between how long the money lasts and how long an interruption could last. You decide how much of that gap to close.",
+        action: "Decide the resilience you want for this stream: a larger buffer target, a list of discretionary items you would pause first, or both. Nothing changes until you choose.",
+        evidence_refs: [i.stream_ref],
+        calculation_refs: [sc.run_id, input.clarity_run_id],
+        prerequisites: [],
+        alternatives: ["Treat the interruption as unlikely and leave the buffer target as it is", "Add a second income stream"],
+        impact: { source: "DETERMINISTIC_TOOL", unit: "USD", amount: i.margin_typical_during, description: "Monthly shortfall during the interruption at typical spending, from the receipted scenario run.", calculation_run_ref: sc.run_id },
+        tradeoffs: ["A larger buffer slows goals and extra debt payments"],
+        uncertainty: ["The scenario holds all other inputs constant and models no benefits, severance or new income.", ...(i.horizon_covers_interruption ? [] : ["The dated outlook covers only part of the interruption; the monthly figures carry the rest."])],
+        what_would_change_this: ["A different stream, length or start date", "A higher buffer"],
+        reversible: true,
+        recheck_trigger: "When income streams or the buffer change",
+        urgency: i.runway_months_typical_spending != null && Number(i.runway_months_typical_spending) < 1 ? 28 : 18,
+        benefit: 18,
+        input_reliability: 20,
+        reversibility: 10,
+      });
+      continue;
+    }
+    const improved = r.delta.margin_typical != null && !r.delta.margin_typical.startsWith("-") && r.delta.margin_typical !== "0.00";
+    const resolved = r.resolved_flag_codes;
+    const newHigh = r.new_flags.filter((f) => f.severity === "HIGH");
+    if (r.scenario.kind === "SPENDING_CHANGE") {
+      if (newHigh.length) {
+        rejected.push({ code: "ADOPT_SPENDING_CHANGE", title: kindLabel, reason: `The tested change raises ${newHigh.map((f) => f.code).join(", ")}; it is not proposed as a next step.` });
+        continue;
+      }
+      candidates.push({
+        code: "ADOPT_SPENDING_CHANGE",
+        scope: "SPENDING",
+        classification: "DECISION_SUPPORT",
+        tier: 2,
+        title: improved ? `A ${money(r.scenario.monthly_amount)} monthly spending change you tested adds ${money(r.delta.margin_typical)} to your margin` : `A ${money(r.scenario.monthly_amount)} monthly spending change you tested lowers your margin by ${money(r.delta.margin_typical)}`,
+        observed: `Typical margin moves from ${money(r.baseline_metrics.margin_typical)} to ${money(r.scenario_metrics.margin_typical)}; the 90-day low point moves by ${money(r.delta.lowest_projected_cash)}.${resolved.length ? ` It clears: ${resolved.join(", ")}.` : ""}`,
+        why_it_matters: "A spending change is the most reversible lever you have; the receipted comparison shows its size before you commit.",
+        action: improved ? "If you want this, pick the discretionary categories it comes from and track them for a month." : "Keep this in view before taking on the extra spending; nothing has changed.",
+        evidence_refs: [],
+        calculation_refs: [sc.run_id, input.clarity_run_id],
+        prerequisites: [],
+        alternatives: ["A smaller change", "A savings change instead"],
+        impact: { source: "DETERMINISTIC_TOOL", unit: "USD", amount: r.delta.margin_typical ?? null, description: "Change in typical monthly margin, from the receipted scenario run.", calculation_run_ref: sc.run_id },
+        tradeoffs: ["Spending changes take effort to keep up"],
+        uncertainty: ["The scenario spreads the change evenly across the month and holds everything else constant."],
+        what_would_change_this: ["Your actual spending next month"],
+        reversible: true,
+        recheck_trigger: "Next month's observed spending",
+        urgency: resolved.length ? 24 : 10,
+        benefit: improved ? 20 : 8,
+        input_reliability: 20,
+        reversibility: 10,
+      });
+    } else if (r.scenario.kind === "SAVINGS_CHANGE") {
+      if (r.scenario_metrics.margin_low != null && r.scenario_metrics.margin_low.startsWith("-") && !(r.baseline_metrics.margin_low ?? "").startsWith("-")) {
+        rejected.push({ code: "ADOPT_SAVINGS_CHANGE", title: kindLabel, reason: `Setting aside ${money(r.scenario.monthly_amount)} a month would turn your low-month margin negative (${money(r.scenario_metrics.margin_low)}).` });
+        continue;
+      }
+      if (newHigh.length) {
+        rejected.push({ code: "ADOPT_SAVINGS_CHANGE", title: kindLabel, reason: `The tested change raises ${newHigh.map((f) => f.code).join(", ")}; it is not proposed as a next step.` });
+        continue;
+      }
+      const goal = r.goal_changes[0];
+      candidates.push({
+        code: "ADOPT_SAVINGS_CHANGE",
+        scope: "SAVINGS_GOALS",
+        classification: "DECISION_SUPPORT",
+        tier: 2,
+        title: goal ? `Setting aside ${money(r.scenario.monthly_amount)} more a month brings "${goal.label}" from ${goal.baseline_months_to_target ?? "—"} to ${goal.scenario_months_to_target ?? "—"} months` : `Setting aside ${money(r.scenario.monthly_amount)} more a month leaves ${money(r.scenario_metrics.margin_low)} in a low month`,
+        observed: `Typical margin after the change ${money(r.scenario_metrics.margin_typical)}; low month ${money(r.scenario_metrics.margin_low)}.${r.scenario.destination === "ILLIQUID" ? ` The 90-day low point moves by ${money(r.delta.lowest_projected_cash)} because the money leaves liquid cash.` : " Liquid cash and the dated outlook are unchanged."}`,
+        why_it_matters: "Seeing the low-month margin after the change tells you whether the pace is sustainable in a weak month, not just an average one.",
+        action: "If you want this pace, set the transfer for the day after your most reliable income date. You can stop it any time.",
+        evidence_refs: goal ? [goal.goal_ref] : [],
+        calculation_refs: [sc.run_id, input.clarity_run_id],
+        prerequisites: ["Low-month margin stays positive"],
+        alternatives: ["A smaller monthly amount", "Direct it to the essential buffer first"],
+        impact: { source: "DETERMINISTIC_TOOL", unit: "USD", amount: r.scenario_metrics.margin_low ?? null, description: "Low-month margin after the change, from the receipted scenario run.", calculation_run_ref: sc.run_id },
+        tradeoffs: ["Less unallocated margin each month"],
+        uncertainty: ["The scenario holds income and all other spending constant."],
+        what_would_change_this: ["A change in income reliability", "Reaching the goal"],
+        reversible: true,
+        recheck_trigger: "Monthly",
+        urgency: 12,
+        benefit: goal ? 18 : 12,
+        input_reliability: 20,
+        reversibility: 10,
+      });
+    }
   }
 
   // --- education (tier 0) is always available as a fallback

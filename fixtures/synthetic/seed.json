@@ -1,5 +1,5 @@
 {
-  "state_version": "sagespan.demo-state.v2",
+  "state_version": "sagespan.demo-state.v3",
   "seeded_at": "2026-11-05T00:00:00Z",
   "mode": "DEMO_SYNTHETIC",
   "organizations": [
@@ -2186,7 +2186,8 @@
       "observed_to": "2026-10",
       "expected_amount": null,
       "next_expected_date": "2026-11-15",
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "inc_castillo_parttime",
@@ -2207,7 +2208,8 @@
       "observed_to": "2026-10",
       "expected_amount": "600.00",
       "next_expected_date": "2026-11-07",
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     }
   ],
   "recurring_obligations": [
@@ -2221,7 +2223,8 @@
       "next_due_date": "2026-11-01",
       "essential": true,
       "liability_id": null,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "obl_castillo_utilities",
@@ -2233,7 +2236,8 @@
       "next_due_date": "2026-11-12",
       "essential": true,
       "liability_id": null,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "obl_castillo_car_insurance",
@@ -2245,7 +2249,8 @@
       "next_due_date": "2026-11-20",
       "essential": true,
       "liability_id": null,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "obl_castillo_phone",
@@ -2257,7 +2262,8 @@
       "next_due_date": "2026-11-18",
       "essential": true,
       "liability_id": null,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "obl_castillo_car_loan_min",
@@ -2269,7 +2275,8 @@
       "next_due_date": "2026-11-05",
       "essential": true,
       "liability_id": "liab_castillo_car",
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "obl_castillo_card_min",
@@ -2281,7 +2288,8 @@
       "next_due_date": "2026-11-21",
       "essential": true,
       "liability_id": "liab_castillo_card",
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "obl_castillo_renters_insurance",
@@ -2293,7 +2301,8 @@
       "next_due_date": "2027-01-15",
       "essential": true,
       "liability_id": null,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "obl_castillo_streaming",
@@ -2305,7 +2314,8 @@
       "next_due_date": "2026-11-09",
       "essential": false,
       "liability_id": null,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "obl_castillo_gym",
@@ -2317,7 +2327,8 @@
       "next_due_date": "2026-11-03",
       "essential": false,
       "liability_id": null,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     }
   ],
   "variable_spending": [
@@ -2335,7 +2346,8 @@
       ],
       "essential": true,
       "transfers_excluded": true,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "vsp_castillo_fuel_and_transit",
@@ -2351,7 +2363,8 @@
       ],
       "essential": true,
       "transfers_excluded": true,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "vsp_castillo_dining_out",
@@ -2367,7 +2380,8 @@
       ],
       "essential": false,
       "transfers_excluded": true,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "vsp_castillo_shopping",
@@ -2383,7 +2397,8 @@
       ],
       "essential": false,
       "transfers_excluded": true,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     }
   ],
   "liabilities": [
@@ -2400,7 +2415,8 @@
       "promo_apr_percent": null,
       "promo_apr_expires": null,
       "due_day_of_month": 21,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     },
     {
       "id": "liab_castillo_car",
@@ -2415,7 +2431,8 @@
       "promo_apr_percent": null,
       "promo_apr_expires": null,
       "due_day_of_month": 5,
-      "data_state": "USER_REPORTED"
+      "data_state": "USER_REPORTED",
+      "retired": false
     }
   ],
   "savings_goals": [
@@ -2428,7 +2445,8 @@
       "saved_amount": "1500.00",
       "target_date": null,
       "monthly_contribution": "200.00",
-      "funded_from_account_id": "cash_castillo_savings"
+      "funded_from_account_id": "cash_castillo_savings",
+      "retired": false
     },
     {
       "id": "goal_castillo_move",
@@ -2439,7 +2457,8 @@
       "saved_amount": "400.00",
       "target_date": "2027-06-01",
       "monthly_contribution": "150.00",
-      "funded_from_account_id": null
+      "funded_from_account_id": null,
+      "retired": false
     }
   ],
   "retirement_intakes": [
@@ -2472,5 +2491,6 @@
   "personal_calc_runs": [],
   "user_decisions": [],
   "ai_runs": [],
-  "ai_feedback": []
+  "ai_feedback": [],
+  "personal_record_revisions": []
 }

@@ -1,4 +1,4 @@
-import { canonicalHash, type DebtPathsRequest, type PersonalClarityRequest, type PersonalSnapshot } from "@sagespan/contracts";
+import { canonicalHash, type DebtPathsRequest, type PersonalClarityRequest, type PersonalScenarioRequest, type PersonalSnapshot, type ScenarioSpec } from "@sagespan/contracts";
 import type { PersonalActor } from "@/auth/personal-actor";
 import { newId, nowIso } from "../ids";
 import type { PersonalBundle } from "./queries";
@@ -9,10 +9,11 @@ import type { PersonalBundle } from "./queries";
  * (refs = record ids), so a receipt's request_hash is reproducible from the
  * snapshot alone and a changed input produces a new revision.
  */
-export function asOfDate(b: PersonalBundle): string {
-  // Latest balance date across liquid accounts; falls back to the first obligation date so the outlook has an anchor.
+export function asOfDate(b: PersonalBundle, today: () => string = () => new Date().toISOString().slice(0, 10)): string {
+  // Latest balance date across cash accounts; otherwise the earliest obligation date; otherwise today, so a fresh
+  // workspace with no records yet still gets a dated (INSUFFICIENT_DATA) baseline instead of a fixed past date.
   const dates = b.cashAccounts.map((a) => a.balance_as_of).sort();
-  return dates[dates.length - 1] ?? b.obligations.map((o) => o.next_due_date).sort()[0] ?? "2026-01-01";
+  return dates[dates.length - 1] ?? b.obligations.map((o) => o.next_due_date).sort()[0] ?? today();
 }
 
 export function buildClarityRequest(b: PersonalBundle): PersonalClarityRequest {
@@ -45,6 +46,28 @@ export function buildDebtPathsRequest(b: PersonalBundle, inputHash: string): Deb
     cash_accounts: b.cashAccounts.map((a) => ({ account_ref: a.account_ref, label: a.label, balance: a.balance, currency: a.currency, balance_as_of: a.balance_as_of, liquid: a.liquid, data_state: a.data_state })),
     strategies: ["MINIMUMS_ONLY", "AVALANCHE", "SNOWBALL", "HYBRID"],
     max_months: 600,
+    workspace_ref: b.workspace.id,
+    input_hash: inputHash,
+  };
+}
+
+/** A what-if request: the snapshot's clarity request as the baseline plus one validated scenario spec. */
+export function buildScenarioRequest(b: PersonalBundle, spec: ScenarioSpec, inputHash: string): PersonalScenarioRequest {
+  // Every spec field is sent explicitly (null when unused) so the request canonicalises to the same bytes the
+  // service hashes from its own model dump; otherwise the receipt's request_hash could never be re-derived here.
+  const full: ScenarioSpec = {
+    kind: spec.kind,
+    monthly_amount: spec.monthly_amount ?? null,
+    goal_ref: spec.goal_ref ?? null,
+    destination: spec.kind === "SAVINGS_CHANGE" ? (spec.destination ?? "LIQUID") : null,
+    stream_ref: spec.stream_ref ?? null,
+    months: spec.months ?? null,
+    start_date: spec.start_date ?? null,
+  };
+  return {
+    schema_version: "sagespan.personal-scenario.v1",
+    baseline: { ...buildClarityRequest(b), input_hash: inputHash },
+    scenario: full,
     workspace_ref: b.workspace.id,
     input_hash: inputHash,
   };

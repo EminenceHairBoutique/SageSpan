@@ -1,5 +1,6 @@
 import { formatMoney } from "@sagespan/contracts";
 import { Money } from "@/ui/personal/components";
+import { AddRecord, EditRecord, GoalFields } from "@/ui/personal/RecordForms";
 import { Alert, Card, Chip, KeyValue } from "@/ui/primitives";
 import { loadPersonal } from "../load";
 
@@ -9,6 +10,8 @@ export default async function GoalsPage() {
   const { b, insights, labels } = await loadPersonal({ ensureBaseline: true });
   const { clarity, clarityRun } = insights;
   const summaries = new Map(clarity?.goals.map((g) => [g.goal_ref, g]) ?? []);
+  const isOwner = b.membership.role === "OWNER";
+  const accountOptions = b.cashAccounts.map((a) => ({ ref: a.account_ref, label: a.label }));
   return (
     <div className="space-y-6">
       <div>
@@ -32,9 +35,21 @@ export default async function GoalsPage() {
                   { k: "Target date", v: g.target_date ?? "none" },
                 ]}
               />
+              {isOwner && (
+                <EditRecord type="GOAL" recordRef={g.id} name={g.label}>
+                  <GoalFields r={g} accounts={accountOptions} />
+                </EditRecord>
+              )}
             </Card>
           );
         })}
+        {isOwner && (
+          <Card title="Add a goal" subtitle="A target, what is saved, and the pace you choose.">
+            <AddRecord type="GOAL" title="Add a goal">
+              <GoalFields accounts={accountOptions} />
+            </AddRecord>
+          </Card>
+        )}
         <Card title="Shared household goals" subtitle="Proposed">
           <p className="text-sm text-ink-muted">Sam Rivera has been invited to this workspace with access to <strong>goals only</strong>. Until the invitation is accepted and the consent model is finished (PR-003 / DATA-001), no record is shared. Participants will never see cash, spending or debt unless you grant that domain explicitly.</p>
         </Card>

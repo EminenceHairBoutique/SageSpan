@@ -12,7 +12,11 @@ import {
   MAX_PRIMARY_ACTIONS,
   PersonalClarityRequestSchema,
   PersonalClarityResponseSchema,
+  PersonalScenarioRequestSchema,
+  PersonalScenarioResponseSchema,
+  EXECUTABLE_SCENARIO_KINDS,
   RecommendationSchema,
+  ScenarioSpecSchema,
   actorCanReadDomain,
   evaluateDecisionPolicy,
   grantCovers,
@@ -20,6 +24,7 @@ import {
   type ConsentGrant,
   type DebtPathsResponse,
   type PersonalClarityResponse,
+  type PersonalScenarioResponse,
   type WorkspaceActor,
 } from "../src/index";
 
@@ -180,5 +185,57 @@ describe("AI contracts", () => {
     expect(AiFindingSchema.safeParse(base).success).toBe(true);
     expect(AiFindingSchema.safeParse({ ...base, evidence_status: "VERIFIED" }).success).toBe(false);
     expect(AiFindingSchema.safeParse({ ...base, cited_amounts: [{ amount: "25098.04", currency: "USD", check_run_ref: "", field: "annual_rmd" }] }).success).toBe(false);
+  });
+});
+
+describe("personal what-if scenarios (PERS-002c)", () => {
+  const scenario = PersonalScenarioResponseSchema.parse(load("castillo_scenario_interruption_expected_response.json")) as PersonalScenarioResponse;
+
+  it("mirrors the Python request/response contract and the golden fixture", () => {
+    expect(PersonalScenarioRequestSchema.safeParse(load("castillo_scenario_interruption_request.json")).success).toBe(true);
+    expect(scenario.check_type).toBe("PERSONAL_SCENARIO");
+    expect(scenario.scenario_metrics.margin_typical).toBe("-2266.50");
+    expect(scenario.interruption?.runway_months_typical_spending).toBe("0.95");
+    expect(scenario.receipt.rule_sets.map((r) => r.rule_set_id)).toEqual(["personal.cashflow_scenario", "personal.cashflow_baseline"]);
+  });
+
+  it("rejects specs whose fields do not belong to the kind, before any engine call", () => {
+    expect(ScenarioSpecSchema.safeParse({ kind: "SPENDING_CHANGE", monthly_amount: "-100.00", months: 3 }).success).toBe(false);
+    expect(ScenarioSpecSchema.safeParse({ kind: "SPENDING_CHANGE", monthly_amount: "0" }).success).toBe(false);
+    expect(ScenarioSpecSchema.safeParse({ kind: "SAVINGS_CHANGE", monthly_amount: "-5" }).success).toBe(false);
+    expect(ScenarioSpecSchema.safeParse({ kind: "INCOME_INTERRUPTION", stream_ref: "x" }).success).toBe(false);
+    expect(ScenarioSpecSchema.safeParse({ kind: "INCOME_INTERRUPTION", stream_ref: "x", months: 13 }).success).toBe(false);
+    expect(ScenarioSpecSchema.safeParse({ kind: "INCOME_INTERRUPTION", stream_ref: "x", months: 6 }).success).toBe(true);
+    expect(PersonalScenarioRequestSchema.safeParse({ ...(load("castillo_scenario_interruption_request.json") as object), org_id: "org_x" }).success).toBe(false);
+  });
+
+  it("the policy turns an uncovered interruption into a tier-2 resilience decision that cites the scenario run", () => {
+    const out = evaluateDecisionPolicy({ workspace_id: "ws_castillo_personal", clarity, clarity_run_id: "pcr_clarity_1", debt, debt_run_id: "pcr_debt_1", scenarios: [{ run_id: "pcr_scen_1", response: scenario }], labels: { inc_castillo_contract: "Design contract work" } });
+    const rec = [...out.primary, ...out.more].find((r) => r.title.startsWith("If Design contract work stopped"));
+    expect(rec).toBeTruthy();
+    expect(rec!.tier).toBe(2);
+    expect(rec!.calculation_refs).toContain("pcr_scen_1");
+    expect(rec!.impact.source).toBe("DETERMINISTIC_TOOL");
+    if (rec!.impact.source === "DETERMINISTIC_TOOL") expect(rec!.impact.amount).toBe(scenario.interruption!.margin_typical_during);
+    expect(rec!.title).toContain("0.95");
+  });
+
+  it("an interruption the buffer covers produces no action, only a rationale line", () => {
+    const covered: PersonalScenarioResponse = { ...scenario, interruption: { ...scenario.interruption!, cash_above_floor_covers_interruption: true } };
+    const out = evaluateDecisionPolicy({ workspace_id: "ws", clarity, clarity_run_id: "c", debt: null, scenarios: [{ run_id: "s", response: covered }] });
+    expect([...out.primary, ...out.more].some((r) => r.calculation_refs.includes("s"))).toBe(false);
+    expect(out.rationale.some((l) => l.includes("no action proposed"))).toBe(true);
+  });
+
+  it("a savings change that turns the low month negative is rejected by constraint, not ranked", () => {
+    const bad: PersonalScenarioResponse = { ...scenario, scenario: { kind: "SAVINGS_CHANGE", monthly_amount: "600.00", destination: "LIQUID" }, interruption: null, scenario_metrics: { ...scenario.baseline_metrics, margin_low: "-66.50", margin_typical: "903.50" } };
+    const out = evaluateDecisionPolicy({ workspace_id: "ws", clarity, clarity_run_id: "c", debt: null, scenarios: [{ run_id: "s", response: bad }] });
+    expect(out.rejected.some((r) => r.code === "ADOPT_SAVINGS_CHANGE")).toBe(true);
+    expect([...out.primary, ...out.more].some((r) => r.calculation_refs.includes("s"))).toBe(false);
+  });
+
+  it("the three cash-flow what-ifs are now executable scenario kinds for the AI proposer", () => {
+    expect(EXECUTABLE_SCENARIO_KINDS).toEqual(expect.arrayContaining(["SPENDING_CHANGE", "SAVINGS_CHANGE", "INCOME_INTERRUPTION"]));
+    expect(EXECUTABLE_SCENARIO_KINDS).not.toContain("RETIREMENT_DATE_CHANGE");
   });
 });

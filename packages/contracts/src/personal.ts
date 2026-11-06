@@ -87,6 +87,8 @@ export interface IncomeStream {
   expected_amount: string | null;
   next_expected_date: string | null;
   data_state: PersonalDataState;
+  /** Retired records stay stored (old runs cite them) but leave the live picture and every new snapshot. */
+  retired: boolean;
 }
 
 export interface RecurringObligation {
@@ -100,6 +102,7 @@ export interface RecurringObligation {
   essential: boolean;
   liability_id: string | null;
   data_state: PersonalDataState;
+  retired: boolean;
 }
 
 export interface VariableSpendingPattern {
@@ -111,6 +114,7 @@ export interface VariableSpendingPattern {
   /** Transfers/refunds excluded before these totals were recorded; set false when unknown. */
   transfers_excluded: boolean;
   data_state: PersonalDataState;
+  retired: boolean;
 }
 
 export interface Liability {
@@ -127,6 +131,7 @@ export interface Liability {
   promo_apr_expires: string | null;
   due_day_of_month: number | null;
   data_state: PersonalDataState;
+  retired: boolean;
 }
 
 export interface SavingsGoal {
@@ -140,6 +145,7 @@ export interface SavingsGoal {
   monthly_contribution: string | null;
   /** Which cash account the saved amount sits in, if the user said. */
   funded_from_account_id: string | null;
+  retired: boolean;
 }
 
 /**
@@ -181,7 +187,7 @@ export interface PersonalCalcRun {
   id: string;
   workspace_id: string;
   snapshot_id: string;
-  check_type: "PERSONAL_CLARITY" | "DEBT_PATHS";
+  check_type: "PERSONAL_CLARITY" | "DEBT_PATHS" | "PERSONAL_SCENARIO";
   request_sha256: string;
   request_hash_verified: boolean;
   engine_name: string | null;

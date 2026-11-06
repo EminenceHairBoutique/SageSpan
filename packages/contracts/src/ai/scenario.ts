@@ -11,7 +11,7 @@ export const SCENARIO_KINDS = ["DEBT_EXTRA_PAYMENT", "SPENDING_CHANGE", "SAVINGS
 export type ScenarioKind = (typeof SCENARIO_KINDS)[number];
 
 /** Which scenario kinds a deterministic engine can execute today. Others are proposals only. */
-export const EXECUTABLE_SCENARIO_KINDS: readonly ScenarioKind[] = ["DEBT_EXTRA_PAYMENT"];
+export const EXECUTABLE_SCENARIO_KINDS: readonly ScenarioKind[] = ["DEBT_EXTRA_PAYMENT", "SPENDING_CHANGE", "SAVINGS_CHANGE", "INCOME_INTERRUPTION"];
 
 export const ScenarioProposalSchema = z.strictObject({
   proposal_id: z.string().min(1),

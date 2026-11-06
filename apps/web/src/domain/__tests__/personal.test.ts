@@ -11,8 +11,9 @@ import { NotFoundError } from "@/auth/types";
 import { DomainError } from "@/domain/errors";
 import { recordUserDecision, updateCashBalance, updatePersonalPolicy, updateRetirementIntake } from "@/domain/personal/mutations";
 import { currentRun, latestDecisions, personalBundle } from "@/domain/personal/queries";
-import { personalInsights, refreshPersonalBaseline, verifyPersonalReceipt } from "@/domain/personal/runs";
-import { buildClarityRequest, ensureCurrentSnapshot } from "@/domain/personal/snapshot";
+import { createPersonalRecord, retirePersonalRecord, updatePersonalRecord } from "@/domain/personal/records";
+import { personalInsights, refreshPersonalBaseline, runPersonalScenario, verifyPersonalReceipt } from "@/domain/personal/runs";
+import { buildClarityRequest, buildScenarioRequest, ensureCurrentSnapshot } from "@/domain/personal/snapshot";
 import { MemoryStore } from "@/domain/store";
 import * as calc from "@/provenance/calc-client";
 
@@ -22,6 +23,7 @@ vi.mock("@/provenance/calc-client", async () => {
   const { canonicalHash } = await import("@sagespan/contracts");
   const clarity = (await import("../../../../../fixtures/synthetic/personal/castillo_clarity_expected_response.json")).default;
   const debt = (await import("../../../../../fixtures/synthetic/personal/castillo_debt_paths_expected_response.json")).default;
+  const scenario = (await import("../../../../../fixtures/synthetic/personal/castillo_scenario_interruption_expected_response.json")).default;
   class CalcServiceError extends Error {
     constructor(
       public readonly code: string,
@@ -33,8 +35,8 @@ vi.mock("@/provenance/calc-client", async () => {
     }
   }
   const control: { mode: Mode } = { mode: "ok" };
-  const methods = [...clarity.receipt.rule_sets, ...debt.receipt.rule_sets];
-  async function respond(fixture: typeof clarity | typeof debt, request: { input_hash?: string | null }) {
+  const methods = [...clarity.receipt.rule_sets, ...debt.receipt.rule_sets, ...scenario.receipt.rule_sets];
+  async function respond(fixture: typeof clarity | typeof debt | typeof scenario, request: { input_hash?: string | null }) {
     if (control.mode === "down") throw new CalcServiceError("SERVICE_UNAVAILABLE", "Calculation service is unreachable (test).");
     const requestHash = await canonicalHash(request);
     const response = structuredClone(fixture) as unknown as { receipt: { request_hash: string; engine_name: string; inputs_used: Record<string, unknown>; rule_sets: Array<{ checksum: string }> } };
@@ -49,6 +51,7 @@ vi.mock("@/provenance/calc-client", async () => {
     __control: control,
     callPersonalClarity: (request: { input_hash?: string | null }) => respond(clarity, request),
     callDebtPaths: (request: { input_hash?: string | null }) => respond(debt, request),
+    callPersonalScenario: (request: { input_hash?: string | null }) => respond(scenario, request),
     fetchMethodSets: async () => {
       if (control.mode === "down") throw new CalcServiceError("SERVICE_UNAVAILABLE", "Calculation service is unreachable (test).");
       return { method_sets: methods, engine_name: "sagespan-calculator", engine_version: "0.1.0" };
@@ -217,5 +220,158 @@ describe("versioned facts, preferences and decisions", () => {
     expect(r.states["social_security_estimate_annual"]).toBe("MISSING");
     expect(JSON.stringify(r)).not.toMatch(/projection|probability/);
     expect(() => store.mutate((s) => updateRetirementIntake(s, ALVAREZ, { current_age: "7" }))).toThrow(/whole number of years/);
+  });
+});
+
+describe("what-if scenarios (PERS-002c)", () => {
+  beforeEach(() => {
+    control.mode = "ok";
+  });
+
+  it("builds the scenario request from the snapshot only and binds the input hash on both levels", async () => {
+    const store = new MemoryStore();
+    await refreshPersonalBaseline(store, ALVAREZ);
+    const b = personalBundle(store.read(), ALVAREZ);
+    const req = buildScenarioRequest(b, { kind: "INCOME_INTERRUPTION", stream_ref: "inc_castillo_contract", months: 1 }, b.currentSnapshot!.content_sha256);
+    expect(req.schema_version).toBe("sagespan.personal-scenario.v1");
+    expect(req.baseline.input_hash).toBe(b.currentSnapshot!.content_sha256);
+    expect(req.input_hash).toBe(b.currentSnapshot!.content_sha256);
+    expect(req.baseline.income_streams.map((s) => s.stream_ref)).toContain("inc_castillo_contract");
+  });
+
+  it("stores a receipted PERSONAL_SCENARIO run on the current snapshot and the policy cites it", async () => {
+    const store = new MemoryStore();
+    await refreshPersonalBaseline(store, ALVAREZ);
+    const run = await runPersonalScenario(store, ALVAREZ, { kind: "INCOME_INTERRUPTION", stream_ref: "inc_castillo_contract", months: 1 });
+    expect(run.check_type).toBe("PERSONAL_SCENARIO");
+    expect(run.run_status).toBe("COMPUTED");
+    expect(run.request_hash_verified).toBe(true);
+    expect(run.method_set_versions).toEqual({ "personal.cashflow_scenario": "2026.1", "personal.cashflow_baseline": "2026.1" });
+    const b = personalBundle(store.read(), ALVAREZ);
+    expect(run.snapshot_id).toBe(b.currentSnapshot!.id);
+    const insights = personalInsights(b);
+    expect(insights.scenarios).toHaveLength(1);
+    expect(insights.scenarios[0]!.response?.interruption?.runway_months_typical_spending).toBe("0.95");
+    const all = [...insights.policy!.primary, ...insights.policy!.more];
+    const resilience = all.find((r) => r.calculation_refs.includes(run.id));
+    expect(resilience).toBeTruthy();
+    expect(resilience!.tier).toBe(2);
+    expect(resilience!.action_authority).not.toBe("DISABLED_PENDING_RELEASE_GATE");
+  });
+
+  it("scenario runs are history once the snapshot is superseded; the policy stops citing them", async () => {
+    const store = new MemoryStore();
+    await refreshPersonalBaseline(store, ALVAREZ);
+    const run = await runPersonalScenario(store, ALVAREZ, { kind: "INCOME_INTERRUPTION", stream_ref: "inc_castillo_contract", months: 1 });
+    store.mutate((s) => updateCashBalance(s, ALVAREZ, "cash_castillo_checking", "2600.00", "2026-11-05"));
+    await refreshPersonalBaseline(store, ALVAREZ, { force: true });
+    const b = personalBundle(store.read(), ALVAREZ);
+    expect(b.runs.some((r) => r.id === run.id)).toBe(true); // kept
+    const insights = personalInsights(b);
+    expect(insights.scenarios).toHaveLength(0);
+    expect([...insights.policy!.primary, ...insights.policy!.more].some((r) => r.calculation_refs.includes(run.id))).toBe(false);
+  });
+
+  it("refuses a participant or a stranger; a bad receipt or a down service records an ERROR run with no amounts", async () => {
+    const store = new MemoryStore();
+    await refreshPersonalBaseline(store, ALVAREZ);
+    await expect(runPersonalScenario(store, { ...ALVAREZ, workspace_role: "PARTICIPANT" }, { kind: "SPENDING_CHANGE", monthly_amount: "-50.00" })).rejects.toThrow(/owner/i);
+    await expect(runPersonalScenario(store, STRANGER, { kind: "SPENDING_CHANGE", monthly_amount: "-50.00" })).rejects.toThrow(NotFoundError);
+    control.mode = "bad_hash";
+    const bad = await runPersonalScenario(store, ALVAREZ, { kind: "SPENDING_CHANGE", monthly_amount: "-50.00" });
+    expect(bad.run_status).toBe("ERROR");
+    expect(bad.response).toBeNull();
+    expect(bad.error?.code).toBe("RECEIPT_INTEGRITY");
+    control.mode = "down";
+    const down = await runPersonalScenario(store, ALVAREZ, { kind: "SPENDING_CHANGE", monthly_amount: "-50.00" });
+    expect(down.run_status).toBe("ERROR");
+    expect(JSON.stringify(down)).not.toMatch(/2266|1503/);
+    const b = personalBundle(store.read(), ALVAREZ);
+    expect(personalInsights(b).scenarios.map((s) => s.run.run_status)).toEqual(["ERROR", "ERROR"]);
+  });
+});
+
+describe("record add / edit / retire (PERS-002a)", () => {
+  it("creates records with shared validation, scoped to the actor's workspace, and logs a CREATE revision", () => {
+    const store = new MemoryStore();
+    const stream = store.mutate((s) => createPersonalRecord(s, ALVAREZ, "INCOME_STREAM", { label: "Weekend tutoring", kind: "SELF_EMPLOYMENT", cadence: "MONTHLY", reliability: "VARIABLE", observed_monthly_amounts: ["300", "250.5", "400"], next_expected_date: "2026-11-30" }));
+    expect(stream.workspace_id).toBe("ws_castillo_personal");
+    expect(stream.observed_monthly_amounts).toEqual(["300.00", "250.50", "400.00"]);
+    expect(stream.data_state).toBe("USER_REPORTED");
+    const b = personalBundle(store.read(), ALVAREZ);
+    expect(b.incomeStreams.map((s) => s.id)).toContain(stream.id);
+    const rev = b.recordRevisions.find((r) => r.record_ref === stream.id);
+    expect(rev).toMatchObject({ change: "CREATE", revision: 1, before: null, changed_by: "pr_castillo", record_type: "INCOME_STREAM" });
+    expect(() => store.mutate((s) => createPersonalRecord(s, ALVAREZ, "INCOME_STREAM", { label: "", kind: "SALARY", cadence: "MONTHLY", reliability: "REGULAR", observed_monthly_amounts: ["-5"] }))).toThrow(DomainError);
+    expect(() => store.mutate((s) => createPersonalRecord(s, ALVAREZ, "LIABILITY", { label: "Card", kind: "CREDIT_CARD", balance: "100", balance_as_of: "2026-11-01", apr_percent: "150", minimum_payment: "25", rate_type: "FIXED" }))).toThrow(/0 to 100/);
+    expect(() => store.mutate((s) => createPersonalRecord(s, ALVAREZ, "OBLIGATION", { label: "x", category: "OTHER", amount: "1", cadence: "MONTHLY", next_due_date: "2026-12-01", essential: true, liability_id: "liab_from_elsewhere" }))).toThrow(/linked debt/);
+  });
+
+  it("blanks stay MISSING instead of being guessed", () => {
+    const store = new MemoryStore();
+    const v = store.mutate((s) => createPersonalRecord(s, ALVAREZ, "VARIABLE_SPENDING", { category: "Pets", observed_monthly_amounts: [], essential: false, transfers_excluded: false }));
+    expect(v.data_state).toBe("MISSING");
+    const req = buildClarityRequest(personalBundle(store.read(), ALVAREZ));
+    expect(req.variable_spending.find((x) => x.category === "Pets")).toMatchObject({ observed_monthly_amounts: [], data_state: "MISSING" });
+  });
+
+  it("edits are new revisions with before/after kept; cash accounts also keep per-revision rows; the snapshot supersedes", async () => {
+    const store = new MemoryStore();
+    await refreshPersonalBaseline(store, ALVAREZ);
+    const snap1 = personalBundle(store.read(), ALVAREZ).currentSnapshot!.id;
+    const updated = store.mutate((s) => updatePersonalRecord(s, ALVAREZ, "OBLIGATION", "obl_castillo_rent", { label: "Rent", category: "HOUSING", amount: "1500", cadence: "MONTHLY", next_due_date: "2026-12-01", essential: true, liability_id: null }));
+    expect(updated.amount).toBe("1500.00");
+    const cash = store.mutate((s) => updatePersonalRecord(s, ALVAREZ, "CASH_ACCOUNT", "cash_castillo_checking", { label: "Everyday checking", kind: "CHECKING", balance: "2400", balance_as_of: "2026-11-06" }));
+    expect(cash.revision).toBe(2);
+    expect(store.read().cash_accounts.filter((a) => a.account_ref === "cash_castillo_checking")).toHaveLength(2);
+    const b = personalBundle(store.read(), ALVAREZ);
+    const rentRev = b.recordRevisions.find((r) => r.record_ref === "obl_castillo_rent")!;
+    expect(rentRev.change).toBe("UPDATE");
+    expect(rentRev.revision).toBe(2); // seed is implicit revision 1
+    expect((rentRev.before as { amount: string }).amount).toBe("1450.00");
+    expect((rentRev.after as { amount: string }).amount).toBe("1500.00");
+    await refreshPersonalBaseline(store, ALVAREZ);
+    const b2 = personalBundle(store.read(), ALVAREZ);
+    expect(b2.currentSnapshot!.id).not.toBe(snap1);
+    expect(b2.snapshots.find((s) => s.id === snap1)!.status).toBe("SUPERSEDED");
+  });
+
+  it("retire never deletes: the record leaves the live bundle and the next request, stays stored, and a debt takes its linked payments with it", () => {
+    const store = new MemoryStore();
+    const out = store.mutate((s) => retirePersonalRecord(s, ALVAREZ, "LIABILITY", "liab_castillo_card"));
+    expect(out.retired.sort()).toEqual(["liab_castillo_card", "obl_castillo_card_min"]);
+    const b = personalBundle(store.read(), ALVAREZ);
+    expect(b.liabilities.map((l) => l.id)).toEqual(["liab_castillo_car"]);
+    expect(b.obligations.some((o) => o.id === "obl_castillo_card_min")).toBe(false);
+    expect(store.read().liabilities.find((l) => l.id === "liab_castillo_card")!.retired).toBe(true);
+    const req = buildClarityRequest(b);
+    expect(req.liabilities.map((l) => l.liability_ref)).toEqual(["liab_castillo_car"]);
+    expect(b.recordRevisions.filter((r) => r.change === "RETIRE")).toHaveLength(2);
+    // retiring a cash account unlinks goals funded from it and leaves no live revision
+    store.mutate((s) => retirePersonalRecord(s, ALVAREZ, "CASH_ACCOUNT", "cash_castillo_savings"));
+    const b3 = personalBundle(store.read(), ALVAREZ);
+    expect(b3.cashAccounts.map((a) => a.account_ref)).toEqual(["cash_castillo_checking"]);
+    expect(b3.goals.find((g) => g.id === "goal_castillo_reserve")!.funded_from_account_id).toBeNull();
+    expect(() => store.mutate((s) => retirePersonalRecord(s, ALVAREZ, "CASH_ACCOUNT", "cash_castillo_savings"))).toThrow(/not found/i);
+  });
+
+  it("a participant, a stranger and a foreign record id are all refused without leaking existence", () => {
+    const store = new MemoryStore();
+    const activePartner: PersonalActor = { ...PARTNER };
+    store.mutate((s) => {
+      s.workspace_memberships.find((m) => m.id === "wm_castillo_partner")!.status = "ACTIVE";
+    });
+    expect(() => store.mutate((s) => createPersonalRecord(s, activePartner, "GOAL", { label: "Trip", kind: "TRAVEL", target_amount: "1000", saved_amount: "0" }))).toThrow(/owner/i);
+    expect(() => store.mutate((s) => retirePersonalRecord(s, activePartner, "GOAL", "goal_castillo_move"))).toThrow(/owner/i);
+    expect(() => store.mutate((s) => createPersonalRecord(s, STRANGER, "GOAL", { label: "Trip", kind: "TRAVEL", target_amount: "1000", saved_amount: "0" }))).toThrow(NotFoundError);
+    // an owner of another workspace naming a Castillo record id gets not-found, not forbidden
+    const otherOwner: PersonalActor = { ...ALVAREZ, principal_id: "pr_other", workspace_id: "ws_other" };
+    store.mutate((s) => {
+      s.workspaces.push({ id: "ws_other", kind: "PERSONAL", label: "Other", owner_principal_id: "pr_other", firm_org_id: null, created_at: "2026-11-01T00:00:00Z" });
+      s.workspace_memberships.push({ id: "wm_other", workspace_id: "ws_other", principal_id: "pr_other", role: "OWNER", domains: [], status: "ACTIVE", created_at: "2026-11-01T00:00:00Z" });
+    });
+    expect(() => store.mutate((s) => retirePersonalRecord(s, otherOwner, "GOAL", "goal_castillo_move"))).toThrow(/not found/i);
+    expect(() => store.mutate((s) => updatePersonalRecord(s, otherOwner, "OBLIGATION", "obl_castillo_rent", { label: "Rent", category: "HOUSING", amount: "1", cadence: "MONTHLY", next_due_date: "2026-12-01", essential: true }))).toThrow(/not found/i);
+    expect(store.read().savings_goals.find((g) => g.id === "goal_castillo_move")!.retired).toBe(false);
   });
 });

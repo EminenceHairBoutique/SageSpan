@@ -1,4 +1,4 @@
-import type { CashAccount, ConsentGrant, DataState, IncomeStream, Liability, PersonalCalcRun, PersonalProfile, PersonalSnapshot, RecurringObligation, RetirementIntake, SavingsGoal, UserDecisionEvent, VariableSpendingPattern, Workspace, WorkspaceMembership } from "@sagespan/contracts";
+import type { CashAccount, ConsentGrant, DataState, IncomeStream, Liability, PersonalCalcRun, PersonalProfile, PersonalRecordRevision, PersonalSnapshot, RecurringObligation, RetirementIntake, SavingsGoal, UserDecisionEvent, VariableSpendingPattern, Workspace, WorkspaceMembership } from "@sagespan/contracts";
 import type { PersonalActor } from "@/auth/personal-actor";
 import { NotFoundError } from "@/auth/types";
 
@@ -25,6 +25,8 @@ export interface PersonalBundle {
   decisions: UserDecisionEvent[];
   grants: ConsentGrant[];
   memberships: WorkspaceMembership[];
+  /** Append-only record history, newest first. */
+  recordRevisions: PersonalRecordRevision[];
 }
 
 export function requireWorkspace(state: DataState, actor: PersonalActor): Workspace {
@@ -46,11 +48,11 @@ export function personalBundle(state: DataState, actor: PersonalActor): Personal
     membership,
     profile,
     cashAccounts: state.cash_accounts.filter((a) => a.workspace_id === id && !a.superseded),
-    incomeStreams: state.income_streams.filter((s) => s.workspace_id === id),
-    obligations: state.recurring_obligations.filter((o) => o.workspace_id === id),
-    variableSpending: state.variable_spending.filter((v) => v.workspace_id === id),
-    liabilities: state.liabilities.filter((l) => l.workspace_id === id),
-    goals: state.savings_goals.filter((g) => g.workspace_id === id),
+    incomeStreams: state.income_streams.filter((s) => s.workspace_id === id && !s.retired),
+    obligations: state.recurring_obligations.filter((o) => o.workspace_id === id && !o.retired),
+    variableSpending: state.variable_spending.filter((v) => v.workspace_id === id && !v.retired),
+    liabilities: state.liabilities.filter((l) => l.workspace_id === id && !l.retired),
+    goals: state.savings_goals.filter((g) => g.workspace_id === id && !g.retired),
     retirement: state.retirement_intakes.find((r) => r.workspace_id === id) ?? null,
     currentSnapshot: snapshots.find((s) => s.status === "CURRENT") ?? null,
     snapshots,
@@ -58,6 +60,7 @@ export function personalBundle(state: DataState, actor: PersonalActor): Personal
     decisions: state.user_decisions.filter((d) => d.workspace_id === id),
     grants: state.consent_grants.filter((g) => g.grantor_workspace_id === id),
     memberships: state.workspace_memberships.filter((m) => m.workspace_id === id),
+    recordRevisions: state.personal_record_revisions.filter((r) => r.workspace_id === id).sort((a, b) => (a.created_at < b.created_at ? 1 : -1)),
   };
 }
 

@@ -2,6 +2,7 @@ import { formatMoney } from "@sagespan/contracts";
 import { updateBalanceAction, updatePolicyAction } from "@/server/personal-actions";
 import { ActionForm } from "@/ui/ActionForm";
 import { DataStateChip, Money, Stat } from "@/ui/personal/components";
+import { AddRecord, CashAccountFields, EditRecord, LiabilityFields } from "@/ui/personal/RecordForms";
 import { Alert, Card, Chip, Field, inputClasses, Td, Th } from "@/ui/primitives";
 import { loadPersonal } from "../load";
 
@@ -67,8 +68,19 @@ export default async function SavingsDebtPage() {
                     </ActionForm>
                   </details>
                 )}
+                {isOwner && (
+                  <EditRecord type="CASH_ACCOUNT" recordRef={a.account_ref} name={a.label}>
+                    <CashAccountFields r={a} />
+                  </EditRecord>
+                )}
               </div>
             ))}
+            {b.cashAccounts.length === 0 && <p className="text-sm text-ink-muted">No cash accounts recorded yet.</p>}
+            {isOwner && (
+              <AddRecord type="CASH_ACCOUNT" title="Add a cash account">
+                <CashAccountFields />
+              </AddRecord>
+            )}
           </div>
         </Card>
         <Card title="Your guardrails" subtitle="A hard constraint for every suggestion: nothing is proposed that would take you below your floor.">
@@ -102,6 +114,7 @@ export default async function SavingsDebtPage() {
               <Th align="right">Minimum</Th>
               <Th>Rate</Th>
               <Th>State</Th>
+              <Th />
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -121,10 +134,25 @@ export default async function SavingsDebtPage() {
                 <Td>
                   <DataStateChip state={l.data_state} />
                 </Td>
+                <Td>
+                  {isOwner && (
+                    <EditRecord type="LIABILITY" recordRef={l.id} name={l.label}>
+                      <LiabilityFields r={l} />
+                    </EditRecord>
+                  )}
+                </Td>
               </tr>
             ))}
           </tbody>
         </table>
+        {b.liabilities.length === 0 && <p className="text-sm text-ink-muted">No debts recorded. If you have none, that is the record.</p>}
+        {isOwner && (
+          <div className="mt-3">
+            <AddRecord type="LIABILITY" title="Add a debt">
+              <LiabilityFields />
+            </AddRecord>
+          </div>
+        )}
         <p className="mt-3 text-xs text-ink-faint">Compare payoff orderings under your extra payment in Scenarios. No consolidation, refinancing or balance-transfer products are recommended here.</p>
       </Card>
     </div>
