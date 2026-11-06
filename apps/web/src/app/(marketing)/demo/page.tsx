@@ -30,7 +30,7 @@ const personalTour = [
 
 export default function DemoPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-14 md:px-6">
+    <main id="main" className="mx-auto max-w-6xl px-4 py-14 md:px-6">
       <SectionHeading eyebrow="Interactive synthetic tour · Personal" title="A fictional individual, a receipted baseline, three next steps">
         Maya Castillo: irregular contract income plus a part-time job, two debts, recurring bills and two goals. Manual entry only; no account is connected.
       </SectionHeading>
