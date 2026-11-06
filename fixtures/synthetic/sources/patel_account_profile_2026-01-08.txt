@@ -1,0 +1,7 @@
+SYNTHETIC CUSTODIAN ACCOUNT PROFILE - FICTIONAL DATA
+Custodian A (synthetic) | Profile printed 2026-01-08
+Account: Traditional IRA ending 4471
+Owner: Rajesh Patel | Date of birth on file: 1952-03-14
+Custodian of record: Custodian A
+Account category: Traditional IRA (owner-held) | Inherited: No
+Synthetic fixture; not a real record.

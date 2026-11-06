@@ -1,0 +1,9 @@
+SYNTHETIC BENEFICIARY DESIGNATION FORM - FICTIONAL DATA
+Custodian A (synthetic) | Form accepted 2024-05-10
+Account: Traditional IRA ending 4471 | Owner: Rajesh Patel
+PRIMARY BENEFICIARY
+Meera Patel | Relationship: Spouse | Share: 100% | Sole primary beneficiary: Yes
+CONTINGENT BENEFICIARY
+Anika Patel | Relationship: Child | Share: 100%
+Spouse date of birth: 1955-07-02
+Synthetic fixture; not a real form.

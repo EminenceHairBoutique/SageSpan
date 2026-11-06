@@ -1,0 +1,66 @@
+{
+  "schema_version": "sagespan.rmd-check.v1",
+  "tax_year": 2026,
+  "owner": {
+    "person_ref": "person_patel_rajesh",
+    "birth_date": "1952-03-14",
+    "is_alive": true
+  },
+  "account": {
+    "account_ref": "acct_patel_trad_ira",
+    "account_type": "TRADITIONAL_IRA",
+    "is_inherited": false,
+    "prior_year_end_balance": {
+      "amount": "640000.00",
+      "currency": "USD",
+      "as_of_date": "2025-12-31"
+    },
+    "prior_prior_year_end_balance": null,
+    "outstanding_rollover_adjustment": null
+  },
+  "beneficiaries": [
+    {
+      "person_ref": "person_patel_meera",
+      "relationship": "SPOUSE",
+      "designation_type": "PRIMARY",
+      "share_percent": "100",
+      "birth_date": "1955-07-02",
+      "sole_primary_entire_year": true
+    },
+    {
+      "person_ref": "person_patel_anika",
+      "relationship": "NON_SPOUSE_INDIVIDUAL",
+      "designation_type": "CONTINGENT",
+      "share_percent": "100",
+      "birth_date": "1981-10-09",
+      "sole_primary_entire_year": null
+    }
+  ],
+  "first_rmd_election": {
+    "deferred_first_rmd_to_april_1": false,
+    "first_rmd_satisfied_in_first_year": true
+  },
+  "imported_comparison": {
+    "import_value_ref": "ipv_patel_plan_2026_rmd",
+    "amount": "24000.00",
+    "currency": "USD",
+    "tax_year": 2026,
+    "vendor_label": "Planning tool export (synthetic)",
+    "calculation_scope": "SINGLE_ACCOUNT_ANNUAL_RMD",
+    "balance_basis": "ACTUAL_PRIOR_YEAR_END",
+    "declared_inputs": {
+      "balance": "612000.00",
+      "balance_as_of": "2025-12-31",
+      "factor": "25.5",
+      "table": "UNIFORM_LIFETIME",
+      "method": "DIRECT_DIVISION"
+    },
+    "assumptions": {}
+  },
+  "tolerance": null,
+  "snapshot_ref": {
+    "snapshot_id": "snap_patel_r2",
+    "revision": 2,
+    "input_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+  }
+}

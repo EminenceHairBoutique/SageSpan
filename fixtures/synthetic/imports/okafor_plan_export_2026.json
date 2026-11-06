@@ -1,0 +1,37 @@
+{
+  "schema_version": "sagespan.import.v1",
+  "source_kind": "PLAN_EXPORT",
+  "household_ref": "Okafor household",
+  "vendor_label": "Planning tool export (synthetic)",
+  "export_as_of": "2026-01-18",
+  "tax_year": 2026,
+  "persons": [
+    { "ref": "owner", "display_name": "Adaeze Okafor", "birth_date": "1950-09-20", "role_in_household": "PRIMARY" },
+    { "ref": "spouse", "display_name": "Chidi Okafor", "birth_date": "1963-02-11", "role_in_household": "SPOUSE" }
+  ],
+  "accounts": [
+    { "ref": "ira1", "label": "Traditional IRA ending 2208", "account_type": "TRADITIONAL_IRA", "owner_ref": "owner", "is_inherited": false, "custodian_label": "Custodian B" }
+  ],
+  "beneficiaries": [
+    { "account_ref": "ira1", "person_ref": "spouse", "relationship": "SPOUSE", "designation_type": "PRIMARY", "share_percentage": "100", "sole_primary_entire_year": true, "source_location": "/beneficiaries/0" }
+  ],
+  "facts": [
+    { "subject_type": "PERSON", "subject_ref": "owner", "field_key": "person.birth_date", "value_kind": "DATE", "value": "1950-09-20", "as_of_date": "2026-01-18", "source_location": "/persons/0/birth_date" },
+    { "subject_type": "ACCOUNT", "subject_ref": "ira1", "field_key": "account.year_end_balance", "value_kind": "NUMBER", "value": "410250.00", "currency": "USD", "as_of_date": "2025-12-31", "source_location": "/facts/1" }
+  ],
+  "imported_checks": [
+    {
+      "metric_key": "rmd.annual_amount",
+      "account_ref": "ira1",
+      "tax_year": 2026,
+      "value": "16676.83",
+      "currency": "USD",
+      "calculation_scope": "SINGLE_ACCOUNT_ANNUAL_RMD",
+      "balance_basis": "ACTUAL_PRIOR_YEAR_END",
+      "methodology_label": "Planning tool RMD module (synthetic)",
+      "declared_inputs": { "balance": "410250.00", "balance_as_of": "2025-12-31", "factor": "24.6", "table": "UNIFORM_LIFETIME", "method": "DIRECT_DIVISION" },
+      "assumptions": {},
+      "source_location": "/imported_checks/0"
+    }
+  ]
+}

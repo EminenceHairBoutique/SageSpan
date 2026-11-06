@@ -1,0 +1,6 @@
+SYNTHETIC CUSTODIAN ACCOUNT PROFILE - FICTIONAL DATA
+Custodian B (synthetic) | Profile printed 2026-01-12
+Account: Traditional IRA ending 2208
+Owner: Adaeze Okafor | Date of birth on file: 1951-09-20
+Account category: Traditional IRA (owner-held) | Inherited: No
+Synthetic fixture; not a real record.

@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+
+# builds
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# local demo state (synthetic only, regenerated from fixtures)
+apps/web/.demo-state/
+.demo-state/
+
+# test artifacts
+playwright-report/
+test-results/
+coverage/
+.embedded-postgres/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# supabase local
+supabase/.branches
+supabase/.temp

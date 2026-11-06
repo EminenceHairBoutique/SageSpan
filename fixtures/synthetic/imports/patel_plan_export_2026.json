@@ -1,0 +1,40 @@
+{
+  "schema_version": "sagespan.import.v1",
+  "source_kind": "PLAN_EXPORT",
+  "household_ref": "Patel household",
+  "vendor_label": "Planning tool export (synthetic)",
+  "export_as_of": "2026-01-15",
+  "tax_year": 2026,
+  "persons": [
+    { "ref": "owner", "display_name": "Rajesh Patel", "birth_date": "1952-03-14", "role_in_household": "PRIMARY" },
+    { "ref": "spouse", "display_name": "Meera Patel", "birth_date": "1955-07-02", "role_in_household": "SPOUSE" }
+  ],
+  "accounts": [
+    { "ref": "ira1", "label": "Traditional IRA ending 4471", "account_type": "TRADITIONAL_IRA", "owner_ref": "owner", "is_inherited": false, "custodian_label": "Custodian A Brokerage" }
+  ],
+  "beneficiaries": [
+    { "account_ref": "ira1", "person_ref": "spouse", "relationship": "SPOUSE", "designation_type": "PRIMARY", "share_percentage": "100", "sole_primary_entire_year": true, "source_location": "/beneficiaries/0" }
+  ],
+  "facts": [
+    { "subject_type": "PERSON", "subject_ref": "owner", "field_key": "person.birth_date", "value_kind": "DATE", "value": "1952-03-14", "as_of_date": "2026-01-15", "source_location": "/persons/0/birth_date" },
+    { "subject_type": "ACCOUNT", "subject_ref": "ira1", "field_key": "account.account_type", "value_kind": "TEXT", "value": "TRADITIONAL_IRA", "as_of_date": "2025-12-31", "source_location": "/accounts/0/account_type" },
+    { "subject_type": "ACCOUNT", "subject_ref": "ira1", "field_key": "account.year_end_balance", "value_kind": "NUMBER", "value": "612000.00", "currency": "USD", "as_of_date": "2025-12-31", "source_location": "/facts/2" },
+    { "subject_type": "ACCOUNT", "subject_ref": "ira1", "field_key": "account.custodian_label", "value_kind": "TEXT", "value": "Custodian A Brokerage", "as_of_date": "2025-12-31", "source_location": "/accounts/0/custodian_label" },
+    { "subject_type": "ACCOUNT", "subject_ref": "ira1", "field_key": "account.is_inherited", "value_kind": "BOOL", "value": "false", "as_of_date": "2025-12-31", "source_location": "/accounts/0/is_inherited" }
+  ],
+  "imported_checks": [
+    {
+      "metric_key": "rmd.annual_amount",
+      "account_ref": "ira1",
+      "tax_year": 2026,
+      "value": "24000.00",
+      "currency": "USD",
+      "calculation_scope": "SINGLE_ACCOUNT_ANNUAL_RMD",
+      "balance_basis": "ACTUAL_PRIOR_YEAR_END",
+      "methodology_label": "Planning tool RMD module (synthetic)",
+      "declared_inputs": { "balance": "612000.00", "balance_as_of": "2025-12-31", "factor": "25.5", "table": "UNIFORM_LIFETIME", "method": "DIRECT_DIVISION" },
+      "assumptions": {},
+      "source_location": "/imported_checks/0"
+    }
+  ]
+}

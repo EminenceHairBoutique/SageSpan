@@ -1,0 +1,199 @@
+{
+  "check_type": "RMD_ANNUAL",
+  "result_status": "PASS",
+  "coverage_status": "SUPPORTED_VERIFIED",
+  "tax_year": 2026,
+  "eligibility": {
+    "status": "SUPPORTED",
+    "applicable_age": "73",
+    "owner_age_in_tax_year": 74,
+    "first_distribution_year": 2025,
+    "required_beginning_date": "2026-04-01",
+    "table_id": "rmd.uniform_lifetime_table@2022.1",
+    "reasons": []
+  },
+  "unsupported_reasons": [],
+  "annual_rmd": "25098.04",
+  "events": [
+    {
+      "event_type": "ANNUAL_RMD",
+      "distribution_year": 2026,
+      "deadline": "2026-12-31",
+      "status": "COMPUTED",
+      "amount": "25098.04",
+      "basis_balance": "640000.00",
+      "basis_as_of": "2025-12-31",
+      "owner_age": 74,
+      "factor": "25.5",
+      "table_id": "rmd.uniform_lifetime_table@2022.1",
+      "formula": "640000.00 / 25.5 = 25098.039216 -> 25098.04 (ROUND_HALF_UP to cents)",
+      "reasons": []
+    },
+    {
+      "event_type": "DEFERRED_FIRST_YEAR_RMD",
+      "distribution_year": 2025,
+      "deadline": "2026-04-01",
+      "status": "REPORTED_SATISFIED_UNVERIFIED",
+      "amount": null,
+      "basis_balance": null,
+      "basis_as_of": null,
+      "owner_age": 73,
+      "factor": null,
+      "table_id": null,
+      "formula": null,
+      "reasons": [
+        {
+          "code": "FIRST_RMD_REPORTED_TAKEN",
+          "message": "The 2025 first-year RMD is recorded as satisfied during 2025. This engine does not verify distributions taken.",
+          "rule_ref": "rmd.required_beginning_date"
+        }
+      ]
+    }
+  ],
+  "discrepancy": {
+    "classification": "SOURCE_CONFLICT",
+    "comparable": true,
+    "import_value_ref": "ipv_patel_plan_2026_rmd",
+    "computed_amount": "25098.04",
+    "imported_amount": "24000.00",
+    "difference": "1098.04",
+    "tolerance_absolute": "1.00",
+    "tolerance_relative": "0.001",
+    "tolerance_applied": "25.10",
+    "explanation": "The plan's declared input balance 612000.00 differs from the confirmed prior year-end balance 640000.00 used by the independent check. The amount difference is attributable to the input, not to the rule.",
+    "next_step": "Resolve the balance at the source level (custodian statement governs) and re-run the plan with the confirmed balance."
+  },
+  "receipt": {
+    "receipt_version": "sagespan.receipt.v1",
+    "engine_name": "sagespan-calculator",
+    "engine_version": "0.1.0",
+    "request_hash": "7e51cc1e936085e78c7fea2993424b06a348824cc69cbbf40af566f8d36da3fd",
+    "run_hash": "797be471e386a7bafe949386433aeabea6b502a9becee720f7a5d762d847e924",
+    "computed_at": "2026-11-05T12:00:00Z",
+    "org_context": {
+      "org_id": "org_harborpoint"
+    },
+    "snapshot_ref": {
+      "snapshot_id": "snap_patel_r2",
+      "revision": 2,
+      "input_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "rule_sets": [
+      {
+        "rule_set_id": "rmd.uniform_lifetime_table",
+        "version": "2022.1",
+        "status": "PUBLISHED",
+        "checksum": "165f15ffa0b4dc12b3f98c15fabfd7fbdeaf1960924912843b4e66aa9e8b081f",
+        "effective_from": "2022-01-01",
+        "effective_to": null,
+        "sources": [
+          {
+            "title": "IRS Publication 590-B, Distributions from Individual Retirement Arrangements (IRAs)",
+            "citation": "Appendix B, Table III (Uniform Lifetime); 'When Must You Withdraw Assets? (Required Minimum Distributions)'",
+            "url": "https://www.irs.gov/publications/p590b"
+          },
+          {
+            "title": "Treasury Regulation 1.401(a)(9)-9",
+            "citation": "Life expectancy and distribution period tables (T.D. 9930), effective for distribution calendar years beginning on or after January 1, 2022",
+            "url": "https://www.ecfr.gov/current/title-26/section-1.401(a)(9)-9"
+          }
+        ]
+      },
+      {
+        "rule_set_id": "rmd.applicable_age",
+        "version": "2023.1",
+        "status": "PUBLISHED",
+        "checksum": "83596cf4cf48a21898ea72bb8f44b1896926af133078c5eaff7d9821c9571198",
+        "effective_from": "2023-01-01",
+        "effective_to": null,
+        "sources": [
+          {
+            "title": "SECURE 2.0 Act of 2022 (Pub. L. 117-328, Div. T), section 107",
+            "citation": "Increase in age for required beginning date for mandatory distributions; IRC 401(a)(9)(C)(v)",
+            "url": "https://www.congress.gov/bill/117th-congress/house-bill/2617"
+          },
+          {
+            "title": "Internal Revenue Code section 401(a)(9)",
+            "citation": "Required distributions; required beginning date (401(a)(9)(C)); section 408(a)(6) applies these rules to IRAs",
+            "url": "https://www.law.cornell.edu/uscode/text/26/401"
+          },
+          {
+            "title": "IRS Publication 590-B, Distributions from Individual Retirement Arrangements (IRAs)",
+            "citation": "Appendix B, Table III (Uniform Lifetime); 'When Must You Withdraw Assets? (Required Minimum Distributions)'",
+            "url": "https://www.irs.gov/publications/p590b"
+          }
+        ]
+      },
+      {
+        "rule_set_id": "rmd.required_beginning_date",
+        "version": "2023.1",
+        "status": "PUBLISHED",
+        "checksum": "a9d1c4336733018c3eaf087d70384cc2782e293f77bf192682cc9775b6e92a0f",
+        "effective_from": "2023-01-01",
+        "effective_to": null,
+        "sources": [
+          {
+            "title": "Internal Revenue Code section 401(a)(9)",
+            "citation": "Required distributions; required beginning date (401(a)(9)(C)); section 408(a)(6) applies these rules to IRAs",
+            "url": "https://www.law.cornell.edu/uscode/text/26/401"
+          },
+          {
+            "title": "IRS Publication 590-B, Distributions from Individual Retirement Arrangements (IRAs)",
+            "citation": "Appendix B, Table III (Uniform Lifetime); 'When Must You Withdraw Assets? (Required Minimum Distributions)'",
+            "url": "https://www.irs.gov/publications/p590b"
+          }
+        ]
+      },
+      {
+        "rule_set_id": "rmd.spouse_joint_table_eligibility",
+        "version": "2022.1",
+        "status": "PUBLISHED",
+        "checksum": "8e9df27a4bc76cc1e21c00a1cad4cc51a5032b9945dc9a0f956ae12bcb853734",
+        "effective_from": "2022-01-01",
+        "effective_to": null,
+        "sources": [
+          {
+            "title": "IRS Publication 590-B, Distributions from Individual Retirement Arrangements (IRAs)",
+            "citation": "Appendix B, Table III (Uniform Lifetime); 'When Must You Withdraw Assets? (Required Minimum Distributions)'",
+            "url": "https://www.irs.gov/publications/p590b"
+          },
+          {
+            "title": "Treasury Regulation 1.401(a)(9)-9",
+            "citation": "Life expectancy and distribution period tables (T.D. 9930), effective for distribution calendar years beginning on or after January 1, 2022",
+            "url": "https://www.ecfr.gov/current/title-26/section-1.401(a)(9)-9"
+          }
+        ]
+      },
+      {
+        "rule_set_id": "rmd.comparison_tolerance",
+        "version": "1.0",
+        "status": "PUBLISHED",
+        "checksum": "eb069cbc1454d36e5b9dcf28862657b51d38cce3a8c3a9482a76262548011fb8",
+        "effective_from": "2024-01-01",
+        "effective_to": null,
+        "sources": []
+      }
+    ],
+    "inputs_used": {
+      "tax_year": 2026,
+      "owner_birth_date": "1952-03-14",
+      "owner_age_in_tax_year": 74,
+      "account_type": "TRADITIONAL_IRA",
+      "is_inherited": false,
+      "prior_year_end_balance": "640000.00",
+      "prior_year_end_balance_as_of": "2025-12-31",
+      "table_id": "rmd.uniform_lifetime_table@2022.1",
+      "factor": "25.5",
+      "beneficiary_count": 2
+    },
+    "formula": "640000.00 / 25.5 = 25098.039216 -> 25098.04 (ROUND_HALF_UP to cents)",
+    "limitations": [
+      "Covers lifetime RMDs for living owners of non-inherited traditional, SEP and SIMPLE IRAs using the Uniform Lifetime Table only.",
+      "Joint Life and Last Survivor table (spouse sole beneficiary more than 10 years younger) is not implemented; such cases are reported UNSUPPORTED.",
+      "Inherited accounts, year-of-death rules, employer plans, Roth conversions, QCD offsets, aggregation across multiple IRAs and rollover add-backs are out of scope.",
+      "The engine does not verify distributions actually taken, withholding or penalties; it computes the required amount from frozen inputs.",
+      "SUPPORTED_VERIFIED denotes internal golden-test coverage of a published rule set; no external CPA or legal attestation has been obtained.",
+      "This is an independent arithmetic check for professional review, not tax advice."
+    ]
+  }
+}

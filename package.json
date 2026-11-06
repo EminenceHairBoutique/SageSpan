@@ -1,0 +1,24 @@
+{
+  "name": "sagespan-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SageSpan (provisional brand) - independent retirement plan assurance for RIAs. Monorepo: Next.js web, FastAPI calculator, shared contracts, Supabase schema.",
+  "workspaces": [
+    "apps/web",
+    "packages/contracts"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace apps/web",
+    "dev:calc": "npm run dev:calc --prefix services/calculator",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run test:e2e --workspace apps/web",
+    "test:calc": "cd services/calculator && python -m pytest -q",
+    "test:db": "npm run test:db --workspace apps/web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

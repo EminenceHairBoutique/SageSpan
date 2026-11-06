@@ -1,0 +1,1632 @@
+{
+  "components": {
+    "schemas": {
+      "Account": {
+        "additionalProperties": false,
+        "properties": {
+          "account_ref": {
+            "title": "Account Ref",
+            "type": "string"
+          },
+          "account_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "TRADITIONAL_IRA",
+                  "SEP_IRA",
+                  "SIMPLE_IRA",
+                  "ROTH_IRA",
+                  "EMPLOYER_401K",
+                  "EMPLOYER_403B",
+                  "OTHER"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Type"
+          },
+          "is_inherited": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Inherited"
+          },
+          "outstanding_rollover_adjustment": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Outstanding rollovers / recharacterizations to add back. Non-zero values are not supported in this engine version.",
+            "title": "Outstanding Rollover Adjustment"
+          },
+          "prior_prior_year_end_balance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Balance as of December 31 two years before the tax year; needed only to value a deferred first-year RMD."
+          },
+          "prior_year_end_balance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Balance as of December 31 of the year before the tax year."
+          }
+        },
+        "required": [
+          "account_ref"
+        ],
+        "title": "Account",
+        "type": "object"
+      },
+      "Beneficiary": {
+        "additionalProperties": false,
+        "properties": {
+          "birth_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date"
+          },
+          "designation_type": {
+            "enum": [
+              "PRIMARY",
+              "CONTINGENT"
+            ],
+            "title": "Designation Type",
+            "type": "string"
+          },
+          "person_ref": {
+            "title": "Person Ref",
+            "type": "string"
+          },
+          "relationship": {
+            "enum": [
+              "SPOUSE",
+              "NON_SPOUSE_INDIVIDUAL",
+              "TRUST",
+              "ESTATE",
+              "CHARITY",
+              "OTHER"
+            ],
+            "title": "Relationship",
+            "type": "string"
+          },
+          "share_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Share Percent"
+          },
+          "sole_primary_entire_year": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether this beneficiary was the sole primary beneficiary for the entire distribution year.",
+            "title": "Sole Primary Entire Year"
+          }
+        },
+        "required": [
+          "person_ref",
+          "relationship",
+          "designation_type",
+          "share_percent"
+        ],
+        "title": "Beneficiary",
+        "type": "object"
+      },
+      "DeclaredInputs": {
+        "additionalProperties": false,
+        "properties": {
+          "balance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balance"
+          },
+          "balance_as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balance As Of"
+          },
+          "factor": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Factor"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "table": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table"
+          }
+        },
+        "title": "DeclaredInputs",
+        "type": "object"
+      },
+      "Discrepancy": {
+        "additionalProperties": false,
+        "properties": {
+          "classification": {
+            "enum": [
+              "SOURCE_CONFLICT",
+              "STALE_INPUT",
+              "RULE_DISAGREEMENT",
+              "METHODOLOGY_DIFFERENCE",
+              "MISSING_EVIDENCE",
+              "UNSUPPORTED_CHECK",
+              "WITHIN_TOLERANCE",
+              "NOT_COMPARABLE"
+            ],
+            "title": "Classification",
+            "type": "string"
+          },
+          "comparable": {
+            "title": "Comparable",
+            "type": "boolean"
+          },
+          "computed_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Computed Amount"
+          },
+          "difference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "computed - imported, in USD, when comparable.",
+            "title": "Difference"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "import_value_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Value Ref"
+          },
+          "imported_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported Amount"
+          },
+          "next_step": {
+            "title": "Next Step",
+            "type": "string"
+          },
+          "tolerance_absolute": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tolerance Absolute"
+          },
+          "tolerance_applied": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tolerance Applied"
+          },
+          "tolerance_relative": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tolerance Relative"
+          }
+        },
+        "required": [
+          "classification",
+          "comparable",
+          "explanation",
+          "next_step"
+        ],
+        "title": "Discrepancy",
+        "type": "object"
+      },
+      "Eligibility": {
+        "additionalProperties": false,
+        "properties": {
+          "applicable_age": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applicable Age"
+          },
+          "first_distribution_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Distribution Year"
+          },
+          "owner_age_in_tax_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Age In Tax Year"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/Reason"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "required_beginning_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Beginning Date"
+          },
+          "status": {
+            "enum": [
+              "SUPPORTED",
+              "NOT_REQUIRED",
+              "UNSUPPORTED",
+              "INDETERMINATE"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "table_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table Id"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "Eligibility",
+        "type": "object"
+      },
+      "ErrorBody": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "FirstRmdElection": {
+        "additionalProperties": false,
+        "properties": {
+          "deferred_first_rmd_to_april_1": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deferred First Rmd To April 1"
+          },
+          "first_rmd_satisfied_in_first_year": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Rmd Satisfied In First Year"
+          }
+        },
+        "title": "FirstRmdElection",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "demo_mode": {
+            "title": "Demo Mode",
+            "type": "boolean"
+          },
+          "engine_name": {
+            "title": "Engine Name",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "status": {
+            "const": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "engine_name",
+          "engine_version",
+          "demo_mode"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "ImportedComparison": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "assumptions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Assumptions",
+            "type": "object"
+          },
+          "balance_basis": {
+            "default": "UNKNOWN",
+            "enum": [
+              "ACTUAL_PRIOR_YEAR_END",
+              "PROJECTED",
+              "UNKNOWN"
+            ],
+            "title": "Balance Basis",
+            "type": "string"
+          },
+          "calculation_scope": {
+            "default": "UNKNOWN",
+            "enum": [
+              "SINGLE_ACCOUNT_ANNUAL_RMD",
+              "AGGREGATE_ALL_IRAS",
+              "OTHER",
+              "UNKNOWN"
+            ],
+            "title": "Calculation Scope",
+            "type": "string"
+          },
+          "currency": {
+            "default": "USD",
+            "title": "Currency",
+            "type": "string"
+          },
+          "declared_inputs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeclaredInputs"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "import_value_ref": {
+            "title": "Import Value Ref",
+            "type": "string"
+          },
+          "tax_year": {
+            "title": "Tax Year",
+            "type": "integer"
+          },
+          "vendor_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Free-text label of the planning tool. Metadata only; not an integration.",
+            "title": "Vendor Label"
+          }
+        },
+        "required": [
+          "import_value_ref",
+          "amount",
+          "tax_year"
+        ],
+        "title": "ImportedComparison",
+        "type": "object"
+      },
+      "Money": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Decimal string, e.g. '640000.00'. Never a float.",
+            "title": "Amount"
+          },
+          "as_of_date": {
+            "format": "date",
+            "title": "As Of Date",
+            "type": "string"
+          },
+          "currency": {
+            "default": "USD",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "as_of_date"
+        ],
+        "title": "Money",
+        "type": "object"
+      },
+      "ObligationEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "basis_as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis As Of"
+          },
+          "basis_balance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis Balance"
+          },
+          "deadline": {
+            "format": "date",
+            "title": "Deadline",
+            "type": "string"
+          },
+          "distribution_year": {
+            "title": "Distribution Year",
+            "type": "integer"
+          },
+          "event_type": {
+            "enum": [
+              "ANNUAL_RMD",
+              "DEFERRED_FIRST_YEAR_RMD"
+            ],
+            "title": "Event Type",
+            "type": "string"
+          },
+          "factor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Factor"
+          },
+          "formula": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula"
+          },
+          "owner_age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Age"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/Reason"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "COMPUTED",
+              "INDETERMINATE",
+              "REPORTED_SATISFIED_UNVERIFIED",
+              "NOT_APPLICABLE"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "table_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table Id"
+          }
+        },
+        "required": [
+          "event_type",
+          "distribution_year",
+          "deadline",
+          "status"
+        ],
+        "title": "ObligationEvent",
+        "type": "object"
+      },
+      "OrgContext": {
+        "additionalProperties": false,
+        "properties": {
+          "org_id": {
+            "title": "Org Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "org_id"
+        ],
+        "title": "OrgContext",
+        "type": "object"
+      },
+      "Owner": {
+        "additionalProperties": false,
+        "properties": {
+          "birth_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date"
+          },
+          "is_alive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Alive"
+          },
+          "person_ref": {
+            "description": "Opaque reference from the frozen snapshot; no PII required.",
+            "title": "Person Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "person_ref"
+        ],
+        "title": "Owner",
+        "type": "object"
+      },
+      "Reason": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "rule_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Ref"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "Reason",
+        "type": "object"
+      },
+      "Receipt": {
+        "additionalProperties": false,
+        "properties": {
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "engine_name": {
+            "title": "Engine Name",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "formula": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula"
+          },
+          "inputs_used": {
+            "additionalProperties": true,
+            "title": "Inputs Used",
+            "type": "object"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "org_context": {
+            "$ref": "#/components/schemas/OrgContext"
+          },
+          "receipt_version": {
+            "const": "sagespan.receipt.v1",
+            "title": "Receipt Version",
+            "type": "string"
+          },
+          "request_hash": {
+            "description": "SHA-256 of the canonical request payload.",
+            "title": "Request Hash",
+            "type": "string"
+          },
+          "rule_sets": {
+            "items": {
+              "$ref": "#/components/schemas/RuleSetRef"
+            },
+            "title": "Rule Sets",
+            "type": "array"
+          },
+          "run_hash": {
+            "description": "SHA-256 of canonical {request_hash, engine, rule set checksums, result}. Deterministic: identical inputs produce identical run hashes.",
+            "title": "Run Hash",
+            "type": "string"
+          },
+          "snapshot_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "receipt_version",
+          "engine_name",
+          "engine_version",
+          "request_hash",
+          "run_hash",
+          "computed_at",
+          "org_context",
+          "rule_sets",
+          "inputs_used",
+          "limitations"
+        ],
+        "title": "Receipt",
+        "type": "object"
+      },
+      "RmdCheckRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/Account"
+          },
+          "beneficiaries": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Beneficiary"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beneficiaries"
+          },
+          "first_rmd_election": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FirstRmdElection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "imported_comparison": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImportedComparison"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner": {
+            "$ref": "#/components/schemas/Owner"
+          },
+          "schema_version": {
+            "const": "sagespan.rmd-check.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "snapshot_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tax_year": {
+            "maximum": 2100.0,
+            "minimum": 2022.0,
+            "title": "Tax Year",
+            "type": "integer"
+          },
+          "tolerance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Tolerance"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "tax_year",
+          "owner",
+          "account"
+        ],
+        "title": "RmdCheckRequest",
+        "type": "object"
+      },
+      "RmdCheckResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "annual_rmd": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annual Rmd"
+          },
+          "check_type": {
+            "const": "RMD_ANNUAL",
+            "title": "Check Type",
+            "type": "string"
+          },
+          "coverage_status": {
+            "description": "Coverage-matrix status. SUPPORTED_VERIFIED means the published rule set has internal golden-test coverage; it is not an external attestation.",
+            "enum": [
+              "SUPPORTED_VERIFIED",
+              "SUPPORTED_UNVALIDATED",
+              "NOT_COMPARABLE",
+              "INDETERMINATE",
+              "UNSUPPORTED"
+            ],
+            "title": "Coverage Status",
+            "type": "string"
+          },
+          "discrepancy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Discrepancy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "eligibility": {
+            "$ref": "#/components/schemas/Eligibility"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ObligationEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/Receipt"
+          },
+          "result_status": {
+            "description": "Arithmetic outcome of the check. PASS is not a professional approval.",
+            "enum": [
+              "PASS",
+              "NOT_REQUIRED",
+              "UNSUPPORTED",
+              "INDETERMINATE"
+            ],
+            "title": "Result Status",
+            "type": "string"
+          },
+          "tax_year": {
+            "title": "Tax Year",
+            "type": "integer"
+          },
+          "unsupported_reasons": {
+            "description": "Populated when the check is UNSUPPORTED or INDETERMINATE.",
+            "items": {
+              "$ref": "#/components/schemas/Reason"
+            },
+            "title": "Unsupported Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "check_type",
+          "result_status",
+          "coverage_status",
+          "tax_year",
+          "eligibility",
+          "events",
+          "receipt"
+        ],
+        "title": "RmdCheckResponse",
+        "type": "object"
+      },
+      "RuleSetListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "engine_name": {
+            "title": "Engine Name",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "rule_sets": {
+            "items": {
+              "$ref": "#/components/schemas/RuleSetRef"
+            },
+            "title": "Rule Sets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rule_sets",
+          "engine_name",
+          "engine_version"
+        ],
+        "title": "RuleSetListResponse",
+        "type": "object"
+      },
+      "RuleSetRef": {
+        "additionalProperties": false,
+        "properties": {
+          "checksum": {
+            "title": "Checksum",
+            "type": "string"
+          },
+          "effective_from": {
+            "format": "date",
+            "title": "Effective From",
+            "type": "string"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "rule_set_id": {
+            "title": "Rule Set Id",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/RuleSourceRef"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "PUBLISHED",
+              "DRAFT"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_set_id",
+          "version",
+          "status",
+          "checksum",
+          "effective_from"
+        ],
+        "title": "RuleSetRef",
+        "type": "object"
+      },
+      "RuleSourceRef": {
+        "additionalProperties": false,
+        "properties": {
+          "citation": {
+            "title": "Citation",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "title",
+          "citation"
+        ],
+        "title": "RuleSourceRef",
+        "type": "object"
+      },
+      "SnapshotRef": {
+        "additionalProperties": false,
+        "properties": {
+          "input_hash": {
+            "title": "Input Hash",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "snapshot_id": {
+            "title": "Snapshot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "revision",
+          "input_hash"
+        ],
+        "title": "SnapshotRef",
+        "type": "object"
+      },
+      "Tolerance": {
+        "additionalProperties": false,
+        "properties": {
+          "absolute": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "1.00",
+            "title": "Absolute"
+          },
+          "relative": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "0.001",
+            "title": "Relative"
+          }
+        },
+        "title": "Tolerance",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "\nDeterministic, Decimal-safe retirement rule checks with versioned rule sets and\ntraceable receipts. P0 scope: lifetime RMD for living owners of non-inherited\ntraditional-family IRAs using the Uniform Lifetime Table.\n\nTenant context is supplied by the trusted web server via `X-SageSpan-Org-Id`;\nrequest bodies never carry `org_id`. No client data is retained by this service.\n",
+    "title": "SageSpan Calculation & Verification Service",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/checks/rmd": {
+      "post": {
+        "description": "Independent RMD check for one account and tax year.\n\nReturns PASS with the computed amount and obligation events, or a typed\nNOT_REQUIRED / UNSUPPORTED / INDETERMINATE status with reasons. When an\nimported plan value is supplied, includes a discrepancy classification.",
+        "operationId": "check_rmd_v1_checks_rmd_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-SageSpan-Org-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sagespan-Org-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RmdCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RmdCheckResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Check Rmd",
+        "tags": [
+          "checks"
+        ]
+      }
+    },
+    "/v1/rules": {
+      "get": {
+        "operationId": "list_rules_v1_rules_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-SageSpan-Org-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sagespan-Org-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleSetListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Rules",
+        "tags": [
+          "rules"
+        ]
+      }
+    },
+    "/v1/rules/{rule_set_id}": {
+      "get": {
+        "operationId": "get_rule_v1_rules__rule_set_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_set_id",
+            "required": true,
+            "schema": {
+              "title": "Rule Set Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-SageSpan-Org-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Sagespan-Org-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleSetRef"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Rule",
+        "tags": [
+          "rules"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "description": "Independent rule checks returning traceable receipts.",
+      "name": "checks"
+    },
+    {
+      "description": "Versioned, effective-dated rule registry.",
+      "name": "rules"
+    },
+    {
+      "description": "Health and version.",
+      "name": "system"
+    }
+  ]
+}

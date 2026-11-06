@@ -1,0 +1,28 @@
+{
+  "schema_version": "sagespan.import.v1",
+  "source_kind": "CUSTODIAN_STATEMENT",
+  "household_ref": "Reyes-Lindqvist household",
+  "vendor_label": "Custodian C (synthetic)",
+  "export_as_of": "2025-12-31",
+  "tax_year": 2026,
+  "persons": [
+    { "ref": "owner", "display_name": "Luis Reyes", "birth_date": "1953-05-30", "role_in_household": "PRIMARY" },
+    { "ref": "spouse", "display_name": "Ingrid Lindqvist", "birth_date": "1954-08-17", "role_in_household": "SPOUSE" }
+  ],
+  "accounts": [
+    { "ref": "ira1", "label": "Traditional IRA ending 7719", "account_type": "TRADITIONAL_IRA", "owner_ref": "owner", "is_inherited": false, "custodian_label": "Custodian C" }
+  ],
+  "beneficiaries": [
+    { "account_ref": "ira1", "person_ref": "spouse", "relationship": "SPOUSE", "designation_type": "PRIMARY", "share_percentage": "100", "sole_primary_entire_year": true, "effective_from": "2021-04-19", "source_location": "statement page 2, beneficiary section" }
+  ],
+  "facts": [
+    { "subject_type": "PERSON", "subject_ref": "owner", "field_key": "person.birth_date", "value_kind": "DATE", "value": "1953-05-30", "as_of_date": "2025-12-31", "source_location": "statement page 1, registration" },
+    { "subject_type": "PERSON", "subject_ref": "spouse", "field_key": "person.birth_date", "value_kind": "DATE", "value": "1954-08-17", "as_of_date": "2025-12-31", "source_location": "statement page 2, beneficiary section" },
+    { "subject_type": "ACCOUNT", "subject_ref": "ira1", "field_key": "account.account_type", "value_kind": "TEXT", "value": "TRADITIONAL_IRA", "as_of_date": "2025-12-31", "source_location": "statement page 1, registration" },
+    { "subject_type": "ACCOUNT", "subject_ref": "ira1", "field_key": "account.is_inherited", "value_kind": "BOOL", "value": "false", "as_of_date": "2025-12-31", "source_location": "statement page 1, registration" },
+    { "subject_type": "ACCOUNT", "subject_ref": "ira1", "field_key": "account.year_end_balance", "value_kind": "NUMBER", "value": "281900.00", "currency": "USD", "as_of_date": "2025-12-31", "source_location": "statement page 1, ending balance" },
+    { "subject_type": "ACCOUNT", "subject_ref": "ira1", "field_key": "beneficiary.primary.spouse_sole_entire_year", "value_kind": "BOOL", "value": "true", "as_of_date": "2025-12-31", "source_location": "statement page 2, beneficiary section" },
+    { "subject_type": "ACCOUNT", "subject_ref": "ira1", "field_key": "account.custodian_label", "value_kind": "TEXT", "value": "Custodian C", "as_of_date": "2025-12-31", "source_location": "statement page 1, header" }
+  ],
+  "imported_checks": []
+}

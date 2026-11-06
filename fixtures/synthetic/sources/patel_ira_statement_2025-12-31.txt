@@ -1,0 +1,9 @@
+SYNTHETIC CUSTODIAN STATEMENT - FICTIONAL DATA FOR PRODUCT DEMONSTRATION ONLY
+Custodian A (synthetic) | Statement period 2025-10-01 to 2025-12-31
+Account: Traditional IRA ending 4471 | Registration: Rajesh Patel, IRA owner | Not an inherited account
+Account opened: 2009-06-01
+Beginning balance 2025-10-01: $618,440.12
+Ending balance as of 2025-12-31: $640,000.00
+Required distribution paid 2025-12-15 (2025 RMD, owner age 73): $23,018.87
+Primary beneficiary on file: Meera Patel (spouse) 100% | Contingent: Anika Patel 100%
+This statement is a synthetic fixture. No real custodian, account or person is represented.

@@ -1,0 +1,9 @@
+record_type,subject_type,subject_ref,subject_label,field_key,value_kind,value,currency,unit,as_of_date,tax_year,source_location,note,declared_balance,declared_balance_as_of,declared_factor,declared_table,declared_method,calculation_scope,balance_basis
+PERSON,PERSON,owner,Luis Reyes,role_in_household,TEXT,PRIMARY,,,2026-01-20,,row 2,,,,,,,,
+PERSON,PERSON,spouse,Ingrid Lindqvist,role_in_household,TEXT,SPOUSE,,,2026-01-20,,row 3,,,,,,,,
+ACCOUNT,ACCOUNT,ira1,Traditional IRA ending 7719,account_type,TEXT,TRADITIONAL_IRA,,,2026-01-20,,row 4,owner_ref=owner,,,,,,,
+FACT,PERSON,owner,,person.birth_date,DATE,1953-05-30,,,2026-01-20,,row 5,,,,,,,,
+FACT,ACCOUNT,ira1,,account.account_type,TEXT,TRADITIONAL_IRA,,,2025-09-30,,row 6,,,,,,,,
+FACT,ACCOUNT,ira1,,account.is_inherited,BOOL,false,,,2025-09-30,,row 7,,,,,,,,
+FACT,ACCOUNT,ira1,,account.year_end_balance,NUMBER,275400.00,USD,,2025-09-30,,row 8,Plan uses the 2025-09-30 statement value as a year-end proxy,,,,,,,
+CHECK,ACCOUNT,ira1,,rmd.annual_amount,NUMBER,10392.45,USD,,2026-01-20,2026,row 9,,275400.00,2025-09-30,26.5,UNIFORM_LIFETIME,DIRECT_DIVISION,SINGLE_ACCOUNT_ANNUAL_RMD,ACTUAL_PRIOR_YEAR_END
