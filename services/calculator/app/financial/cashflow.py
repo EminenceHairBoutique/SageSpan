@@ -44,7 +44,7 @@ from ..schemas_personal import (
     PersonalClarityRequest,
     Reliability,
 )
-from .money import ZERO, round_cents
+from .money import ZERO, format_usd, round_cents
 
 MONTHS_PER_YEAR = Decimal("12")
 CADENCE_PER_YEAR: dict[str, Decimal] = {
@@ -279,7 +279,7 @@ def compute_clarity(req: PersonalClarityRequest) -> ClarityComputation:  # noqa:
     if buffer_months is not None and buffer_months < Decimal("1"):
         flags.append(Flag(code="BUFFER_BELOW_ONE_MONTH", severity="HIGH", message="Liquid cash covers less than one month of essential commitments.", refs=[]))
     elif target is not None and gap is not None and gap > ZERO:
-        flags.append(Flag(code="BUFFER_BELOW_TARGET", severity="MEDIUM", message=f"Liquid cash is {gap} below your {target}-month essential buffer target.", refs=[]))
+        flags.append(Flag(code="BUFFER_BELOW_TARGET", severity="MEDIUM", message=f"Liquid cash is {format_usd(gap)} below your {target}-month essential buffer target.", refs=[]))
     if not req.cash_accounts:
         flags.append(Flag(code="MISSING_CASH_BALANCES", severity="HIGH", message="No cash balances were supplied; buffer and outlook start from zero.", refs=[]))
 
@@ -359,8 +359,22 @@ def compute_clarity(req: PersonalClarityRequest) -> ClarityComputation:  # noqa:
         i += 1
     if breaches:
         flags.append(Flag(code="FLOOR_BREACH_PROJECTED", severity="HIGH", message=f"The dated outlook drops below your cash floor on {breaches[0].isoformat()}.", refs=[]))
-    for c in collisions[:3]:
-        flags.append(Flag(code="BILL_COLLISION", severity="MEDIUM", message=f"{len(c.refs)} essential payments totalling {c.total_due} fall between {c.window_start.isoformat()} and {c.window_end.isoformat()}.", refs=c.refs))
+    # One flag per distinct set of colliding bills. A monthly pair (e.g. rent on the 1st and a loan on the 5th)
+    # collides every month; repeating the same warning for each month is noise, so it is grouped.
+    # The full list of windows stays available in outlook.collisions.
+    grouped: dict[tuple[str, ...], list[Collision]] = {}
+    for c in collisions:
+        grouped.setdefault(tuple(sorted(c.refs)), []).append(c)
+    for refs, group in list(grouped.items())[:3]:
+        first = group[0]
+        if len(group) == 1:
+            msg = f"{len(first.refs)} essential payments totalling {format_usd(first.total_due)} fall between {first.window_start.isoformat()} and {first.window_end.isoformat()}."
+        else:
+            msg = (
+                f"{len(first.refs)} essential payments totalling {format_usd(first.total_due)} land in the same week "
+                f"{len(group)} times in the next {req.horizon_days} days, next between {first.window_start.isoformat()} and {first.window_end.isoformat()}."
+            )
+        flags.append(Flag(code="BILL_COLLISION", severity="MEDIUM", message=msg, refs=list(first.refs)))
 
     outlook = Outlook(
         horizon_days=req.horizon_days,

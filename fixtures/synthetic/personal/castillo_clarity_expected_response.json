@@ -548,7 +548,7 @@
     {
       "code": "BUFFER_BELOW_TARGET",
       "severity": "MEDIUM",
-      "message": "Liquid cash is 2399.00 below your 2-month essential buffer target.",
+      "message": "Liquid cash is $2,399.00 below your 2-month essential buffer target.",
       "refs": []
     },
     {
@@ -570,25 +570,7 @@
     {
       "code": "BILL_COLLISION",
       "severity": "MEDIUM",
-      "message": "2 essential payments totalling 1760.00 fall between 2026-11-01 and 2026-11-07.",
-      "refs": [
-        "obl_castillo_rent",
-        "obl_castillo_car_loan_min"
-      ]
-    },
-    {
-      "code": "BILL_COLLISION",
-      "severity": "MEDIUM",
-      "message": "2 essential payments totalling 1760.00 fall between 2026-12-01 and 2026-12-07.",
-      "refs": [
-        "obl_castillo_rent",
-        "obl_castillo_car_loan_min"
-      ]
-    },
-    {
-      "code": "BILL_COLLISION",
-      "severity": "MEDIUM",
-      "message": "2 essential payments totalling 1760.00 fall between 2027-01-01 and 2027-01-07.",
+      "message": "2 essential payments totalling $1,760.00 land in the same week 3 times in the next 90 days, next between 2026-11-01 and 2026-11-07.",
       "refs": [
         "obl_castillo_rent",
         "obl_castillo_car_loan_min"
@@ -677,7 +659,7 @@
     "engine_name": "sagespan-calculator",
     "engine_version": "0.1.0",
     "request_hash": "b46c94d1e7a4b7aac37c7d1e875d8f2dc4e33ced8e62ac54b442c38635019af5",
-    "run_hash": "249811eee61da31ec2c8c9f01b7462e10f07fa6ceddded431559b59942244b91",
+    "run_hash": "cf09fdc4aac512ab4b3e7719296c5e220a5d8cc9f755ab748c5a83d0bc85d242",
     "computed_at": "2026-11-01T12:00:00Z",
     "org_context": {
       "org_id": "ws_castillo_personal"

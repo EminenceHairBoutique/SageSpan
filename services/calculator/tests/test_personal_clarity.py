@@ -213,3 +213,34 @@ def test_body_level_org_or_workspace_id_rejected_by_schema():
     payload["workspace_id"] = "ws_x"
     with pytest.raises(Exception):
         PersonalClarityRequest.model_validate(payload)
+
+
+def test_flag_messages_format_money_and_group_recurring_collisions():
+    r = run(castillo_payload())
+    buffer_flag = next(f for f in r.flags if f.code == "BUFFER_BELOW_TARGET")
+    assert "$2,399.00" in buffer_flag.message
+    # rent (1st) + car loan (5th) collide in Nov, Dec and Jan: three windows in the data ...
+    pair = {"obl_castillo_rent", "obl_castillo_car_loan_min"}
+    assert sum(1 for c in r.outlook.collisions if set(c.refs) == pair) == 3
+    # ... but one flag, stating the repetition and the next window
+    flags = [f for f in r.flags if f.code == "BILL_COLLISION"]
+    assert len(flags) == 1
+    assert set(flags[0].refs) == pair
+    assert "$1,760.00" in flags[0].message
+    assert "3 times in the next 90 days" in flags[0].message
+    assert "2026-11-01" in flags[0].message
+    # no raw unformatted money in any flag message
+    import re
+    for f in r.flags:
+        assert not re.search(r"(?<![$\d,])\d{3,}\.\d{2}\b", f.message), f.message
+
+
+def test_format_usd():
+    from decimal import Decimal
+
+    from app.financial.money import format_usd
+
+    assert format_usd(Decimal("2399")) == "$2,399.00"
+    assert format_usd(Decimal("1760.005")) == "$1,760.01"
+    assert format_usd(Decimal("-45.5")) == "-$45.50"
+    assert format_usd(Decimal("0")) == "$0.00"
