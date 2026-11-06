@@ -1,0 +1,96 @@
+file	route	note
+001-mk-home-1440.jpg	/	/
+002-mk-home-1440-full.jpg	/	/
+004-mk-personal-1440-full.jpg	/personal	/personal
+006-mk-retirement-1440-full.jpg	/retirement	/retirement
+008-mk-firms-1440-full.jpg	/firms	/firms
+010-mk-how-it-works-1440-full.jpg	/how-it-works	/how-it-works
+011-mk-pricing-1440.jpg	/pricing	/pricing
+012-mk-pricing-1440-full.jpg	/pricing	/pricing
+014-mk-security-1440-full.jpg	/security	/security
+016-mk-demo-tour-1440-full.jpg	/demo	/demo
+017-mk-sign-in-gate-1440.jpg	/app	/app
+019-ps-overview-1440.jpg	/demo/personal	/demo/personal
+020-ps-overview-1440-full.jpg	/demo/personal	/demo/personal
+022-ps-next-steps-1440-full.jpg	/demo/personal/next-steps	/demo/personal/next-steps
+023-ps-cash-flow-1440.jpg	/demo/personal/cash-flow	/demo/personal/cash-flow
+024-ps-cash-flow-1440-full.jpg	/demo/personal/cash-flow	/demo/personal/cash-flow
+026-ps-spending-1440-full.jpg	/demo/personal/spending	/demo/personal/spending
+028-ps-savings-debt-1440-full.jpg	/demo/personal/savings-debt	/demo/personal/savings-debt
+030-ps-goals-1440-full.jpg	/demo/personal/goals	/demo/personal/goals
+032-ps-retirement-1440-full.jpg	/demo/personal/retirement	/demo/personal/retirement
+033-ps-scenarios-1440.jpg	/demo/personal/scenarios	/demo/personal/scenarios
+034-ps-scenarios-1440-full.jpg	/demo/personal/scenarios	/demo/personal/scenarios
+036-ps-assistant-1440-full.jpg	/demo/personal/assistant	/demo/personal/assistant
+038-ps-learn-1440-full.jpg	/demo/personal/learn	/demo/personal/learn
+040-ps-privacy-1440-full.jpg	/demo/personal/privacy	/demo/personal/privacy
+042-ps-intake-welcome-1440-full.jpg	/demo/personal/intake/welcome	/demo/personal/intake/welcome
+043-fm-review-queue-1440.jpg	/demo/app/reviews	/demo/app/reviews
+044-fm-review-queue-1440-full.jpg	/demo/app/reviews	/demo/app/reviews
+046-fm-clients-1440-full.jpg	/demo/app/clients	/demo/app/clients
+048-fm-imports-1440-full.jpg	/demo/app/imports	/demo/app/imports
+050-fm-checks-1440-full.jpg	/demo/app/checks	/demo/app/checks
+052-fm-planning-studio-1440-full.jpg	/demo/app/planning-studio	/demo/app/planning-studio
+054-fm-ai-review-1440-full.jpg	/demo/app/ai-review	/demo/app/ai-review
+056-fm-approvals-1440-full.jpg	/demo/app/approvals	/demo/app/approvals
+058-fm-settings-1440-full.jpg	/demo/app/settings	/demo/app/settings
+059-fm-patel-overview-1440.jpg	/demo/app/households/hh_patel	/demo/app/households/hh_patel
+062-fm-patel-imports-1440-full.jpg	/demo/app/households/hh_patel/imports	/demo/app/households/hh_patel/imports
+064-fm-patel-checks-before-1440-full.jpg	/demo/app/households/hh_patel/checks	/demo/app/households/hh_patel/checks
+072-mk-home-390-full.jpg	/	/ (full page cropped at 6000 px)
+078-mk-firms-390-full.jpg	/firms	/firms (full page cropped at 6000 px)
+082-mk-pricing-390-full.jpg	/pricing	/pricing
+088-mk-sign-in-gate-390-full.jpg	/app	/app
+089-ps-overview-390.jpg	/demo/personal	/demo/personal
+090-ps-overview-390-full.jpg	/demo/personal	/demo/personal
+092-ps-next-steps-390-full.jpg	/demo/personal/next-steps	/demo/personal/next-steps
+094-ps-cash-flow-390-full.jpg	/demo/personal/cash-flow	/demo/personal/cash-flow
+098-ps-savings-debt-390-full.jpg	/demo/personal/savings-debt	/demo/personal/savings-debt
+104-ps-scenarios-390-full.jpg	/demo/personal/scenarios	/demo/personal/scenarios
+112-ps-intake-welcome-390-full.jpg	/demo/personal/intake/welcome	/demo/personal/intake/welcome
+126-fm-settings-390-full.jpg	/demo/app/settings	/demo/app/settings
+128-fm-patel-overview-390-full.jpg	/demo/app/households/hh_patel	/demo/app/households/hh_patel
+139-mk-home-1280.jpg	/	/
+140-ps-overview-1280.jpg	/demo/personal	/demo/personal
+141-fm-review-queue-1280.jpg	/demo/app/reviews	/demo/app/reviews
+142-fm-patel-overview-1280.jpg	/demo/app/households/hh_patel	/demo/app/households/hh_patel
+143-mk-home-768.jpg	/	/
+144-ps-overview-768.jpg	/demo/personal	/demo/personal
+145-fm-review-queue-768.jpg	/demo/app/reviews	/demo/app/reviews
+146-fm-patel-overview-768.jpg	/demo/app/households/hh_patel	/demo/app/households/hh_patel
+147-mk-home-320.jpg	/	/
+148-ps-overview-320.jpg	/demo/personal	/demo/personal
+149-fm-patel-overview-320.jpg	/demo/app/households/hh_patel	/demo/app/households/hh_patel
+150-ps-overview-receipt-dialog-1440.jpg	/demo/personal	receipt dialog open
+151-ps-overview-ask-why-1440-full.jpg	/demo/personal	Ask why expanded on first card
+152-ps-assistant-after-draft-1440-full.jpg	/demo/personal/assistant	assistant draft produced (mock)
+153-ps-overview-receipt-dialog-390.jpg	/demo/personal	receipt dialog open
+155-ps-assistant-after-draft-390-full.jpg	/demo/personal/assistant	assistant draft produced (mock)
+156-fm-patel-freeze-blocked-1440-full.jpg	/demo/app/households/hh_patel	freeze gate blocked by conflict (analyst)
+157-fm-patel-review-open-conflicts-1440-full.jpg	/demo/app/households/hh_patel/review	review page with open conflicts
+158-fm-patel-review-resolved-1440-full.jpg	/demo/app/households/hh_patel/review	conflicts resolved and exception documented
+159-fm-patel-freeze-ready-1440.jpg	/demo/app/households/hh_patel	freeze gate ready
+160-fm-patel-frozen-1440.jpg	/demo/app/households/hh_patel	snapshot frozen confirmation
+161-fm-patel-check-pass-1440.jpg	/demo/app/households/hh_patel/checks	check run PASS (fold)
+162-fm-patel-check-pass-1440-full.jpg	/demo/app/households/hh_patel/checks	check run PASS (full)
+163-fm-patel-check-receipt-dialog-1440.jpg	/demo/app/households/hh_patel/checks	RMD receipt dialog
+164-fm-patel-check-request-json-1440-full.jpg	/demo/app/households/hh_patel/checks	request JSON disclosure open
+165-fm-patel-ai-review-draft-1440-full.jpg	/demo/app/households/hh_patel/ai-review	AI draft findings (mock provider)
+166-fm-patel-review-pending-advisor-1440-full.jpg	/demo/app/households/hh_patel/review	review pending, advisor view, discrepancy open
+167-fm-patel-review-cco-before-approval-1440-full.jpg	/demo/app/households/hh_patel/review	CCO view: coverage panel 'If approved now'
+168-fm-patel-approved-1440-full.jpg	/demo/app/households/hh_patel/review	approved with exceptions
+169-fm-patel-evidence-packet-ready-1440-full.jpg	/demo/app/households/hh_patel/evidence	evidence packet generated
+170-fm-approvals-after-1440-full.jpg	/demo/app/approvals	approvals list with typed outcome
+171-fm-review-queue-after-1440.jpg	/demo/app/reviews	queue after Patel approval
+172-fm-okafor-check-unsupported-1440-full.jpg	/demo/app/households/hh_okafor/checks	UNSUPPORTED check run + coverage panel
+173-fm-okafor-review-limitations-before-1440-full.jpg	/demo/app/households/hh_okafor/review	If approved now: Reviewed with limitations
+174-fm-okafor-approved-limitations-1440-full.jpg	/demo/app/households/hh_okafor/review	Approved: Reviewed with limitations
+175-fm-patel-checks-after-390-full.jpg	/demo/app/households/hh_patel/checks	mobile: checks page after run
+176-fm-patel-review-after-390-full.jpg	/demo/app/households/hh_patel/review	mobile: review page after approval
+177-fm-review-queue-390.jpg	/demo/app/reviews	review queue (mobile)
+178-fm-review-queue-390-full.jpg	/demo/app/reviews	review queue (mobile, full)
+179-fm-okafor-review-after-390-full.jpg	/demo/app/households/hh_okafor/review	mobile: Okafor review page after approval (reviewed with limitations)
+180-fm-review-queue-320.jpg	/demo/app/reviews	review queue (mobile)
+181-fm-patel-packet-html-1440.jpg	/api/households/hh_patel/evidence/pkt_f0ae724dd1d949ce?format=html	evidence packet HTML export (fold)
+182-fm-patel-packet-html-1440-full.jpg	/api/households/hh_patel/evidence/pkt_f0ae724dd1d949ce?format=html	evidence packet HTML export (full)
+184-fm-okafor-packet-html-1440-full.jpg	/api/households/hh_okafor/evidence/pkt_9b3073e5b8c9458a?format=html	evidence packet HTML export (full)
