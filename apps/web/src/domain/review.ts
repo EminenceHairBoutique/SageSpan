@@ -1,4 +1,4 @@
-import { FACT_FIELDS, assertCan, assertTransition, type DataState, type Fact, type Review, type Role } from "@sagespan/contracts";
+import { APPROVAL_CAPABLE_ROLES, FACT_FIELDS, PermissionDeniedError, approvalDecision, assertCan, type DataState, type Fact, type Review, type Role } from "@sagespan/contracts";
 import type { Actor } from "@/auth/types";
 import { appendAudit } from "./audit";
 import { DomainError } from "./errors";
@@ -8,6 +8,7 @@ import { reopenForNewRevision } from "./freeze";
 import { newId, nowIso } from "./ids";
 import { householdBundle, householdOrNull, requireHousehold } from "./queries";
 import type { Store } from "./store";
+import { recordDisposition, transitionHousehold } from "./workflow";
 
 const MIN_RATIONALE = 10;
 
@@ -161,9 +162,11 @@ export function dispositionDiscrepancy(state: DataState, actor: Actor, discrepan
   assertCan(actor.role, "review.disposition");
   const d = state.discrepancies.find((x) => x.id === discrepancyId && x.org_id === actor.org_id);
   if (!d) throw new DomainError("NOT_FOUND", "Discrepancy not found", 404);
+  if (d.status !== "OPEN" || d.disposition) throw new DomainError("ALREADY_DISPOSITIONED", "This discrepancy already has a recorded disposition; dispositions are write-once.", 409);
+  const hhOf = requireHousehold(state, actor.org_id, d.household_id);
+  if (hhOf.workflow_status === "APPROVED" || hhOf.workflow_status === "EXPORTED") throw new DomainError("INVALID_STATE", `Household is ${hhOf.workflow_status}; dispositions are closed after approval.`, 409);
   const text = requireRationale(note, "Dispositioning a discrepancy");
-  d.status = "DISPOSITIONED";
-  d.disposition = { by: actor.user_id, role: actor.role, at: nowIso(), note: text };
+  recordDisposition(d, { by: actor.user_id, role: actor.role, at: nowIso(), note: text });
   appendAudit(state, { ...actorFields(actor), event_type: "DISCREPANCY_DISPOSITIONED", entity_type: "discrepancy", entity_id: d.id, summary: `Discrepancy ${d.id} (${d.classification}) dispositioned` });
 }
 
@@ -172,12 +175,10 @@ export function recordReview(state: DataState, actor: Actor, householdId: string
   const hh = requireHousehold(state, actor.org_id, householdId);
   const b = householdBundle(state, actor.org_id, householdId);
   if (!b.currentSnapshot) throw new DomainError("INVALID_STATE", "No frozen snapshot to review.");
-  assertTransition(hh.workflow_status, "REVIEWED");
   const text = requireRationale(rationale, "Recording a review");
+  transitionHousehold(hh, "REVIEWED");
   const review: Review = { id: newId("rev"), org_id: actor.org_id, snapshot_id: b.currentSnapshot.id, household_id: hh.id, reviewer_user_id: actor.user_id, reviewer_role: actor.role, actor_type: actor.actor_type, decision: "REVIEWED", rationale: text, conflict_attestation: false, reviewed_at: nowIso() };
   state.reviews.push(review);
-  hh.workflow_status = "REVIEWED";
-  hh.updated_at = nowIso();
   appendAudit(state, { ...actorFields(actor), event_type: "REVIEW_RECORDED", entity_type: "review", entity_id: review.id, summary: `Review recorded for snapshot ${review.snapshot_id} by ${actor.role} (${actor.actor_type})` });
   return review;
 }
@@ -194,20 +195,22 @@ export interface ApprovalInput {
  * from the person who froze the snapshot or ran the check.
  */
 export function approveReview(state: DataState, actor: Actor, householdId: string, input: ApprovalInput): Review {
-  assertCan(actor.role, "review.approve");
   const org = state.organizations.find((o) => o.id === actor.org_id)!;
-  if (!org.policies.approver_roles.includes(actor.role)) {
-    throw new DomainError("NOT_AN_APPROVER", `Firm policy allows approval by ${org.policies.approver_roles.join(", ")} only.`);
+  const decision = approvalDecision(actor.role, org.policies.approver_roles);
+  if (!decision.allowed) {
+    if (decision.code === "PERMISSION_DENIED") throw new PermissionDeniedError(actor.role, "review.approve", "approval capability");
+    throw new DomainError("NOT_AN_APPROVER", decision.message);
   }
   const hh = requireHousehold(state, actor.org_id, householdId);
   const b = householdBundle(state, actor.org_id, householdId);
   const snap = b.currentSnapshot;
   if (!snap) throw new DomainError("INVALID_STATE", "No frozen snapshot to approve.");
-  assertTransition(hh.workflow_status, "APPROVED");
   const text = requireRationale(input.rationale, "Approval");
   if (!input.conflictAttestation) throw new DomainError("ATTESTATION_REQUIRED", "You must attest that all conflicts were resolved or carried by documented exception and that the evidence was reviewed.");
   const runs = b.checkRuns.filter((r) => r.snapshot_id === snap.id);
   if (runs.length === 0 || runs.some((r) => r.run_status === "ERROR")) throw new DomainError("CHECK_REQUIRED", "A completed independent check is required before approval.");
+  const unverified = runs.filter((r) => r.run_status !== "ERROR" && r.request_hash_verified !== true);
+  if (unverified.length) throw new DomainError("CHECK_RECEIPT_UNVERIFIED", `${unverified.length} check run(s) lack a verified calculation receipt; approval is refused.`);
   const openDisc = b.discrepancies.filter((d) => runs.some((r) => r.id === d.check_run_id) && d.status === "OPEN");
   if (openDisc.length) throw new DomainError("OPEN_DISCREPANCIES", `${openDisc.length} discrepancy(ies) still need a disposition before approval.`);
   if (org.policies.separation_of_duties) {
@@ -218,10 +221,9 @@ export function approveReview(state: DataState, actor: Actor, householdId: strin
       throw new DomainError("SEPARATION_OF_DUTIES", `Separation of duties: the approver cannot be the person who ${conflictsWith.join(" and ")}.`);
     }
   }
+  transitionHousehold(hh, "APPROVED");
   const review: Review = { id: newId("rev"), org_id: actor.org_id, snapshot_id: snap.id, household_id: hh.id, reviewer_user_id: actor.user_id, reviewer_role: actor.role, actor_type: actor.actor_type, decision: "APPROVED", rationale: text, conflict_attestation: true, reviewed_at: nowIso() };
   state.reviews.push(review);
-  hh.workflow_status = "APPROVED";
-  hh.updated_at = nowIso();
   appendAudit(state, { ...actorFields(actor), event_type: "APPROVAL_RECORDED", entity_type: "review", entity_id: review.id, summary: `Snapshot ${snap.id} approved by ${actor.role} (${actor.actor_type}) with conflict attestation`, payload: { review_id: review.id, snapshot_id: snap.id } });
   return review;
 }
@@ -241,14 +243,14 @@ export function updatePolicy(state: DataState, actor: Actor, patch: { separation
   if (patch.separation_of_duties !== undefined) org.policies.separation_of_duties = patch.separation_of_duties;
   if (patch.allow_nonmaterial_exceptions !== undefined) org.policies.allow_nonmaterial_exceptions = patch.allow_nonmaterial_exceptions;
   if (patch.approver_roles) {
-    const allowed = patch.approver_roles.filter((r) => ["COMPLIANCE", "ADVISOR"].includes(r));
+    const allowed = patch.approver_roles.filter((r) => APPROVAL_CAPABLE_ROLES.includes(r));
     if (!allowed.length) throw new DomainError("INVALID_POLICY", "At least one approver role (COMPLIANCE or ADVISOR) is required.");
     org.policies.approver_roles = allowed;
   }
   appendAudit(state, { ...actorFields(actor), event_type: "POLICY_UPDATED", entity_type: "organization", entity_id: org.id, summary: `Firm policy updated: SoD=${org.policies.separation_of_duties}, nonmaterial exceptions=${org.policies.allow_nonmaterial_exceptions}, approvers=${org.policies.approver_roles.join("/")}` });
 }
 
-const DENIAL_CODES = new Set(["PERMISSION_DENIED", "NOT_AN_APPROVER", "SEPARATION_OF_DUTIES", "ATTESTATION_REQUIRED", "OPEN_DISCREPANCIES", "CHECK_REQUIRED", "RATIONALE_REQUIRED"]);
+const DENIAL_CODES = new Set(["PERMISSION_DENIED", "NOT_AN_APPROVER", "SEPARATION_OF_DUTIES", "ATTESTATION_REQUIRED", "OPEN_DISCREPANCIES", "CHECK_REQUIRED", "CHECK_RECEIPT_UNVERIFIED", "RATIONALE_REQUIRED"]);
 
 /**
  * Approval attempt with durable denial logging. A denied approval raises

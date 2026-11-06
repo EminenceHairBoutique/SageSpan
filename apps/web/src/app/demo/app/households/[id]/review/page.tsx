@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { CheckCheck, MessageSquare, Stamp } from "lucide-react";
-import { FACT_FIELDS, can, formatMoney } from "@sagespan/contracts";
+import { FACT_FIELDS, can, canApprove, formatMoney } from "@sagespan/contracts";
 import { getDemoActor } from "@/auth/actor";
 import { factDisplayValue, householdBundle, householdOrNull, profileName, subjectLabel } from "@/domain/queries";
 import { getStore } from "@/domain/store";
@@ -23,7 +23,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const discrepancies = b.discrepancies.filter((d) => runIds.has(d.check_run_id));
   const openDisc = discrepancies.filter((d) => d.status === "OPEN");
   const policies = b.org.policies;
-  const isApprover = can(actor.role, "review.approve") && policies.approver_roles.includes(actor.role);
+  const isApprover = canApprove(actor.role, policies.approver_roles);
   const sodConflict = policies.separation_of_duties && snap ? [snap.created_by === actor.user_id ? "froze the snapshot" : null, b.checkRuns.some((r) => r.snapshot_id === snap.id && r.executed_by === actor.user_id) ? "ran the check" : null].filter(Boolean) : [];
   const approveDisabledReason = !isApprover ? `Approval requires ${policies.approver_roles.join(" or ")}; you are ${actor.role}.` : status !== "REVIEWED" ? `Household must be REVIEWED first (currently ${status.replace(/_/g, " ").toLowerCase()}).` : openDisc.length ? `${openDisc.length} discrepancy(ies) need a disposition.` : sodConflict.length ? `Separation of duties: you ${sodConflict.join(" and ")}.` : undefined;
 

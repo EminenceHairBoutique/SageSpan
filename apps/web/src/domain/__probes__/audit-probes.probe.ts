@@ -22,6 +22,7 @@ vi.mock("@/provenance/calc-client", async () => {
     callRmdCheck: async (request: { snapshot_ref?: unknown; imported_comparison?: { import_value_ref: string } | null }, orgId: string) => {
       if (control.fail) throw new CalcServiceError("SERVICE_UNAVAILABLE", "unreachable (probe)");
       const requestHash = await canonicalHash(request);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- probe mock mutates the fixture loosely on purpose
       const response = structuredClone(expected) as unknown as Record<string, any>;
       response.receipt.request_hash = control.hashOk ? requestHash : "0".repeat(64);
       response.receipt.org_context.org_id = orgId;

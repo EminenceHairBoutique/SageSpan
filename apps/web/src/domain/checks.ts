@@ -1,13 +1,17 @@
-import { assertCan, assertTransition, canonicalJson, priorYearEnd, type CheckRun, type DataState, type Discrepancy, type Organization, type RmdCheckRequest, type Snapshot } from "@sagespan/contracts";
+import { assertCan, canonicalJson, priorYearEnd, type CheckRun, type DataState, type Discrepancy, type Organization, type RmdCheckRequest, type RuleSetRef, type Snapshot } from "@sagespan/contracts";
 import type { Actor } from "@/auth/types";
-import { CalcServiceError, callRmdCheck } from "@/provenance/calc-client";
+import { CalcServiceError, callRmdCheck, fetchRuleSets, type RmdCheckResult } from "@/provenance/calc-client";
 import { appendAudit, sha256 } from "./audit";
 import { DomainError } from "./errors";
 import { newId, nowIso } from "./ids";
 import { householdBundle, requireHousehold, type HouseholdBundle } from "./queries";
 import type { Store } from "./store";
+import { transitionHousehold } from "./workflow";
 
 const RMD_ACCOUNT_TYPES = new Set(["TRADITIONAL_IRA", "SEP_IRA", "SIMPLE_IRA", "ROTH_IRA", "EMPLOYER_401K", "EMPLOYER_403B", "OTHER"]);
+
+/** The only engine whose receipts this tier accepts (audit S-04). */
+export const TRUSTED_ENGINE_NAME = "sagespan-calculator";
 
 /**
  * Build the calculation-service request for one account STRICTLY from the
@@ -79,12 +83,31 @@ export function buildRmdRequest(org: Organization, b: HouseholdBundle, snapshot:
   return request;
 }
 
+/**
+ * Receipt integrity (audit S-04). A response is accepted only when this tier
+ * re-derived the request hash, the receipt is bound to the frozen snapshot, the
+ * engine is the one we trust, and every cited rule set is PUBLISHED in the
+ * registry with the same version and checksum. Returns the first failure.
+ */
+export function verifyReceipt(result: RmdCheckResult, snapshot: Snapshot, registry: readonly RuleSetRef[]): string | null {
+  const receipt = result.response.receipt;
+  if (!result.requestHashVerified || receipt.request_hash !== result.requestHash) return "REQUEST_HASH_MISMATCH";
+  if (receipt.engine_name !== TRUSTED_ENGINE_NAME) return `UNKNOWN_ENGINE:${receipt.engine_name}`;
+  if (!receipt.snapshot_ref || receipt.snapshot_ref.snapshot_id !== snapshot.id || receipt.snapshot_ref.input_hash !== snapshot.content_sha256) return "RECEIPT_SNAPSHOT_REF_MISMATCH";
+  if (receipt.rule_sets.length === 0) return "RULE_SETS_MISSING";
+  for (const rs of receipt.rule_sets) {
+    const known = registry.find((k) => k.rule_set_id === rs.rule_set_id && k.version === rs.version && k.checksum === rs.checksum && k.status === "PUBLISHED");
+    if (!known) return `RULE_SET_NOT_PUBLISHED:${rs.rule_set_id}@${rs.version}`;
+  }
+  return null;
+}
+
 export interface RunChecksOutcome {
   runs: CheckRun[];
   errors: Array<{ accountId: string; code: string; message: string }>;
 }
 
-/** Run the independent RMD check for every account in the frozen snapshot. Service failures are recorded and surfaced; nothing is computed locally. */
+/** Run the independent RMD check for every account in the frozen snapshot. Service failures and receipt-integrity failures are recorded as ERROR runs and surfaced; nothing is computed locally. */
 export async function runRmdChecks(store: Store, actor: Actor, householdId: string): Promise<RunChecksOutcome> {
   assertCan(actor.role, "check.run");
   const state = store.read();
@@ -95,10 +118,24 @@ export async function runRmdChecks(store: Store, actor: Actor, householdId: stri
   if (!snapshot) throw new DomainError("INVALID_STATE", "No frozen snapshot exists.");
   const requests = b.accounts.map((a) => ({ accountId: a.id, request: buildRmdRequest(b.org, b, snapshot, a.id) }));
 
+  let registry: readonly RuleSetRef[] = [];
+  let registryError: CalcServiceError | null = null;
+  try {
+    registry = (await fetchRuleSets(actor.org_id)).rule_sets;
+  } catch (e) {
+    registryError = e instanceof CalcServiceError ? e : new CalcServiceError("SERVICE_ERROR", e instanceof Error ? e.message : "Rule registry unavailable");
+  }
+
   const results = await Promise.all(
     requests.map(async ({ accountId, request }) => {
+      if (registryError) return { accountId, request, result: null as RmdCheckResult | null, error: registryError };
       try {
-        return { accountId, request, result: await callRmdCheck(request, actor.org_id), error: null as CalcServiceError | null };
+        const result = await callRmdCheck(request, actor.org_id);
+        const failure = verifyReceipt(result, snapshot, registry);
+        if (failure) {
+          return { accountId, request, result: null, error: new CalcServiceError("RECEIPT_INTEGRITY_ERROR", `The calculation service's receipt failed verification (${failure}); the result was discarded and nothing was recorded as computed.`) };
+        }
+        return { accountId, request, result, error: null as CalcServiceError | null };
       } catch (e) {
         const err = e instanceof CalcServiceError ? e : new CalcServiceError("SERVICE_ERROR", e instanceof Error ? e.message : "Unknown calculation-service error");
         return { accountId, request, result: null, error: err };
@@ -130,7 +167,7 @@ export async function runRmdChecks(store: Store, actor: Actor, householdId: stri
         run_status: r.result ? r.result.response.result_status : "ERROR",
         coverage_status: r.result?.response.coverage_status ?? null,
         error: r.error ? { code: r.error.code, message: r.error.message } : null,
-        request_hash_verified: r.result ? r.result.requestHashVerified : null,
+        request_hash_verified: r.result ? true : false,
       };
       s.check_runs.push(run);
       outcome.runs.push(run);
@@ -161,12 +198,9 @@ export async function runRmdChecks(store: Store, actor: Actor, householdId: stri
         s.discrepancies.push(d);
       }
       snap.rule_set_versions = { ...snap.rule_set_versions, ...run.rule_set_versions };
-      appendAudit(s, { org_id: actor.org_id, actor_user_id: actor.user_id, actor_role: actor.role, actor_type: actor.actor_type, event_type: "CHECK_RUN_COMPLETED", entity_type: "check_run", entity_id: run.id, summary: `RMD check ${run.id} completed for account ${r.accountId}: ${resp.result_status} (${resp.coverage_status}); engine ${resp.receipt.engine_version}; run hash ${resp.receipt.run_hash.slice(0, 12)}…`, payload: { run_hash: resp.receipt.run_hash, request_hash: resp.receipt.request_hash, result_status: resp.result_status } });
+      appendAudit(s, { org_id: actor.org_id, actor_user_id: actor.user_id, actor_role: actor.role, actor_type: actor.actor_type, event_type: "CHECK_RUN_COMPLETED", entity_type: "check_run", entity_id: run.id, summary: `RMD check ${run.id} completed for account ${r.accountId}: ${resp.result_status} (${resp.coverage_status}); engine ${resp.receipt.engine_version}; receipt verified; run hash ${resp.receipt.run_hash.slice(0, 12)}…`, payload: { run_hash: resp.receipt.run_hash, request_hash: resp.receipt.request_hash, result_status: resp.result_status } });
     }
-    if (outcome.errors.length === 0 && hh2.workflow_status === "FROZEN") {
-      assertTransition(hh2.workflow_status, "CHECK_COMPLETE");
-      hh2.workflow_status = "CHECK_COMPLETE";
-    }
+    if (outcome.errors.length === 0 && hh2.workflow_status === "FROZEN") transitionHousehold(hh2, "CHECK_COMPLETE");
     hh2.updated_at = nowIso();
     return outcome;
   });
@@ -175,8 +209,6 @@ export async function runRmdChecks(store: Store, actor: Actor, householdId: stri
 export function sendToReview(state: DataState, actor: Actor, householdId: string): void {
   if (!["ANALYST", "ADVISOR", "COMPLIANCE"].includes(actor.role)) assertCan(actor.role, "review.disposition");
   const hh = requireHousehold(state, actor.org_id, householdId);
-  assertTransition(hh.workflow_status, "REVIEW_PENDING");
-  hh.workflow_status = "REVIEW_PENDING";
-  hh.updated_at = nowIso();
+  transitionHousehold(hh, "REVIEW_PENDING");
   appendAudit(state, { org_id: actor.org_id, actor_user_id: actor.user_id, actor_role: actor.role, actor_type: actor.actor_type, event_type: "SENT_TO_REVIEW", entity_type: "household", entity_id: householdId, summary: `Household ${householdId} sent to review` });
 }
