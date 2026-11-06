@@ -126,7 +126,11 @@ test("Patel: conflict blocks freeze; resolve, document exception, freeze, check,
   await page.getByRole("button", { name: /Generate evidence packet/ }).click();
   await expect(page.getByText(/Packet pkt_[a-f0-9]+ ready/)).toBeVisible({ timeout: 15_000 });
   const jsonHref = await page.getByRole("link", { name: "JSON" }).first().getAttribute("href");
-  const res = await page.request.get(jsonHref!);
+  // `page.request` pools keep-alive sockets. The forged-approval POST above left one idle; the Next dev
+  // server closes idle sockets after its 5 s keep-alive timeout, and the UI steps in between take about
+  // that long on CI, so this GET can reuse the socket at the moment the server closes it
+  // (`read ECONNRESET`, CI run 42174852606). `maxRetries` re-sends only on ECONNRESET, on a fresh socket.
+  const res = await page.request.get(jsonHref!, { maxRetries: 2 });
   expect(res.ok()).toBeTruthy();
   const body = (await res.json()) as { packet_sha256: string; packet: { title: string; snapshot: { content_sha256: string }; engine: { version: string }; limitations: string[]; reviews: Array<{ decision: string }> } };
   expect(body.packet_sha256).toMatch(/^[0-9a-f]{64}$/);
