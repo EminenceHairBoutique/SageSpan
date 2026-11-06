@@ -30,11 +30,12 @@ jobs:
 
   database:
     # Applies supabase/migrations and runs supabase/tests/*.test.sql on a real
-    # Postgres 16 using the Supabase/pgTAP shims (no Docker-in-Docker needed).
+    # Postgres using the Supabase/pgTAP shims (no Docker-in-Docker needed).
+    # The major version matches supabase/config.toml (db.major_version = 15).
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        image: postgres:15
         # Throwaway CI database: trust auth on the loopback service, so no password exists anywhere.
         env: { POSTGRES_HOST_AUTH_METHOD: trust }
         ports: ["5432:5432"]
@@ -51,3 +52,30 @@ jobs:
           PGPORT: "5432"
           PGUSER: postgres
           PGDATABASE: postgres
+
+  e2e:
+    # Playwright scenarios against the real calculation service and the Next
+    # dev server (both started by apps/web/playwright.config.ts webServer).
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: npm ci
+      - name: Calculation service venv (playwright.config.ts expects services/calculator/.venv)
+        run: python -m venv services/calculator/.venv && services/calculator/.venv/bin/pip install -q -e "services/calculator"
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e --workspace apps/web
+        env:
+          CI: "1"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 7
