@@ -1,0 +1,6 @@
+{
+  "separation_of_duties": true,
+  "allow_nonmaterial_exceptions": true,
+  "approver_roles": ["COMPLIANCE"],
+  "tolerance": {"absolute": "1.00", "relative": "0.001"}
+}
