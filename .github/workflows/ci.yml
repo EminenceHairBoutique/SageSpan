@@ -35,7 +35,8 @@ jobs:
     services:
       postgres:
         image: postgres:16
-        env: { POSTGRES_PASSWORD: postgres }
+        # Throwaway CI database: trust auth on the loopback service, so no password exists anywhere.
+        env: { POSTGRES_HOST_AUTH_METHOD: trust }
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
@@ -49,5 +50,4 @@ jobs:
           PGHOST: localhost
           PGPORT: "5432"
           PGUSER: postgres
-          PGPASSWORD: postgres
           PGDATABASE: postgres

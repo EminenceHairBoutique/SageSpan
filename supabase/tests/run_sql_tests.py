@@ -1,7 +1,7 @@
 """Run the repository's SQL migrations and pgTAP-style tests on a real Postgres.
 
 Local (no Docker): spawns a throwaway Postgres 16 cluster (needs initdb on PATH).
-CI:                 PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE (a postgres:16 service),
+CI:                 PGHOST/PGPORT/PGUSER/PGDATABASE (a postgres:16 service with trust auth),
                     or SAGESPAN_TEST_DSN for any other reachable server.
 
 Steps: apply shim_supabase.sql (roles, auth.users, auth.uid) -> migrations in
@@ -80,8 +80,8 @@ def preprocess(test: pathlib.Path, use_shim: bool) -> str:
 def main() -> int:
     dsn = os.environ.get("SAGESPAN_TEST_DSN")
     if not dsn and os.environ.get("PGHOST"):
-        # CI: libpq keyword DSN; the password travels in PGPASSWORD (read by psql),
-        # never embedded in a connection URI.
+        # CI: libpq keyword DSN built from PG* variables (trust auth on the CI service;
+        # if a password is ever needed, libpq reads PGPASSWORD itself).
         dsn = " ".join(f"{k}={os.environ[e]}" for k, e in (("host", "PGHOST"), ("port", "PGPORT"), ("user", "PGUSER"), ("dbname", "PGDATABASE")) if os.environ.get(e))
     cluster = None
     if not dsn:
