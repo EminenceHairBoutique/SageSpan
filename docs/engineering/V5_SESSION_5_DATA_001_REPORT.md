@@ -32,7 +32,7 @@ Known limitation, disclosed in code and UI: PostgREST has no multi-statement tra
 | Web Vitest (calculator up) | **127 passed, 3 skipped** (115 + 12 `supabase-repository.test.ts`; the 3 skipped are the realstack file without env) |
 | Playwright | **20 passed** (18 + 2 `data-001-personal.spec.ts`) |
 | SQL harness / calculator pytest | not re-run (no SQL or calculator change in this PR) |
-| Real stack | **not run here**; the CI `realstack` job on this PR runs pgTAP, the harness and the new repository vitest step |
+| Real stack (CI `realstack`, PR #12 run `42229635800`, `791677b`) | **green**: pgTAP 251/251 PASS, JWT/PostgREST harness 50/50, `supabase-repository.realstack.test.ts` **3/3** (owner CRUD round-trip under RLS, one-domain participant, stranger NOT_FOUND) |
 
 ## 4. Coordination with the parallel AI-CORE session
 - Nothing in this PR touches `apps/web/src/ai/**`, `packages/contracts/src/ai/**` or `docs/ai/**`.
