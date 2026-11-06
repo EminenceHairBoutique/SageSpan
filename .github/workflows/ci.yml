@@ -112,5 +112,9 @@ jobs:
         run: |
           eval "$(supabase status -o env)"
           SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" node supabase/realstack/run.mjs
+      - name: DATA-001 repository against the real stack (vitest, skipped without these env vars)
+        run: |
+          eval "$(supabase status -o env)"
+          SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npx vitest run --root apps/web src/domain/__tests__/supabase-repository.realstack.test.ts
       - if: always()
         run: supabase stop --no-backup

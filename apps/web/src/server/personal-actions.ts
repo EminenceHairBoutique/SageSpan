@@ -6,7 +6,8 @@ import { getPersonalActor, listPersonalPersonas, PRINCIPAL_COOKIE, type Personal
 import { errorResult, type ActionResult } from "@/domain/errors";
 import { recordUserDecision, updateCashBalance, updatePersonalPolicy, updateRetirementIntake } from "@/domain/personal/mutations";
 import { refreshPersonalBaseline, runPersonalScenario } from "@/domain/personal/runs";
-import { PERSONAL_RECORD_TYPES, ScenarioSpecSchema, type PersonalRecordType, type ScenarioSpec } from "@sagespan/contracts";
+import { ScenarioSpecSchema, type ScenarioSpec } from "@sagespan/contracts";
+import { amount, recordInputFromForm, recordType } from "./personal-form";
 import { createPersonalRecord, retirePersonalRecord, updatePersonalRecord } from "@/domain/personal/records";
 import { startFreshWorkspace } from "@/domain/personal/intake";
 import { redirect } from "next/navigation";
@@ -143,43 +144,7 @@ export async function runScenarioAction(_prev: ActionResult<{ message: string }>
 }
 
 
-// ---------------------------------------------------------------- PERS-002a records
-function recordType(fd: FormData): PersonalRecordType {
-  const t = str(fd, "record_type");
-  if (!(PERSONAL_RECORD_TYPES as readonly string[]).includes(t)) throw new DomainError("VALIDATION", "Unknown record type.");
-  return t as PersonalRecordType;
-}
-
-const opt = (v: string) => (v.trim() === "" ? null : v.trim());
-const amount = (v: string) => v.replace(/[$,\s]/g, "");
-const bool = (fd: FormData, k: string) => fd.get(k) === "on" || fd.get(k) === "true";
-
-/** Parse the observed-months textarea: one amount per line or comma-separated, oldest first; blanks dropped. */
-function observedMonths(v: string): string[] {
-  return v
-    .split(/[\n,;]+/)
-    .map((x) => amount(x))
-    .filter((x) => x.length > 0);
-}
-
-/** Shape the raw form into the record's write object. Shared Zod validation runs in the domain layer. */
-function recordInputFromForm(type: PersonalRecordType, fd: FormData): unknown {
-  switch (type) {
-    case "CASH_ACCOUNT":
-      return { label: str(fd, "label"), kind: str(fd, "kind"), balance: amount(str(fd, "balance")), balance_as_of: str(fd, "balance_as_of"), ...(fd.has("liquid_explicit") ? { liquid: bool(fd, "liquid") } : {}) };
-    case "INCOME_STREAM":
-      return { label: str(fd, "label"), kind: str(fd, "kind"), cadence: str(fd, "cadence"), reliability: str(fd, "reliability") || "UNKNOWN", observed_monthly_amounts: observedMonths(str(fd, "observed_monthly_amounts")), observed_from: opt(str(fd, "observed_from")), observed_to: opt(str(fd, "observed_to")), expected_amount: opt(amount(str(fd, "expected_amount"))), next_expected_date: opt(str(fd, "next_expected_date")) };
-    case "OBLIGATION":
-      return { label: str(fd, "label"), category: str(fd, "category"), amount: amount(str(fd, "amount")), cadence: str(fd, "cadence"), next_due_date: str(fd, "next_due_date"), essential: bool(fd, "essential"), liability_id: opt(str(fd, "liability_id")) };
-    case "VARIABLE_SPENDING":
-      return { category: str(fd, "category"), observed_monthly_amounts: observedMonths(str(fd, "observed_monthly_amounts")), essential: bool(fd, "essential"), transfers_excluded: bool(fd, "transfers_excluded") };
-    case "LIABILITY":
-      return { label: str(fd, "label"), kind: str(fd, "kind"), balance: amount(str(fd, "balance")), balance_as_of: str(fd, "balance_as_of"), apr_percent: amount(str(fd, "apr_percent")), minimum_payment: amount(str(fd, "minimum_payment")), rate_type: str(fd, "rate_type"), promo_apr_percent: opt(amount(str(fd, "promo_apr_percent"))), promo_apr_expires: opt(str(fd, "promo_apr_expires")), due_day_of_month: str(fd, "due_day_of_month").trim() ? Number(str(fd, "due_day_of_month")) : null };
-    case "GOAL":
-      return { label: str(fd, "label"), kind: str(fd, "kind"), target_amount: amount(str(fd, "target_amount")), saved_amount: amount(str(fd, "saved_amount") || "0"), target_date: opt(str(fd, "target_date")), monthly_contribution: opt(amount(str(fd, "monthly_contribution"))), funded_from_account_id: opt(str(fd, "funded_from_account_id")) };
-  }
-}
-
+// ---------------------------------------------------------------- PERS-002a records (form parsing shared with /app: personal-form.ts)
 export async function saveRecordAction(_prev: ActionResult<{ message: string; ref: string }> | null, formData: FormData): Res<{ message: string; ref: string }> {
   return run(async (actor) => {
     const type = recordType(formData);

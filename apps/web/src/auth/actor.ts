@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { supabaseConfigured } from "@/config/env";
 import { resolveIdentity, type ResolvedIdentity } from "./identity";
+import type { PersonalActor } from "./personal-actor";
 import { DEFAULT_PERSONA_ID, PERSONA_COOKIE, findPersona } from "./persona";
 import { createSupabaseServerClient, identityClientFor } from "./supabase-server";
 import { NotFoundError, UnauthenticatedError, type Actor } from "./types";
@@ -51,6 +52,18 @@ export async function getProductionIdentity(): Promise<ResolvedIdentity | null> 
 export async function getProductionActor(): Promise<Actor | null> {
   const identity = await getProductionIdentity();
   return identity?.firm ?? null;
+}
+
+/**
+ * DATA-001: the production personal actor — the signed-in user's selected PERSONAL / HOUSEHOLD
+ * workspace as the database resolved it (ACTIVE membership only). Null when not configured, not
+ * signed in, or the user owns / participates in no workspace yet.
+ */
+export async function getProductionPersonalActor(): Promise<PersonalActor | null> {
+  const identity = await getProductionIdentity();
+  const p = identity?.personal;
+  if (!p) return null;
+  return { ...p, mode: "PRODUCTION", actor_type: "USER" };
 }
 
 export function assertSameOrg(actor: Actor, orgId: string): void {

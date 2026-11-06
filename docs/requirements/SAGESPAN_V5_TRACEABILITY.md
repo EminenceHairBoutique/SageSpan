@@ -143,3 +143,15 @@ This matrix is **traceability, not a certification**. It does not mean every pos
 | Latent pgTAP defect fixed | tests 002/003/005 `plan()` corrected (20→23, 10→11, 58→71); `run_sql_tests.py` enforces plan == tests run | SQL harness 8/8 (negative control verified) |
 | Not done | Supabase store adapter (DATA-001), private storage/document registration, member-management UI, vector search (none exists), professional sign-off | — |
 
+## H. DATA-001 evidence (2026-11-06, `feat/data-001-store-adapter`)
+
+| Requirement | Evidence in tree | Suite |
+|---|---|---|
+| One domain path for demo and production personal records (no second validator, no second ownership rule) | `domain/personal/repository.ts` (`PersonalRepository`: Demo = file store, Production = Supabase); `supabase-repository.ts` runs the unchanged `records.ts` / `mutations.ts` against a view loaded under the user's session | web `supabase-repository.test.ts` (12: diff plan, id remap, FK order, zero-row refusal, partial-write error); existing `personal.test.ts` unchanged |
+| Production writes land only through RLS as the signed-in user; no service-role key in the app | `supabase-server.ts` (anon key + session), `app-personal-actions.ts`, `SupabasePersonalRepository.persist` verifies one row per write | realstack vitest `supabase-repository.realstack.test.ts` (3: owner CRUD round-trip, SAVINGS_GOALS-only participant, stranger NOT_FOUND) — **CI only** |
+| Exact money round-trip, no arithmetic in the web tier | `SELECTS.*::text` casts; `normalizeMoney` on read; no sums anywhere in `/app/personal` | unit tests (row mapping) |
+| Honest state: production shows records only; no computed figures without receipted runs | `/app/personal` banner; `PersonalRepository.supportsRuns = false` for production | e2e `data-001-personal.spec.ts` |
+| Production "Start fresh" via the 0008 entry point (`create_personal_workspace`) | `/app/personal/start`, `appStartFreshAction` | realstack harness §2 (RPC path); e2e gate when unconfigured |
+| Non-atomic multi-row writes over PostgREST are disclosed, not hidden | `DATA_PARTIAL_WRITE` names what landed; atomic RPC planned for DATA-002 | unit test |
+| Parallel-session coordination (AI-CORE track) | `docs/architecture/PARALLEL_SESSIONS_AND_DATA_BOUNDARY.md`: ownership, seams (`PersonalRepository.bundle()` is the AI tools' data source), migration-number reservation | — |
+
