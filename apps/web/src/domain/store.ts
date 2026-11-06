@@ -60,10 +60,11 @@ export class FileStore {
 
 let singleton: FileStore | null = null;
 
+/** The demo state always lives under <app cwd>/.demo-state/<file>; only the file name is configurable. */
 export function getStore(): FileStore {
   if (!singleton) {
-    const resolved = path.isAbsolute(env.demoStatePath) ? env.demoStatePath : path.resolve(process.cwd(), env.demoStatePath);
-    singleton = new FileStore(resolved);
+    const fileName = path.basename(env.demoStatePath) || "state.json";
+    singleton = new FileStore(path.join(process.cwd(), ".demo-state", fileName));
   }
   return singleton;
 }

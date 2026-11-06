@@ -32,7 +32,7 @@ export default async function ImportsPage({ params }: { params: Promise<{ id: st
     <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
       <div className="space-y-6">
         <Card title="1 · Upload a supported file" subtitle={`Only sagespan.import.v1 JSON or the documented CSV contract. Max ${IMPORT_LIMITS.maxBytes / 1024 / 1024} MB, ${IMPORT_LIMITS.maxRows} rows. The file's SHA-256 is recorded before parsing.`}>
-          <ActionForm action={uploadImportAction} hidden={{ household_id: id }} submitLabel="Upload and validate" pendingLabel="Validating…" disabled={!canImport} disabledReason={`Role ${actor.role} cannot import.`} successMessage={(d) => `Import ${d.importId} created. Continue with mapping below.`}>
+          <ActionForm action={uploadImportAction} hidden={{ household_id: id }} submitLabel="Upload and validate" pendingLabel="Validating…" disabled={!canImport} disabledReason={`Role ${actor.role} cannot import.`}>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="File" required>
                 <input type="file" name="file" accept=".csv,.json,text/csv,application/json" required className="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-line-strong file:bg-surface file:px-3 file:py-1.5 file:text-sm file:font-medium" />
@@ -61,7 +61,7 @@ export default async function ImportsPage({ params }: { params: Promise<{ id: st
 
         {mapped && entitySuggestion && (
           <Card title={draft ? "3 · Map entities and reconcile" : "2 · Map entities and reconcile"} subtitle="Match the file's references to this household's people and accounts, or create new ones. Reconciliation classifies facts and opens conflicts.">
-            <ActionForm action={reconcileImportAction} hidden={{ import_id: mapped.id }} submitLabel="Reconcile into facts" pendingLabel="Reconciling…" disabled={!can(actor.role, "import.map")} disabledReason={`Role ${actor.role} cannot map imports.`} successMessage={(d) => `Reconciled: ${d.facts} facts created, ${d.conflicts} conflict(s) opened. See the Overview for the freeze gate.`}>
+            <ActionForm action={reconcileImportAction} hidden={{ import_id: mapped.id }} submitLabel="Reconcile into facts" pendingLabel="Reconciling…" disabled={!can(actor.role, "import.map")} disabledReason={`Role ${actor.role} cannot map imports.`}>
               <div className="grid gap-3 sm:grid-cols-2">
                 {entitySuggestion.persons.map((p) => (
                   <Field key={p.ref} label={`Person ref "${p.ref}" — ${p.label}`}>
