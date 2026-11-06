@@ -34,6 +34,8 @@
 | AI-E27 | Excessive token/tool use | 60 findings / 11 tool calls / throwing provider | `BUDGET_EXCEEDED` → REJECTED; provider failure → ERROR run | pass |
 | AI-E28 | Reviewer edits a finding | `recordAiFeedback` EDIT then ACCEPT | versions 1, 2; run record byte-identical; foreign org gets not-found; VIEWER may request evidence | pass |
 
+**AI-CORE-001 (2026-11-06, `feat/ai-core-001-runtime`):** the 28 cases above run unchanged through the new bounded tool-loop runtime (`apps/web/src/ai/runtime/tool-loop.ts`) — 30/30 in the build environment. The runtime's own labelled cases AI-C01…AI-C16 (17 tests, `ai-core-toolloop.test.ts`) are catalogued in `docs/ai/AI_CORE_EVALUATION_PLAN.md` §2; they cover two-turn continuation, budgets before dispatch, strict tool arguments, injection through tool results, revoked consent between turns, snapshot drift, duplicate requests, forbidden retirement projections, REVIEWED_WITH_LIMITATIONS relabelling, oversized results, provider failures, provider resolution and record reproducibility. The default demo provider is now the two-turn mock; AI-C02/C02b pin that its validated report is `diffReports`-identical to the one-pass mock on the frozen fixtures.
+
 ## Acceptance (§18.4) — measured on this suite
 
 - All references in accepted findings resolve to allowed current evidence: **enforced by validator; asserted E01–E12, E24**.
@@ -51,4 +53,4 @@
 
 ## Promotion rule
 
-A model or prompt change must (1) pass this suite unchanged, (2) produce a `diffReports` review on the frozen Patel/Okafor/Reyes/Castillo fixtures that a human accepts, and (3) record the decision here with date and reviewer. No automatic promotion.
+A model, prompt, tool-schema, validator or runtime change must (1) pass this suite **and** AI-C01…C16 unchanged, (2) produce a `diffReports` review on the frozen Patel/Okafor/Reyes/Castillo fixtures that a human accepts, and (3) record the decision here with date and reviewer. No automatic promotion.

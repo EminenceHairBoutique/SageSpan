@@ -87,6 +87,8 @@ test("Personal: scenarios compare debt paths with receipts; the assistant drafts
   await expect(page.getByText(/Draft ready/)).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText("AI draft — not advice")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Where you stand this month" })).toBeVisible();
+  // AI-CORE-001: the default provider is the bounded two-turn mock; the run shows what actually ran
+  await expect(page.getByTestId("ai-runtime-trace").first()).toContainText(/2 model turns · 1 tool call executed \(read_personal_baseline\) · 0 denied/);
   await expect(page.getByText("Amounts from a receipted calculation").first()).toBeVisible();
   await expect(page.getByText(/not financial, tax, investment or legal advice/)).toBeVisible();
   await page.getByRole("button", { name: "Accept" }).first().click();
@@ -120,6 +122,7 @@ test("firm console keeps its own navigation and gains an AI draft that cites evi
   await expect(page.getByText(/Draft ready: \d+ grounded finding/)).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText("AI draft — not a review, approval or verification")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Two sources disagree on account.year_end_balance" })).toBeVisible();
+  await expect(page.getByTestId("ai-runtime-trace").first()).toContainText(/2 model turns · 1 tool call executed \(get_check_runs\) · 0 denied .* stop: final draft/);
   await expect(page.getByText("Unverified draft").first()).toBeVisible();
   await expect(page.getByText(/Sources: .*patel_ira_statement_2025-12-31\.txt/)).toBeVisible();
   // the firm page never shows personal records

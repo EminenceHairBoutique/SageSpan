@@ -56,7 +56,7 @@ export default async function FirmAiReviewPage() {
                   </Td>
                   <Td>{r.created_at.replace("T", " ").slice(0, 19)}</Td>
                   <Td>
-                    <Chip tone={r.run_status === "DRAFT_READY" ? "amber" : "conflict"}>{r.run_status === "DRAFT_READY" ? "draft for human review" : r.run_status.toLowerCase()}</Chip>
+                    <Chip tone={r.run_status === "DRAFT_READY" ? "amber" : r.run_status === "ABSTAINED" ? "slate" : "conflict"}>{r.run_status === "DRAFT_READY" ? "draft for human review" : r.run_status.toLowerCase()}</Chip>
                   </Td>
                   <Td>
                     {r.accepted_finding_count} accepted · {r.rejected_finding_count} rejected

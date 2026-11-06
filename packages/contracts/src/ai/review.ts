@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AiFindingSchema } from "./findings";
+import type { AiRuntimeTrace } from "./runtime";
 
 /**
  * Versioned AI review contract (V5 §18.2, Engineering Prompt Annex B).
@@ -48,7 +49,7 @@ export const AiModelOutputSchema = z.object({
   questions: z.array(z.string().max(400)).optional(),
   limitations: z.array(z.string().max(400)).optional(),
   /** Any tool calls the model asked for. The dispatcher authorises each one independently. */
-  tool_calls: z.array(z.object({ tool: z.string(), args: z.record(z.string(), z.unknown()).optional() })).optional(),
+  tool_calls: z.array(z.object({ call_id: z.string().min(1).max(80).optional(), tool: z.string(), args: z.record(z.string(), z.unknown()).optional() })).optional(),
   /** A model may try to supply these; the server ignores them and uses its own. */
   org_id: z.string().optional(),
   workspace_id: z.string().optional(),
@@ -100,6 +101,16 @@ export const AI_VALIDATION_CODES = [
   "BUDGET_EXCEEDED",
   "SUPERSEDED_RUN_CITED",
   "REPORT_TEXT_INVALID",
+  // AI-CORE-001 runtime codes (all recorded as NOTE or REJECT_REPORT by the runtime, never by the model).
+  "TOOL_ARGS_INVALID",
+  "DUPLICATE_TOOL_CALL",
+  "TOOL_RESULT_TOO_LARGE",
+  "TURN_BUDGET_EXHAUSTED",
+  "AUTHORIZATION_LOST",
+  "CONTEXT_CHANGED",
+  "MODEL_ABSTAINED",
+  "PROVIDER_TIMEOUT",
+  "RUN_CANCELLED",
 ] as const;
 export type AiValidationCode = (typeof AI_VALIDATION_CODES)[number];
 
@@ -130,11 +141,14 @@ export interface AiRunRecord {
   raw_output_sha256: string;
   report: AiReviewReport | null;
   validation_issues: AiValidationIssue[];
-  run_status: "DRAFT_READY" | "REJECTED" | "ERROR";
+  /** ABSTAINED: the model declined to draft for lack of evidence (AI-CORE-001); no report exists and nothing is asserted. */
+  run_status: "DRAFT_READY" | "REJECTED" | "ERROR" | "ABSTAINED";
   accepted_finding_count: number;
   rejected_finding_count: number;
   estimated_tokens: number | null;
   created_at: string;
+  /** AI-CORE-001 bounded tool-loop trace (`ai-runtime-v1`). Absent on records written before the runtime existed. */
+  runtime?: AiRuntimeTrace;
 }
 
 export const AI_FEEDBACK_ACTIONS = ["ACCEPT", "EDIT", "DISMISS", "REQUEST_EVIDENCE"] as const;
