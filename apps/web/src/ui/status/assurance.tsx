@@ -8,7 +8,8 @@ import { Chip, chipIconSize, type ChipTone } from "./Chip";
  * every enum has one label, one tone and one icon; pages must not add inline
  * ternaries. Labels asserted by the Playwright suites are unchanged in
  * UI-001a: "Arithmetic PASS", "Verified (PASS)" and "Verified (not required)"
- * wait for founder decision D5.
+ * keep their PR-002 strings here; founder decision D5 (accepted 2026-11-06,
+ * roadmap v1.1) renames them in UI-003b together with the two e2e regexes.
  */
 const icons = {
   verified: <CheckCircle2 size={chipIconSize} aria-hidden />,
@@ -107,9 +108,9 @@ export function ReceiptIntegrityChip({ verified }: { verified: boolean | null | 
 
 /* ---- 6.3 account coverage (latest attempt) ---- */
 export const COVERAGE_CHIP: Record<AccountCoverage, { tone: ChipTone; icon: ReactNode; label: string }> = {
-  // D5 pending: label and tone kept from PR-002 until the founder decides on "Arithmetic PASS · receipt verified".
+  // D5 (accepted) becomes "Arithmetic PASS · receipt verified" in UI-003b; the PR-002 label stays until that PR updates assurance-flow.spec.ts.
   VERIFIED: { tone: "teal", icon: icons.verified, label: "Verified (PASS)" },
-  // D5 pending: kept from PR-002 until the founder decides on "Not required (eligibility confirmed)".
+  // D5 (accepted) becomes "Not required (eligibility confirmed)" (neutral) in UI-003b; the PR-002 label stays until that PR updates pr-002-coverage.spec.ts.
   NOT_REQUIRED: { tone: "teal", icon: icons.verified, label: "Verified (not required)" },
   UNSUPPORTED: { tone: "amber", icon: icons.limitation, label: "Outside supported scope" },
   INDETERMINATE: { tone: "amber", icon: icons.question, label: "Indeterminate" },

@@ -13,7 +13,7 @@ export { OutcomeChip } from "@/ui/status";
  * PR-002 coverage panel (S-06 / N-02). Reads the latest attempt per account on the
  * current snapshot and states, in plain words, what an approval would mean right
  * now. Nothing here is computed from amounts; it reads stored run fields.
- * Coverage labels come from `CoverageChip` (founder decision D5 pending).
+ * Coverage labels come from `CoverageChip` (decision D5 is accepted and renames them in UI-003b).
  */
 export function CoveragePanel({ b }: { b: HouseholdBundleLike }) {
   const snap = b.currentSnapshot;

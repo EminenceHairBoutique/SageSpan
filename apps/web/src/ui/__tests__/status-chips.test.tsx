@@ -42,7 +42,7 @@ describe("ResultChip (§6.1)", () => {
   });
 });
 
-describe("CoverageChip (§6.3, D5 pending)", () => {
+describe("CoverageChip (§6.3; the accepted D5 labels land in UI-003b with the e2e regexes)", () => {
   const expected: Record<AccountCoverage, [string, string]> = {
     VERIFIED: ["Verified (PASS)", "teal"],
     NOT_REQUIRED: ["Verified (not required)", "teal"],
