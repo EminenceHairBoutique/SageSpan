@@ -1,5 +1,7 @@
 {
   "case_nested.json": "6f8d6e651ea2dd71269bb5208f912a0e7680c7154139b0908cc2c38e0566705a",
+  "case_policy_record.json": "859c42fc45f63719fa083ece7009852c15b4dbda332414d1f91489d532b14124",
   "case_snapshot_like.json": "81f988c45d7b9c96cfd14bbd081e95dea0d25b6201feeba0ec61dd2c1b0ba2d2",
+  "case_snapshot_v2.json": "1fd0ac75b3ce3675ca411d82af5bf51869a53edad8e62385a491d296872c12bf",
   "case_strings.json": "83ddbd8e549647947624007f883b5602251feb4e09d4ad5a6cd9a79bbb87c080"
 }
