@@ -128,7 +128,7 @@ describe("Checkpoints", () => {
     const html = render(<Checkpoints status="FROZEN" />);
     expect(html.match(/aria-current="step"/g)?.length).toBe(1);
     expect(html).toMatch(/aria-current="step"[^]*?Frozen/);
-    expect(html).not.toContain("text-[10px]");
+    expect(html).not.toMatch(/text-\[(10|11)px\]/); // nothing below the 12 px caption floor
     expect(html).toContain("text-caption");
     expect(html).toContain("(current)");
   });
