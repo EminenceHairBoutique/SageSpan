@@ -17,7 +17,7 @@ export function ProductionGate({ requestedPath }: { requestedPath?: string }) {
       <Card
         title={
           <span className="flex items-center gap-2">
-            <Lock size={18} aria-hidden /> Production mode is not available in this build
+            <Lock size={18} aria-hidden /> Sign-in is not available in this build
           </span>
         }
         subtitle={requestedPath ? `Requested: ${requestedPath}` : undefined}
@@ -28,13 +28,16 @@ export function ProductionGate({ requestedPath }: { requestedPath?: string }) {
         <KeyValue
           className="mt-4"
           rows={[
-            { k: "Available now", v: "Synthetic demo console at /demo/app with simulated reviewer personas." },
+            { k: "Available now", v: "Synthetic Personal workspace at /demo/personal (fictional individual) and synthetic firm console at /demo/app (simulated reviewers)." },
             { k: "Shipped for production", v: "Normalised schema, RLS policies, append-only triggers and SECURITY DEFINER workflow functions under supabase/migrations, with SQL tests under supabase/tests." },
             { k: "Still required", v: "Supabase project, applied migrations, auth session resolution in src/auth/actor.ts, a Supabase store adapter implementing the same domain functions, and the release gates in docs/SECURITY_AND_LIMITS.md." },
           ]}
         />
         <div className="mt-6 flex flex-wrap gap-3">
-          <ButtonLink href="/demo/app/reviews">Open the synthetic demo</ButtonLink>
+          <ButtonLink href="/demo/personal">Open the Personal demo</ButtonLink>
+          <ButtonLink href="/demo/app/reviews" variant="secondary">
+            Open the firm demo
+          </ButtonLink>
           <ButtonLink href="/security" variant="secondary">
             Security design approach
           </ButtonLink>

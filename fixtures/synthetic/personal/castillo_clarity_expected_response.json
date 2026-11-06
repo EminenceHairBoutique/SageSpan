@@ -1,0 +1,726 @@
+{
+  "check_type": "PERSONAL_CLARITY",
+  "result_status": "COMPUTED",
+  "as_of_date": "2026-11-01",
+  "income": {
+    "observed_months": 6,
+    "typical_monthly": "4970.00",
+    "low_monthly": "4000.00",
+    "high_monthly": "6380.00",
+    "spread_ratio": "0.4789",
+    "classification": "IRREGULAR"
+  },
+  "commitments": {
+    "monthly_essential": "3024.50",
+    "monthly_discretionary_typical": "442.00",
+    "monthly_debt_minimums": "455.00",
+    "essential_items": 9,
+    "discretionary_items": 4
+  },
+  "margin": {
+    "typical": "1503.50",
+    "low": "533.50",
+    "essential_only_low": "975.50"
+  },
+  "cash": {
+    "liquid_total": "3650.00",
+    "cash_floor": "1500.00",
+    "above_floor": "2150.00",
+    "essential_buffer_months": "1.21",
+    "buffer_target_months": "2",
+    "buffer_gap_amount": "2399.00"
+  },
+  "debt": {
+    "liability_count": 2,
+    "total_balance": "16120.00",
+    "total_minimums": "455.00",
+    "highest_apr_percent": "24.99",
+    "highest_apr_ref": "liab_castillo_card",
+    "balance_weighted_apr_percent": "12.31"
+  },
+  "outlook": {
+    "horizon_days": 90,
+    "start_cash": "3650.00",
+    "lowest_projected_cash": "1756.60",
+    "lowest_projected_date": "2026-11-06",
+    "end_projected_cash": "7547.27",
+    "floor_breach_dates": [],
+    "first_floor_breach_date": null,
+    "collisions": [
+      {
+        "window_start": "2026-11-01",
+        "window_end": "2026-11-07",
+        "total_due": "1760.00",
+        "refs": [
+          "obl_castillo_rent",
+          "obl_castillo_car_loan_min"
+        ]
+      },
+      {
+        "window_start": "2026-12-01",
+        "window_end": "2026-12-07",
+        "total_due": "1760.00",
+        "refs": [
+          "obl_castillo_rent",
+          "obl_castillo_car_loan_min"
+        ]
+      },
+      {
+        "window_start": "2027-01-01",
+        "window_end": "2027-01-07",
+        "total_due": "1760.00",
+        "refs": [
+          "obl_castillo_rent",
+          "obl_castillo_car_loan_min"
+        ]
+      }
+    ],
+    "points": [
+      {
+        "date": "2026-11-01",
+        "projected_cash": "2185.27",
+        "events": [
+          {
+            "date": "2026-11-01",
+            "ref": "obl_castillo_rent",
+            "kind": "OBLIGATION",
+            "amount": "-1450.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2026-11-03",
+        "projected_cash": "2110.80",
+        "events": [
+          {
+            "date": "2026-11-03",
+            "ref": "obl_castillo_gym",
+            "kind": "OBLIGATION",
+            "amount": "-45.00",
+            "essential": false
+          }
+        ]
+      },
+      {
+        "date": "2026-11-05",
+        "projected_cash": "1771.33",
+        "events": [
+          {
+            "date": "2026-11-05",
+            "ref": "obl_castillo_car_loan_min",
+            "kind": "OBLIGATION",
+            "amount": "-310.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2026-11-07",
+        "projected_cash": "2341.87",
+        "events": [
+          {
+            "date": "2026-11-07",
+            "ref": "inc_castillo_parttime",
+            "kind": "INCOME",
+            "amount": "600.00",
+            "essential": null
+          }
+        ]
+      },
+      {
+        "date": "2026-11-09",
+        "projected_cash": "2280.40",
+        "events": [
+          {
+            "date": "2026-11-09",
+            "ref": "obl_castillo_streaming",
+            "kind": "OBLIGATION",
+            "amount": "-32.00",
+            "essential": false
+          }
+        ]
+      },
+      {
+        "date": "2026-11-12",
+        "projected_cash": "2051.20",
+        "events": [
+          {
+            "date": "2026-11-12",
+            "ref": "obl_castillo_utilities",
+            "kind": "OBLIGATION",
+            "amount": "-185.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2026-11-15",
+        "projected_cash": "4807.00",
+        "events": [
+          {
+            "date": "2026-11-15",
+            "ref": "inc_castillo_contract",
+            "kind": "INCOME",
+            "amount": "2800.00",
+            "essential": null
+          }
+        ]
+      },
+      {
+        "date": "2026-11-18",
+        "projected_cash": "4697.80",
+        "events": [
+          {
+            "date": "2026-11-18",
+            "ref": "obl_castillo_phone",
+            "kind": "OBLIGATION",
+            "amount": "-65.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2026-11-20",
+        "projected_cash": "4526.33",
+        "events": [
+          {
+            "date": "2026-11-20",
+            "ref": "obl_castillo_car_insurance",
+            "kind": "OBLIGATION",
+            "amount": "-142.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2026-11-21",
+        "projected_cash": "4966.60",
+        "events": [
+          {
+            "date": "2026-11-21",
+            "ref": "inc_castillo_parttime",
+            "kind": "INCOME",
+            "amount": "600.00",
+            "essential": null
+          },
+          {
+            "date": "2026-11-21",
+            "ref": "obl_castillo_card_min",
+            "kind": "OBLIGATION",
+            "amount": "-145.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2026-12-01",
+        "projected_cash": "3369.27",
+        "events": [
+          {
+            "date": "2026-12-01",
+            "ref": "obl_castillo_rent",
+            "kind": "OBLIGATION",
+            "amount": "-1450.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2026-12-03",
+        "projected_cash": "3294.80",
+        "events": [
+          {
+            "date": "2026-12-03",
+            "ref": "obl_castillo_gym",
+            "kind": "OBLIGATION",
+            "amount": "-45.00",
+            "essential": false
+          }
+        ]
+      },
+      {
+        "date": "2026-12-05",
+        "projected_cash": "3555.33",
+        "events": [
+          {
+            "date": "2026-12-05",
+            "ref": "inc_castillo_parttime",
+            "kind": "INCOME",
+            "amount": "600.00",
+            "essential": null
+          },
+          {
+            "date": "2026-12-05",
+            "ref": "obl_castillo_car_loan_min",
+            "kind": "OBLIGATION",
+            "amount": "-310.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2026-12-09",
+        "projected_cash": "3464.40",
+        "events": [
+          {
+            "date": "2026-12-09",
+            "ref": "obl_castillo_streaming",
+            "kind": "OBLIGATION",
+            "amount": "-32.00",
+            "essential": false
+          }
+        ]
+      },
+      {
+        "date": "2026-12-12",
+        "projected_cash": "3235.20",
+        "events": [
+          {
+            "date": "2026-12-12",
+            "ref": "obl_castillo_utilities",
+            "kind": "OBLIGATION",
+            "amount": "-185.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2026-12-15",
+        "projected_cash": "5991.00",
+        "events": [
+          {
+            "date": "2026-12-15",
+            "ref": "inc_castillo_contract",
+            "kind": "INCOME",
+            "amount": "2800.00",
+            "essential": null
+          }
+        ]
+      },
+      {
+        "date": "2026-12-18",
+        "projected_cash": "5881.80",
+        "events": [
+          {
+            "date": "2026-12-18",
+            "ref": "obl_castillo_phone",
+            "kind": "OBLIGATION",
+            "amount": "-65.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2026-12-19",
+        "projected_cash": "6467.07",
+        "events": [
+          {
+            "date": "2026-12-19",
+            "ref": "inc_castillo_parttime",
+            "kind": "INCOME",
+            "amount": "600.00",
+            "essential": null
+          }
+        ]
+      },
+      {
+        "date": "2026-12-20",
+        "projected_cash": "6310.33",
+        "events": [
+          {
+            "date": "2026-12-20",
+            "ref": "obl_castillo_car_insurance",
+            "kind": "OBLIGATION",
+            "amount": "-142.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2026-12-21",
+        "projected_cash": "6150.60",
+        "events": [
+          {
+            "date": "2026-12-21",
+            "ref": "obl_castillo_card_min",
+            "kind": "OBLIGATION",
+            "amount": "-145.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2027-01-01",
+        "projected_cash": "4538.53",
+        "events": [
+          {
+            "date": "2027-01-01",
+            "ref": "obl_castillo_rent",
+            "kind": "OBLIGATION",
+            "amount": "-1450.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2027-01-02",
+        "projected_cash": "5123.80",
+        "events": [
+          {
+            "date": "2027-01-02",
+            "ref": "inc_castillo_parttime",
+            "kind": "INCOME",
+            "amount": "600.00",
+            "essential": null
+          }
+        ]
+      },
+      {
+        "date": "2027-01-03",
+        "projected_cash": "5064.07",
+        "events": [
+          {
+            "date": "2027-01-03",
+            "ref": "obl_castillo_gym",
+            "kind": "OBLIGATION",
+            "amount": "-45.00",
+            "essential": false
+          }
+        ]
+      },
+      {
+        "date": "2027-01-05",
+        "projected_cash": "4724.60",
+        "events": [
+          {
+            "date": "2027-01-05",
+            "ref": "obl_castillo_car_loan_min",
+            "kind": "OBLIGATION",
+            "amount": "-310.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2027-01-09",
+        "projected_cash": "4633.67",
+        "events": [
+          {
+            "date": "2027-01-09",
+            "ref": "obl_castillo_streaming",
+            "kind": "OBLIGATION",
+            "amount": "-32.00",
+            "essential": false
+          }
+        ]
+      },
+      {
+        "date": "2027-01-12",
+        "projected_cash": "4404.47",
+        "events": [
+          {
+            "date": "2027-01-12",
+            "ref": "obl_castillo_utilities",
+            "kind": "OBLIGATION",
+            "amount": "-185.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2027-01-15",
+        "projected_cash": "6920.27",
+        "events": [
+          {
+            "date": "2027-01-15",
+            "ref": "inc_castillo_contract",
+            "kind": "INCOME",
+            "amount": "2800.00",
+            "essential": null
+          },
+          {
+            "date": "2027-01-15",
+            "ref": "obl_castillo_renters_insurance",
+            "kind": "OBLIGATION",
+            "amount": "-240.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2027-01-16",
+        "projected_cash": "7505.53",
+        "events": [
+          {
+            "date": "2027-01-16",
+            "ref": "inc_castillo_parttime",
+            "kind": "INCOME",
+            "amount": "600.00",
+            "essential": null
+          }
+        ]
+      },
+      {
+        "date": "2027-01-18",
+        "projected_cash": "7411.07",
+        "events": [
+          {
+            "date": "2027-01-18",
+            "ref": "obl_castillo_phone",
+            "kind": "OBLIGATION",
+            "amount": "-65.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2027-01-20",
+        "projected_cash": "7239.60",
+        "events": [
+          {
+            "date": "2027-01-20",
+            "ref": "obl_castillo_car_insurance",
+            "kind": "OBLIGATION",
+            "amount": "-142.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2027-01-21",
+        "projected_cash": "7079.87",
+        "events": [
+          {
+            "date": "2027-01-21",
+            "ref": "obl_castillo_card_min",
+            "kind": "OBLIGATION",
+            "amount": "-145.00",
+            "essential": true
+          }
+        ]
+      },
+      {
+        "date": "2027-01-30",
+        "projected_cash": "7547.27",
+        "events": [
+          {
+            "date": "2027-01-30",
+            "ref": "inc_castillo_parttime",
+            "kind": "INCOME",
+            "amount": "600.00",
+            "essential": null
+          }
+        ]
+      }
+    ]
+  },
+  "goals": [
+    {
+      "goal_ref": "goal_castillo_reserve",
+      "label": "Emergency reserve",
+      "target_amount": "6000.00",
+      "saved_amount": "1500.00",
+      "remaining_amount": "4500.00",
+      "months_to_target_at_contribution": 23,
+      "on_track_for_target_date": null
+    },
+    {
+      "goal_ref": "goal_castillo_move",
+      "label": "Moving deposit",
+      "target_amount": "3000.00",
+      "saved_amount": "400.00",
+      "remaining_amount": "2600.00",
+      "months_to_target_at_contribution": 18,
+      "on_track_for_target_date": false
+    }
+  ],
+  "flags": [
+    {
+      "code": "IRREGULAR_INCOME",
+      "severity": "MEDIUM",
+      "message": "Observed monthly income varies widely; the outlook uses each irregular stream's lowest observed month.",
+      "refs": [
+        "inc_castillo_contract",
+        "inc_castillo_parttime"
+      ]
+    },
+    {
+      "code": "BUFFER_BELOW_TARGET",
+      "severity": "MEDIUM",
+      "message": "Liquid cash is 2399.00 below your 2-month essential buffer target.",
+      "refs": []
+    },
+    {
+      "code": "HIGH_APR_DEBT",
+      "severity": "MEDIUM",
+      "message": "Rewards credit card carries a 24.99% APR.",
+      "refs": [
+        "liab_castillo_card"
+      ]
+    },
+    {
+      "code": "VARIABLE_RATE_DEBT",
+      "severity": "LOW",
+      "message": "Rewards credit card has a variable rate; projections hold it constant.",
+      "refs": [
+        "liab_castillo_card"
+      ]
+    },
+    {
+      "code": "BILL_COLLISION",
+      "severity": "MEDIUM",
+      "message": "2 essential payments totalling 1760.00 fall between 2026-11-01 and 2026-11-07.",
+      "refs": [
+        "obl_castillo_rent",
+        "obl_castillo_car_loan_min"
+      ]
+    },
+    {
+      "code": "BILL_COLLISION",
+      "severity": "MEDIUM",
+      "message": "2 essential payments totalling 1760.00 fall between 2026-12-01 and 2026-12-07.",
+      "refs": [
+        "obl_castillo_rent",
+        "obl_castillo_car_loan_min"
+      ]
+    },
+    {
+      "code": "BILL_COLLISION",
+      "severity": "MEDIUM",
+      "message": "2 essential payments totalling 1760.00 fall between 2027-01-01 and 2027-01-07.",
+      "refs": [
+        "obl_castillo_rent",
+        "obl_castillo_car_loan_min"
+      ]
+    }
+  ],
+  "data_quality": [
+    {
+      "ref": "cash_castillo_checking",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "cash_castillo_savings",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "inc_castillo_contract",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "inc_castillo_parttime",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "obl_castillo_rent",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "obl_castillo_utilities",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "obl_castillo_car_insurance",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "obl_castillo_phone",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "obl_castillo_car_loan_min",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "obl_castillo_card_min",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "obl_castillo_renters_insurance",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "obl_castillo_streaming",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "obl_castillo_gym",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "liab_castillo_card",
+      "state": "USER_REPORTED",
+      "note": null
+    },
+    {
+      "ref": "liab_castillo_car",
+      "state": "USER_REPORTED",
+      "note": null
+    }
+  ],
+  "receipt": {
+    "receipt_version": "sagespan.receipt.v1",
+    "engine_name": "sagespan-calculator",
+    "engine_version": "0.1.0",
+    "request_hash": "b46c94d1e7a4b7aac37c7d1e875d8f2dc4e33ced8e62ac54b442c38635019af5",
+    "run_hash": "249811eee61da31ec2c8c9f01b7462e10f07fa6ceddded431559b59942244b91",
+    "computed_at": "2026-11-01T12:00:00Z",
+    "org_context": {
+      "org_id": "ws_castillo_personal"
+    },
+    "snapshot_ref": null,
+    "rule_sets": [
+      {
+        "rule_set_id": "personal.cashflow_baseline",
+        "version": "2026.1",
+        "status": "PUBLISHED",
+        "checksum": "9fef6d0e1053c80a51763b6230287b195e057859fc640f78d72173877916c9f7",
+        "effective_from": "2026-01-01",
+        "effective_to": null,
+        "sources": [
+          {
+            "title": "CFPB, Financial well-being resources",
+            "citation": "Four elements of financial well-being: control over day-to-day finances, capacity to absorb a shock, on track to meet goals, freedom to make choices (design reference only)",
+            "url": "https://www.consumerfinance.gov/consumer-tools/educator-tool/financial-well-being-resources/"
+          }
+        ]
+      }
+    ],
+    "inputs_used": {
+      "as_of_date": "2026-11-01",
+      "horizon_days": 90,
+      "cash_floor": "1500.00",
+      "buffer_target_months": "2",
+      "cash_accounts": 2,
+      "income_streams": 2,
+      "observed_months": 6,
+      "obligations": 9,
+      "variable_spending_categories": 4,
+      "liabilities": 2,
+      "goals": 2,
+      "workspace_ref": "ws_castillo_personal",
+      "input_hash": null
+    },
+    "formula": "margin = median(income) - essential - discretionary; buffer_months = liquid / essential; outlook = daily(cash + income_on_dates - obligations_on_dates - discretionary/30)",
+    "limitations": [
+      "Descriptive baseline on user-reported inputs; inputs are not verified against statements by this engine.",
+      "Not advice: the engine computes margins, buffers and dated projections only. Decisions belong to the user.",
+      "The outlook models dated commitments and a flat discretionary spend; it does not forecast behaviour, interest, taxes, pending items or new income.",
+      "No investment returns, tax, benefits eligibility, insurance or credit effects are modelled."
+    ]
+  }
+}

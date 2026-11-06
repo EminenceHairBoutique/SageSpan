@@ -3,16 +3,20 @@ import { ShieldCheck } from "lucide-react";
 import { brand } from "@/config/brand";
 import { ButtonLink } from "@/ui/primitives";
 
+/** V5 public navigation (blueprint §7.1). */
 const links = [
-  { href: "/product", label: "Product" },
-  { href: "/security", label: "Security" },
+  { href: "/personal", label: "Personal" },
+  { href: "/retirement", label: "Retirement Planning" },
+  { href: "/firms", label: "For Advisors & Firms" },
+  { href: "/how-it-works", label: "How It Works" },
+  { href: "/security", label: "Security & Trust" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/demo", label: "Demo" },
 ];
 
 export function SiteNav() {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-canvas/85 backdrop-blur">
+      {/* V5: both audiences are first-class; the nav lists both paths and Sign In goes to the honest production gate. */}
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-6">
         <Link href="/" className="flex items-center gap-2">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-navy text-white">
@@ -29,11 +33,14 @@ export function SiteNav() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <ButtonLink href="/#pilot" variant="secondary" size="sm" className="hidden sm:inline-flex">
-            Pilot interest
+          <Link href="/app" className="hidden text-sm font-medium text-ink-muted hover:text-ink sm:inline">
+            Sign In
+          </Link>
+          <ButtonLink href="/demo/personal" size="sm" variant="secondary" className="hidden sm:inline-flex">
+            {brand.personalCta}
           </ButtonLink>
-          <ButtonLink href="/demo/app/reviews" size="sm">
-            Open synthetic demo
+          <ButtonLink href="/firms" size="sm">
+            {brand.firmCta}
           </ButtonLink>
         </div>
       </div>
@@ -43,6 +50,9 @@ export function SiteNav() {
             {l.label}
           </Link>
         ))}
+        <Link href="/app" className="whitespace-nowrap text-sm font-medium text-ink-muted">
+          Sign In
+        </Link>
       </nav>
     </header>
   );

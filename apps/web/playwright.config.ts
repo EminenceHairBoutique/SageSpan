@@ -3,7 +3,9 @@ import path from "node:path";
 
 const calcDir = path.resolve(__dirname, "../../services/calculator");
 const isWin = process.platform === "win32";
-const python = isWin ? path.join(calcDir, ".venv", "Scripts", "python.exe") : path.join(calcDir, ".venv", "bin", "python");
+const python = process.env.SAGESPAN_CALC_PYTHON ?? (isWin ? path.join(calcDir, ".venv", "Scripts", "python.exe") : path.join(calcDir, ".venv", "bin", "python"));
+// Optional: point at an already-installed Chrome/Chromium when Playwright's own download is unavailable (offline CI runners).
+const executablePath = process.env.SAGESPAN_E2E_CHROME_PATH;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -16,7 +18,7 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], ...(executablePath ? { launchOptions: { executablePath } } : {}) } }],
   webServer: [
     {
       command: `"${python}" -m uvicorn app.main:app --host 127.0.0.1 --port 8010`,

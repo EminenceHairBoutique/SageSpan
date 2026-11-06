@@ -1,5 +1,5 @@
 import "server-only";
-import { RmdCheckResponseSchema, RuleSetListResponseSchema, ServiceErrorSchema, canonicalHash, type RmdCheckRequest, type RmdCheckResponse, type RuleSetRef } from "@sagespan/contracts";
+import { DebtPathsResponseSchema, MethodSetListResponseSchema, PersonalClarityResponseSchema, RmdCheckResponseSchema, RuleSetListResponseSchema, ServiceErrorSchema, canonicalHash, type DebtPathsRequest, type DebtPathsResponse, type PersonalClarityRequest, type PersonalClarityResponse, type RmdCheckRequest, type RmdCheckResponse, type RuleSetRef } from "@sagespan/contracts";
 import { env } from "@/config/env";
 
 /**
@@ -94,4 +94,38 @@ export async function calcHealth(): Promise<{ ok: boolean; engine_version?: stri
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "unreachable" };
   }
+}
+
+// ---------------------------------------------------------------- Personal (V5) engines
+export interface PersonalCalcResult<T> {
+  response: T;
+  requestHash: string;
+  requestHashVerified: boolean;
+}
+
+/** Tenant header for a personal workspace is the workspace id (server-resolved), mirroring org_id for firms. */
+export async function callPersonalClarity(request: PersonalClarityRequest, workspaceId: string): Promise<PersonalCalcResult<PersonalClarityResponse>> {
+  const res = await doFetch("/v1/personal/clarity", { method: "POST", headers: headers(workspaceId), body: JSON.stringify(request) });
+  if (!res.ok) throw await readError(res);
+  const parsed = PersonalClarityResponseSchema.safeParse(await res.json());
+  if (!parsed.success) throw new CalcServiceError("CONTRACT_MISMATCH", `Personal clarity response did not match the expected contract: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}`);
+  const requestHash = await canonicalHash(request);
+  return { response: parsed.data, requestHash, requestHashVerified: requestHash === parsed.data.receipt.request_hash };
+}
+
+export async function callDebtPaths(request: DebtPathsRequest, workspaceId: string): Promise<PersonalCalcResult<DebtPathsResponse>> {
+  const res = await doFetch("/v1/personal/debt-paths", { method: "POST", headers: headers(workspaceId), body: JSON.stringify(request) });
+  if (!res.ok) throw await readError(res);
+  const parsed = DebtPathsResponseSchema.safeParse(await res.json());
+  if (!parsed.success) throw new CalcServiceError("CONTRACT_MISMATCH", `Debt paths response did not match the expected contract: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}`);
+  const requestHash = await canonicalHash(request);
+  return { response: parsed.data, requestHash, requestHashVerified: requestHash === parsed.data.receipt.request_hash };
+}
+
+export async function fetchMethodSets(workspaceId: string): Promise<{ method_sets: RuleSetRef[]; engine_name: string; engine_version: string }> {
+  const res = await doFetch("/v1/methods", { method: "GET", headers: headers(workspaceId) });
+  if (!res.ok) throw await readError(res);
+  const parsed = MethodSetListResponseSchema.safeParse(await res.json());
+  if (!parsed.success) throw new CalcServiceError("CONTRACT_MISMATCH", "Method registry response did not match the expected contract.");
+  return parsed.data;
 }

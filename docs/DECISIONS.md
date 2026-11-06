@@ -9,7 +9,7 @@ first vertical-slice build and are recorded here so they are not relitigated.
 | # | Decision | Qualification |
 |---|---|---|
 | 1 | Brand: **SageSpan**, provisional | Trademark/domain clearance pending; brand strings centralised in `apps/web/src/config/brand.ts` |
-| 2 | Product: B2B independent retirement plan assurance | Not a planner, robo-advisor or trading tool; five-stage lifecycle retained as a long-term map |
+| 2 | Product: B2B independent retirement plan assurance | **Superseded 2026-11-05:** SageSpan is B2C **and** B2B (V5). The assurance product is preserved as one of three pillars; see ADR-V5-001 below |
 | 3 | Buyer: U.S. RIAs ~5–50 advisors; CCO champion, owner/CEO/COO economic buyer, lead advisor adoption | ICP and buyer roles are hypotheses to verify in interviews |
 | 4 | Stack: Next.js App Router + strict TS + Tailwind; Supabase/Postgres/Auth/RLS; separate Python/FastAPI calculation service from day one; queue/workers later | No retirement math in React/Next; no heavy compute in Vercel handlers |
 | 5 | Pricing hypothesis: $750/month incl. 100 active monitored households, $3.50 per additional, $500/month pilot up to 50 | Illustrative, not offered; no billing |
@@ -48,3 +48,18 @@ Trademark search and domain; legal entity; RIA interviews and first source
 formats; counsel-defined compliance scope; vendor/retention/security posture;
 expert-validated rule library; contract, pricing and pilot approvals before any
 live-client beta.
+
+
+## V5 decisions (2026-11-05 founder decision; implemented in synthetic mode 2026-11-06)
+
+| Decision | Rationale / record |
+|---|---|
+| One platform, two audiences: Personal/Household (B2C), Retirement Studio (both), Advisor & Assurance (B2B) | Founder decision; `docs/product/SAGESPAN_V5_MASTER_SOURCE_OF_TRUTH.md` |
+| Separate PERSONAL / HOUSEHOLD / FIRM workspaces; firm workspace maps 1:1 to `organizations`; cross-boundary access only via revocable `ConsentGrant` | `docs/architecture/DUAL_WORKSPACE_ADR.md` |
+| Personal engines live in the calculation service; the web tier never sums or divides money | ADR-V5-001 §5; `extra_monthly_payment` / `cash_accounts` inputs |
+| Methodology sets (`/v1/methods`) are a registry separate from regulatory rule sets so migration 0006 stays unchanged | ADR-V5-001 §6 |
+| Decision ranking is versioned code (`decision-policy.v1`): constraints first, explicit weights, ≤3 actions, tiers 3–4 disabled | `packages/contracts/src/decision-policy.ts` |
+| AI is a server-owned orchestrator over an evidence resolver with allowlisted read-only tools and a validator; model output is never trusted for status, ids or amounts | `apps/web/src/ai/*`, `docs/ai/AI_EVAL_MATRIX.md` |
+| No live AI vendor until G3 (consent, DPA); configuration alone yields the mock plus an explicit note | AI-E17 |
+| Demo state v2 reseeds older files (synthetic only) | `apps/web/src/domain/store.ts` |
+| Consumer pricing recorded only as unvalidated hypotheses ($8–15 personal, $15–30 household) | `CONSUMER_PRICING_HYPOTHESIS` |

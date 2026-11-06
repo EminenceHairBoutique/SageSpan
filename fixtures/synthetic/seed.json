@@ -1,5 +1,5 @@
 {
-  "state_version": "sagespan.demo-state.v1",
+  "state_version": "sagespan.demo-state.v2",
   "seeded_at": "2026-11-05T00:00:00Z",
   "mode": "DEMO_SYNTHETIC",
   "organizations": [
@@ -2056,5 +2056,421 @@
   "review_comments": [],
   "evidence_packets": [],
   "audit_events": [],
-  "pilot_interest": []
+  "pilot_interest": [],
+  "principals": [
+    {
+      "id": "pr_castillo",
+      "display_name": "Maya Castillo",
+      "simulated": true
+    },
+    {
+      "id": "pr_castillo_partner",
+      "display_name": "Sam Rivera",
+      "simulated": true
+    }
+  ],
+  "workspaces": [
+    {
+      "id": "ws_castillo_personal",
+      "kind": "PERSONAL",
+      "label": "Maya's finances",
+      "owner_principal_id": "pr_castillo",
+      "firm_org_id": null,
+      "created_at": "2026-11-01T12:00:00Z"
+    },
+    {
+      "id": "ws_harborpoint",
+      "kind": "FIRM",
+      "label": "Harbor Point Wealth Advisors (synthetic)",
+      "owner_principal_id": null,
+      "firm_org_id": "org_harborpoint",
+      "created_at": "2026-11-01T12:00:00Z"
+    },
+    {
+      "id": "ws_northline",
+      "kind": "FIRM",
+      "label": "Northline Advisory Group (synthetic)",
+      "owner_principal_id": null,
+      "firm_org_id": "org_northline",
+      "created_at": "2026-11-01T12:00:00Z"
+    }
+  ],
+  "workspace_memberships": [
+    {
+      "id": "wm_castillo_owner",
+      "workspace_id": "ws_castillo_personal",
+      "principal_id": "pr_castillo",
+      "role": "OWNER",
+      "domains": [],
+      "status": "ACTIVE",
+      "created_at": "2026-11-01T12:00:00Z"
+    },
+    {
+      "id": "wm_castillo_partner",
+      "workspace_id": "ws_castillo_personal",
+      "principal_id": "pr_castillo_partner",
+      "role": "PARTICIPANT",
+      "domains": [
+        "SAVINGS_GOALS"
+      ],
+      "status": "INVITED",
+      "created_at": "2026-11-01T12:00:00Z"
+    }
+  ],
+  "consent_grants": [],
+  "personal_profiles": [
+    {
+      "workspace_id": "ws_castillo_personal",
+      "principal_id": "pr_castillo",
+      "household_size": 1,
+      "situation": "Freelance designer with a part-time hourly job; income varies month to month.",
+      "top_concern": "Months when contract work is slow and the card balance creeps up.",
+      "cash_floor": "1500.00",
+      "buffer_target_months": "2",
+      "extra_debt_payment_monthly": "250.00",
+      "notification_mode": "NORMAL",
+      "updated_at": "2026-11-01T12:00:00Z"
+    }
+  ],
+  "cash_accounts": [
+    {
+      "id": "cash_castillo_checking_r1",
+      "account_ref": "cash_castillo_checking",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Everyday checking",
+      "kind": "CHECKING",
+      "balance": "2150.00",
+      "currency": "USD",
+      "balance_as_of": "2026-11-01",
+      "liquid": true,
+      "data_state": "USER_REPORTED",
+      "revision": 1,
+      "supersedes_id": null,
+      "superseded": false,
+      "created_at": "2026-11-01T12:00:00Z"
+    },
+    {
+      "id": "cash_castillo_savings_r1",
+      "account_ref": "cash_castillo_savings",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Savings",
+      "kind": "SAVINGS",
+      "balance": "1500.00",
+      "currency": "USD",
+      "balance_as_of": "2026-10-31",
+      "liquid": true,
+      "data_state": "USER_REPORTED",
+      "revision": 1,
+      "supersedes_id": null,
+      "superseded": false,
+      "created_at": "2026-11-01T12:00:00Z"
+    }
+  ],
+  "income_streams": [
+    {
+      "id": "inc_castillo_contract",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Design contract work",
+      "kind": "SELF_EMPLOYMENT",
+      "cadence": "MONTHLY",
+      "reliability": "IRREGULAR",
+      "observed_monthly_amounts": [
+        "3100.00",
+        "4650.00",
+        "2800.00",
+        "5200.00",
+        "3400.00",
+        "4100.00"
+      ],
+      "observed_from": "2026-05",
+      "observed_to": "2026-10",
+      "expected_amount": null,
+      "next_expected_date": "2026-11-15",
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "inc_castillo_parttime",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Part-time hourly job",
+      "kind": "HOURLY",
+      "cadence": "BIWEEKLY",
+      "reliability": "REGULAR",
+      "observed_monthly_amounts": [
+        "1180.00",
+        "1220.00",
+        "1200.00",
+        "1180.00",
+        "1240.00",
+        "1200.00"
+      ],
+      "observed_from": "2026-05",
+      "observed_to": "2026-10",
+      "expected_amount": "600.00",
+      "next_expected_date": "2026-11-07",
+      "data_state": "USER_REPORTED"
+    }
+  ],
+  "recurring_obligations": [
+    {
+      "id": "obl_castillo_rent",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Rent",
+      "category": "HOUSING",
+      "amount": "1450.00",
+      "cadence": "MONTHLY",
+      "next_due_date": "2026-11-01",
+      "essential": true,
+      "liability_id": null,
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "obl_castillo_utilities",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Electric and gas",
+      "category": "UTILITIES",
+      "amount": "185.00",
+      "cadence": "MONTHLY",
+      "next_due_date": "2026-11-12",
+      "essential": true,
+      "liability_id": null,
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "obl_castillo_car_insurance",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Car insurance",
+      "category": "INSURANCE",
+      "amount": "142.00",
+      "cadence": "MONTHLY",
+      "next_due_date": "2026-11-20",
+      "essential": true,
+      "liability_id": null,
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "obl_castillo_phone",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Phone",
+      "category": "UTILITIES",
+      "amount": "65.00",
+      "cadence": "MONTHLY",
+      "next_due_date": "2026-11-18",
+      "essential": true,
+      "liability_id": null,
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "obl_castillo_car_loan_min",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Car loan payment",
+      "category": "DEBT_MINIMUM",
+      "amount": "310.00",
+      "cadence": "MONTHLY",
+      "next_due_date": "2026-11-05",
+      "essential": true,
+      "liability_id": "liab_castillo_car",
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "obl_castillo_card_min",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Credit card minimum",
+      "category": "DEBT_MINIMUM",
+      "amount": "145.00",
+      "cadence": "MONTHLY",
+      "next_due_date": "2026-11-21",
+      "essential": true,
+      "liability_id": "liab_castillo_card",
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "obl_castillo_renters_insurance",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Renters insurance (annual)",
+      "category": "INSURANCE",
+      "amount": "240.00",
+      "cadence": "ANNUAL",
+      "next_due_date": "2027-01-15",
+      "essential": true,
+      "liability_id": null,
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "obl_castillo_streaming",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Streaming bundle",
+      "category": "SUBSCRIPTION",
+      "amount": "32.00",
+      "cadence": "MONTHLY",
+      "next_due_date": "2026-11-09",
+      "essential": false,
+      "liability_id": null,
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "obl_castillo_gym",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Gym",
+      "category": "SUBSCRIPTION",
+      "amount": "45.00",
+      "cadence": "MONTHLY",
+      "next_due_date": "2026-11-03",
+      "essential": false,
+      "liability_id": null,
+      "data_state": "USER_REPORTED"
+    }
+  ],
+  "variable_spending": [
+    {
+      "id": "vsp_castillo_groceries",
+      "workspace_id": "ws_castillo_personal",
+      "category": "Groceries",
+      "observed_monthly_amounts": [
+        "520.00",
+        "560.00",
+        "540.00",
+        "610.00",
+        "530.00",
+        "575.00"
+      ],
+      "essential": true,
+      "transfers_excluded": true,
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "vsp_castillo_fuel_and_transit",
+      "workspace_id": "ws_castillo_personal",
+      "category": "Fuel and transit",
+      "observed_monthly_amounts": [
+        "160.00",
+        "140.00",
+        "180.00",
+        "150.00",
+        "170.00",
+        "155.00"
+      ],
+      "essential": true,
+      "transfers_excluded": true,
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "vsp_castillo_dining_out",
+      "workspace_id": "ws_castillo_personal",
+      "category": "Dining out",
+      "observed_monthly_amounts": [
+        "240.00",
+        "310.00",
+        "180.00",
+        "350.00",
+        "260.00",
+        "220.00"
+      ],
+      "essential": false,
+      "transfers_excluded": true,
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "vsp_castillo_shopping",
+      "workspace_id": "ws_castillo_personal",
+      "category": "Shopping",
+      "observed_monthly_amounts": [
+        "120.00",
+        "90.00",
+        "260.00",
+        "140.00",
+        "110.00",
+        "95.00"
+      ],
+      "essential": false,
+      "transfers_excluded": true,
+      "data_state": "USER_REPORTED"
+    }
+  ],
+  "liabilities": [
+    {
+      "id": "liab_castillo_card",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Rewards credit card",
+      "kind": "CREDIT_CARD",
+      "balance": "4820.00",
+      "balance_as_of": "2026-11-01",
+      "apr_percent": "24.99",
+      "minimum_payment": "145.00",
+      "rate_type": "VARIABLE",
+      "promo_apr_percent": null,
+      "promo_apr_expires": null,
+      "due_day_of_month": 21,
+      "data_state": "USER_REPORTED"
+    },
+    {
+      "id": "liab_castillo_car",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Car loan",
+      "kind": "AUTO_LOAN",
+      "balance": "11300.00",
+      "balance_as_of": "2026-11-01",
+      "apr_percent": "6.90",
+      "minimum_payment": "310.00",
+      "rate_type": "FIXED",
+      "promo_apr_percent": null,
+      "promo_apr_expires": null,
+      "due_day_of_month": 5,
+      "data_state": "USER_REPORTED"
+    }
+  ],
+  "savings_goals": [
+    {
+      "id": "goal_castillo_reserve",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Emergency reserve",
+      "kind": "EMERGENCY_RESERVE",
+      "target_amount": "6000.00",
+      "saved_amount": "1500.00",
+      "target_date": null,
+      "monthly_contribution": "200.00",
+      "funded_from_account_id": "cash_castillo_savings"
+    },
+    {
+      "id": "goal_castillo_move",
+      "workspace_id": "ws_castillo_personal",
+      "label": "Moving deposit",
+      "kind": "MOVE",
+      "target_amount": "3000.00",
+      "saved_amount": "400.00",
+      "target_date": "2027-06-01",
+      "monthly_contribution": "150.00",
+      "funded_from_account_id": null
+    }
+  ],
+  "retirement_intakes": [
+    {
+      "workspace_id": "ws_castillo_personal",
+      "current_age": 34,
+      "target_retirement_age": 65,
+      "annual_retirement_spending": null,
+      "retirement_assets_total": "18400.00",
+      "retirement_assets_as_of": "2026-09-30",
+      "annual_contributions": null,
+      "expected_pension_annual": null,
+      "social_security_estimate_annual": null,
+      "social_security_estimate_source": null,
+      "life_span_range": null,
+      "states": {
+        "current_age": "USER_REPORTED",
+        "target_retirement_age": "ASSUMED",
+        "annual_retirement_spending": "MISSING",
+        "retirement_assets_total": "STALE",
+        "annual_contributions": "MISSING",
+        "expected_pension_annual": "MISSING",
+        "social_security_estimate_annual": "MISSING",
+        "life_span_range": "MISSING"
+      },
+      "updated_at": "2026-11-01T12:00:00Z"
+    }
+  ],
+  "personal_snapshots": [],
+  "personal_calc_runs": [],
+  "user_decisions": [],
+  "ai_runs": [],
+  "ai_feedback": []
 }

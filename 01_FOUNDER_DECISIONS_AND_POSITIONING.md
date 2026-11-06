@@ -1,4 +1,6 @@
 # SageSpan V3 — Founder Decision Record and Market Position
+> **SUPERSEDED (2026-11-05 founder decision, recorded 2026-11-06).** This V3 document states a **B2B-only** direction. That market decision is superseded by **SageSpan V5: one platform serving B2C individuals/households AND B2B advisors/RIA firms** — see `docs/product/SAGESPAN_V5_MASTER_SOURCE_OF_TRUTH.md` and `CLAUDE.md`. V3's assurance design, financial-rule framework and security requirements remain in force where V5 preserves them. Kept unchanged below as history.
+
 **Effective baseline:** November 5, 2026. **Project:** SageSpan (provisional working name).
 
 ## Executive decision matrix

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     template: `%s | ${brand.name}`,
   },
   description:
-    "Independent review of retirement plans produced in other planning software: reconcile source facts, independently check supported rules, classify differences and keep a documented supervision record.",
+    "SageSpan helps individuals and households make clear, realistic money and retirement decisions, and gives advisory firms independent, documented checks of the plans they rely on. AI explains; deterministic engines calculate; people decide.",
   robots: { index: false, follow: false },
 };
 

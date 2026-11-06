@@ -11,16 +11,24 @@ from fastapi.responses import JSONResponse
 from . import ENGINE_NAME, ENGINE_VERSION
 from .auth import OrgContext, require_service_auth
 from .config import load_settings
+from .financial.methods import METHODOLOGY_SETS
+from .financial.personal_receipt import run_debt_paths, run_personal_clarity
 from .financial.receipt import run_rmd_check
 from .financial.rules import ALL_RULE_SETS, get_rule_set
 from .schemas import ErrorResponse, HealthResponse, RmdCheckRequest, RmdCheckResponse, RuleSetListResponse, RuleSetRef
+from .schemas_personal import DebtPathsRequest, DebtPathsResponse, MethodSetListResponse, PersonalClarityRequest, PersonalClarityResponse
 
 log = logging.getLogger("sagespan.calculator")
 
 DESCRIPTION = """
-Deterministic, Decimal-safe retirement rule checks with versioned rule sets and
-traceable receipts. P0 scope: lifetime RMD for living owners of non-inherited
-traditional-family IRAs using the Uniform Lifetime Table.
+Deterministic, Decimal-safe financial engines with versioned rule/methodology
+sets and traceable receipts.
+
+* Assurance (B2B): lifetime RMD check for living owners of non-inherited
+  traditional-family IRAs using the Uniform Lifetime Table.
+* Personal (B2C, V5): descriptive cash-flow baseline and illustrative debt
+  payoff path comparison on user-reported inputs. Descriptive arithmetic only;
+  never advice, never a verification of the inputs.
 
 Tenant context is supplied by the trusted web server via `X-SageSpan-Org-Id`;
 request bodies never carry `org_id`. No client data is retained by this service.
@@ -43,6 +51,7 @@ app = FastAPI(
     openapi_tags=[
         {"name": "checks", "description": "Independent rule checks returning traceable receipts."},
         {"name": "rules", "description": "Versioned, effective-dated rule registry."},
+        {"name": "personal", "description": "Personal (B2C) deterministic engines: cash-flow baseline and debt payoff paths. Descriptive, receipted, not advice."},
         {"name": "system", "description": "Health and version."},
     ],
 )
@@ -104,3 +113,36 @@ async def check_rmd(body: RmdCheckRequest, ctx: OrgContext = Depends(require_ser
     imported plan value is supplied, includes a discrepancy classification.
     """
     return run_rmd_check(body, org_id=ctx.org_id)
+
+
+@app.get("/v1/methods", response_model=MethodSetListResponse, tags=["personal"], responses={401: ERROR_RESPONSES[401]})
+async def list_methods(_: OrgContext = Depends(require_service_auth)) -> MethodSetListResponse:
+    """Versioned methodology sets used by the Personal engines (separate registry from regulatory rule sets)."""
+    return MethodSetListResponse(method_sets=[RuleSetRef(**m.ref()) for m in METHODOLOGY_SETS], engine_name=ENGINE_NAME, engine_version=ENGINE_VERSION)
+
+
+@app.post(
+    "/v1/personal/clarity",
+    response_model=PersonalClarityResponse,
+    tags=["personal"],
+    responses={400: ERROR_RESPONSES[400], 401: ERROR_RESPONSES[401], 422: ERROR_RESPONSES[422]},
+)
+async def personal_clarity(body: PersonalClarityRequest, ctx: OrgContext = Depends(require_service_auth)) -> PersonalClarityResponse:
+    """Personal cash-flow baseline: income statistics, commitments, margin, buffer, dated 30/60/90-day outlook, flags and data quality.
+
+    Descriptive arithmetic on user-reported inputs with a receipt citing
+    `personal.cashflow_baseline`. INSUFFICIENT_DATA is returned, not a guess,
+    when income, expenses or cash balances are absent.
+    """
+    return run_personal_clarity(body, org_id=ctx.org_id)
+
+
+@app.post(
+    "/v1/personal/debt-paths",
+    response_model=DebtPathsResponse,
+    tags=["personal"],
+    responses={400: ERROR_RESPONSES[400], 401: ERROR_RESPONSES[401], 422: ERROR_RESPONSES[422]},
+)
+async def personal_debt_paths(body: DebtPathsRequest, ctx: OrgContext = Depends(require_service_auth)) -> DebtPathsResponse:
+    """Compare debt payoff orderings (minimums only, avalanche, snowball, hybrid) on identical inputs under a fixed monthly budget and the user's cash floor."""
+    return run_debt_paths(body, org_id=ctx.org_id)

@@ -1,7 +1,7 @@
 import "server-only";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { DataState } from "@sagespan/contracts";
+import { DEMO_STATE_VERSION, type DataState } from "@sagespan/contracts";
 import { env } from "@/config/env";
 import { loadSeed } from "./seed";
 import { seedAuditTrail } from "./audit";
@@ -27,7 +27,11 @@ export class FileStore {
       return seeded;
     }
     const raw = readFileSync(this.filePath, "utf8");
-    return JSON.parse(raw) as DataState;
+    const parsed = JSON.parse(raw) as Partial<DataState>;
+    // An older demo-state file (pre-V5) lacks the workspace/personal/AI collections. It holds only
+    // synthetic data, so the honest move is to reseed rather than patch shapes at read time.
+    if (parsed.state_version !== DEMO_STATE_VERSION) return this.seed();
+    return parsed as DataState;
   }
 
   write(state: DataState): void {

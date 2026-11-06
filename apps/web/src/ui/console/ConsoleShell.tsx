@@ -1,15 +1,22 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ClipboardList, FlaskConical, Settings, ShieldCheck } from "lucide-react";
+import { Bot, Calculator, ClipboardList, FileSearch, FlaskConical, LayoutTemplate, Settings, ShieldCheck, Stamp, Users } from "lucide-react";
 import type { Persona } from "@/auth/persona";
 import type { Actor } from "@/auth/actor";
 import { brand, SYNTHETIC_BANNER } from "@/config/brand";
 import { PersonaSwitcher } from "./PersonaSwitcher";
 
 export function ConsoleShell({ actor, personas, orgName, children, basePath = "/demo/app" }: { actor: Actor; personas: Persona[]; orgName: string; children: ReactNode; basePath?: string }) {
+  // V5 firm navigation (blueprint §7.2). Items marked proposed open an honest status page, not a mock-up.
   const nav = [
     { href: `${basePath}/reviews`, label: "Review queue", icon: ClipboardList },
-    { href: `${basePath}/settings`, label: "Settings", icon: Settings },
+    { href: `${basePath}/clients`, label: "Clients", icon: Users },
+    { href: `${basePath}/imports`, label: "Imports & evidence", icon: FileSearch },
+    { href: `${basePath}/checks`, label: "Checks", icon: Calculator },
+    { href: `${basePath}/planning-studio`, label: "Planning studio", icon: LayoutTemplate },
+    { href: `${basePath}/ai-review`, label: "AI plan review", icon: Bot },
+    { href: `${basePath}/approvals`, label: "Reviews & approvals", icon: Stamp },
+    { href: `${basePath}/settings`, label: "Firm settings", icon: Settings },
   ];
   return (
     <div className="min-h-screen bg-canvas">
@@ -25,7 +32,7 @@ export function ConsoleShell({ actor, personas, orgName, children, basePath = "/
             </span>
             <span>
               <span className="block font-heading text-base font-bold leading-tight text-ink">{brand.name}</span>
-              <span className="block text-[11px] text-ink-faint">Assurance console · demo</span>
+              <span className="block text-[11px] text-ink-faint">Advisor &amp; Assurance · demo</span>
             </span>
           </Link>
           <nav className="mt-8 space-y-1" aria-label="Console">
@@ -46,14 +53,13 @@ export function ConsoleShell({ actor, personas, orgName, children, basePath = "/
         </aside>
         <div className="min-w-0 flex-1">
           <header className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/90 px-4 py-3 backdrop-blur md:px-8">
-            <div className="flex items-center gap-3 md:hidden">
-              <Link href={`${basePath}/reviews`} className="text-sm font-semibold text-navy">
-                Review queue
-              </Link>
-              <Link href={`${basePath}/settings`} className="text-sm font-semibold text-navy">
-                Settings
-              </Link>
-            </div>
+            <nav className="flex gap-3 overflow-x-auto md:hidden" aria-label="Console mobile">
+              {nav.map((n) => (
+                <Link key={n.href} href={n.href} className="whitespace-nowrap text-sm font-semibold text-navy">
+                  {n.label}
+                </Link>
+              ))}
+            </nav>
             <div className="ml-auto flex items-center gap-3">
               <span className="hidden text-xs text-ink-muted sm:inline">Simulated reviewer:</span>
               <PersonaSwitcher personas={personas} current={actor.user_id} />

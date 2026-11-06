@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Alert, Card, SectionHeading } from "@/ui/primitives";
 
-export const metadata: Metadata = { title: "Security design approach" };
+export const metadata: Metadata = { title: "Security & Trust" };
 
 const designed = [
   { t: "Tenant isolation in the database", d: "Every business table carries org_id with composite foreign keys that prevent cross-organisation references. Row-level security policies gate reads and writes through authenticated memberships; the server never trusts a client-supplied organisation id." },
@@ -10,7 +10,9 @@ const designed = [
   { t: "Separate calculation service", d: "Retirement math runs in a separately deployable service authenticated with a server-held secret. Tenant context travels in a server-set header; request bodies that include org_id are rejected." },
   { t: "Data minimisation", d: "Audit logs carry identifiers and digests, not raw financial values or PII. Validation errors return field paths, never submitted values. No account numbers, SSNs or tax returns are collected in the prototype." },
   { t: "Untrusted imports", d: "Only the documented CSV/JSON contract is parsed, with size, row, column and type limits; CSV parsing is a strict RFC 4180 reader; exports neutralise spreadsheet formula injection." },
-  { t: "No AI in the numbers", d: "No language model computes, approves or invents facts. AI-assisted mapping or summarisation, if added later, would consume typed tool outputs with source links and leave facts unconfirmed until a person reviews them." },
+  { t: "No AI in the numbers", d: "No language model computes, approves or invents facts. The AI review layer reads only the authorised household or workspace through a server-owned resolver, may call allowlisted read-only tools, and its output is validated: unresolvable citations, forged locators, uncited amounts and any status other than draft are rejected before anything is shown. A 28-case evaluation suite replays on every model or prompt change." },
+  { t: "Separate workspaces for people and firms", d: "An individual's SageSpan Personal workspace is never readable by a firm because that person is a client, nor by a household member because they share an address. Access crosses a workspace boundary only through an explicit, purpose-limited, revocable grant, checked on the server for every read and every AI tool call." },
+  { t: "Decision authority tiers", d: "Education (0), low-risk guidance (1) and material household choices (2) are enabled with user confirmation. Regulated personalised advice (3) and money movement (4) are disabled in code regardless of inputs, pending counsel, licensing and model validation." },
 ];
 
 const notClaimed = [
@@ -24,7 +26,7 @@ const notClaimed = [
 export default function SecurityPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-14 md:px-6">
-      <SectionHeading eyebrow="Security" title="Design approach, not a certification">
+      <SectionHeading eyebrow="Security & trust" title="Design approach, not a certification">
         This page describes how the system is designed and what this synthetic build implements. It makes no compliance claims.
       </SectionHeading>
       <Alert tone="amber" title="Prototype status" className="mb-8">

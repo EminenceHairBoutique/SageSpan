@@ -1,4 +1,6 @@
 # SAGESPAN — MASTER SOURCE OF TRUTH (V3)
+> **SUPERSEDED (2026-11-05 founder decision, recorded 2026-11-06).** This V3 document states a **B2B-only** direction. That market decision is superseded by **SageSpan V5: one platform serving B2C individuals/households AND B2B advisors/RIA firms** — see `docs/product/SAGESPAN_V5_MASTER_SOURCE_OF_TRUTH.md` and `CLAUDE.md`. V3's assurance design, financial-rule framework and security requirements remain in force where V5 preserves them. Kept unchanged below as history.
+
 **Date:** November 5, 2026  
 **Project status:** Provisional brand; approved prototype direction, unvalidated market and price hypotheses.  
 **How to use:** Upload this **one file** to Claude Project Context. Paste the separate `06_CLAUDE_PROJECT_INSTRUCTIONS.md` into the project Instructions field. To start code implementation, paste `08_FABLE_5_1_BUILD_KICKOFF.md` in Claude Code. Avoid uploading this master and all individual V3 documents together; they duplicate content.

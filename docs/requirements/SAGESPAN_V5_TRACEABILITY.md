@@ -97,3 +97,19 @@
 ## Required interpretation
 
 This matrix is **traceability, not a certification**. It does not mean every possible line of historical documentation was repeated verbatim; it preserves requirements material to safety, correctness, product scope and implementation, with explicit release gating. If a newly inspected repository implementation or professional review contradicts a row, capture it as a tracked decision with evidence, version and owner; never silently mark it complete. The V5 Claude Code prompt contains the operative engineering instructions for implementation, testing and honest reporting.
+
+## E. V5 session 1 evidence (2026-11-06, `feat/v5-dual-market`)
+
+| Requirement | Evidence in tree | Suite |
+|---|---|---|
+| DUAL-000 docs | `docs/product/FEATURE_STATUS_MATRIX.md`, `docs/architecture/DUAL_WORKSPACE_ADR.md`, `docs/ai/AI_EVAL_MATRIX.md`, `docs/legal/FEATURE_RELEASE_GATES.md`, `docs/finance/RULE_VERIFICATION_AND_MODEL_REGISTRY.md` | — |
+| DUAL-001 dual entry + shells | `apps/web/src/ui/marketing/SiteNav.tsx`, `app/(marketing)/{personal,retirement,firms,how-it-works}`, `app/demo/personal/*`, `ui/console/ConsoleShell.tsx` | `e2e/dual-market.spec.ts` (both paths, firm nav intact, mobile) |
+| PERS-001 manual intake + baseline + next steps | `services/calculator/app/financial/cashflow.py`, `packages/contracts/src/decision-policy.ts`, `apps/web/src/domain/personal/*` | `test_personal_clarity.py` (22), `v5-contracts.test.ts`, `personal.test.ts` (11), e2e |
+| PERS-002 (first slice) debt/budget scenario cards | `app/financial/debt.py`, `/demo/personal/scenarios` | `test_debt_paths.py` (9), e2e |
+| Shared planning, separate workspaces and permissions | `packages/contracts/src/workspace.ts` (`actorCanReadDomain`), `auth/personal-actor.ts`, `domain/personal/queries.ts` | `v5-contracts.test.ts`, `personal.test.ts`, AI-E11/E12/E25 |
+| AI-000 contracts, mock, 28 cases | `packages/contracts/src/ai/*`, `apps/web/src/ai/{provider,evals}` | `ai-evals.test.ts` (30) |
+| AI-001 orchestrator, read-only tools, validator, draft persistence, feedback | `apps/web/src/ai/{evidence-resolver,tools,result-validator,review-orchestrator}.ts`, `domain/ai/feedback.ts` | `ai-evals.test.ts`, e2e firm + personal |
+| Trusted calculator invocation vs matching hash (personal analogue of S-04) | `domain/personal/runs.ts` `verifyPersonalReceipt` | `personal.test.ts` |
+| Investment education now, recommendations gated | `/demo/personal/learn`, `ENABLED_TIERS = [0,1,2]` | `v5-contracts.test.ts` |
+| Consumer "stress reduction" without clinical claims | copy review across `/demo/personal/*` and marketing | manual |
+| S-01–S-10 / N-01–N-05 | untouched; migrations 0001–0006 unchanged (`--check` green) | SQL suites **not rerun** this session |
