@@ -4,6 +4,28 @@ import { accountLabel, personLabel } from "@/domain/queries";
 import { ReceiptButton } from "@/ui/ReceiptDialog";
 import { Alert, Chip, ClassificationChip, KeyValue, Mono, ResultChip, Td, Th } from "@/ui/primitives";
 
+
+/**
+ * Coverage-status wording shown to reviewers. SUPPORTED_VERIFIED means the
+ * published rule set has internal golden-test coverage; it is NOT an external
+ * attestation, so the label says so. A rule set may be called "verified" only
+ * once a qualified reviewer has signed docs/RULE_VERIFICATION_LOG.md.
+ */
+const COVERAGE_LABEL: Record<string, string> = {
+  SUPPORTED_VERIFIED: "supported · internal tests",
+  SUPPORTED_UNVALIDATED: "supported · unvalidated",
+  NOT_COMPARABLE: "not comparable",
+  INDETERMINATE: "indeterminate",
+  UNSUPPORTED: "unsupported",
+};
+const COVERAGE_TITLE: Record<string, string> = {
+  SUPPORTED_VERIFIED: "The rule set has internal golden-test coverage. This is not an external or professional verification.",
+  SUPPORTED_UNVALIDATED: "The rule set is supported but its parameters have not been validated against a primary source.",
+  NOT_COMPARABLE: "The imported figure and the computed figure are not comparable.",
+  INDETERMINATE: "Required inputs are missing; no figure was computed.",
+  UNSUPPORTED: "The case is outside the engine's declared scope; no figure was computed.",
+};
+
 export function CheckRunCard({ run, discrepancy, b }: { run: CheckRun; discrepancy: Discrepancy | null; b: HouseholdBundle }) {
   const r = run.response;
   const acct = accountLabel(b, run.request_payload.account.account_ref);
@@ -23,7 +45,11 @@ export function CheckRunCard({ run, discrepancy, b }: { run: CheckRun; discrepan
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ResultChip status={run.run_status} />
-          {run.coverage_status && <Chip tone={run.coverage_status === "SUPPORTED_VERIFIED" ? "teal" : "amber"}>{run.coverage_status.toLowerCase().replace(/_/g, " ")}</Chip>}
+          {run.coverage_status && (
+            <Chip tone={run.coverage_status === "SUPPORTED_VERIFIED" ? "teal" : "amber"} title={COVERAGE_TITLE[run.coverage_status]}>
+              {COVERAGE_LABEL[run.coverage_status]}
+            </Chip>
+          )}
           {run.request_hash_verified !== null && <Chip tone={run.request_hash_verified ? "teal" : "conflict"}>{run.request_hash_verified ? "request hash verified" : "request hash MISMATCH"}</Chip>}
         </div>
       </header>
