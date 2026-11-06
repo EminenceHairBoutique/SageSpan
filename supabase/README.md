@@ -18,10 +18,24 @@ supabase test db        # runs tests/*.test.sql with pgTAP
 
 ## Execution status
 
-These migrations and tests have **not been executed** in this build: the
-Supabase local stack needs Docker, which was not running on the build machine.
-They are syntax-checked only where noted in `docs/SECURITY_AND_LIMITS.md`.
-Do not describe RLS as "proved" until `supabase test db` passes.
+Executed on 2026-11-05 against a real PostgreSQL 16 cluster via
+`python supabase/tests/run_sql_tests.py`: all four migrations applied and all
+four test files passed (45 assertions: tenant isolation 12, roles and workflow
+16, immutability and hash chain 9, constraints 8). The same runner is the
+`database` job in `.github/workflows/ci.yml`.
+
+The runner provides two shims for plain Postgres (never applied on Supabase):
+`tests/shim_supabase.sql` (roles `anon`/`authenticated`/`service_role`,
+`auth.users`, `auth.uid()` reading `request.jwt.claims`) and
+`tests/shim_pgtap.sql` (`plan`, `is`, `lives_ok`, `throws_ok`, `results_eq`,
+`finish`; failures raise instead of printing `not ok`). When the real pgTAP
+extension is available the shim is skipped. `supabase test db` on the local
+stack remains the authoritative run before any deployment.
+
+Two test-side fixes were needed to execute: the `tests` schema is now granted
+to `anon`/`authenticated` (the files switch role mid-run and call the
+helpers again), and the anon assertion in `001` expects `42501`, since anon
+has no usage on the `app` schema at all.
 
 ## Notes
 
