@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Play, Send } from "lucide-react";
-import { can } from "@sagespan/contracts";
+import { can, latestCheckRuns } from "@sagespan/contracts";
 import { getDemoActor } from "@/auth/actor";
 import { householdBundle, householdOrNull, profileName } from "@/domain/queries";
 import { getStore } from "@/domain/store";
@@ -8,6 +8,7 @@ import { calcHealth } from "@/provenance/calc-client";
 import { runChecksAction, sendToReviewAction } from "@/server/actions";
 import { ActionForm } from "@/ui/ActionForm";
 import { CheckRunCard } from "@/ui/console/CheckRunCard";
+import { CoveragePanel } from "@/ui/console/CoveragePanel";
 import { Alert, Card, EmptyState, KeyValue, Mono } from "@/ui/primitives";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export default async function ChecksPage({ params }: { params: Promise<{ id: str
   const snap = b.currentSnapshot;
   const status = b.household.workflow_status;
   const runsForSnapshot = snap ? b.checkRuns.filter((r) => r.snapshot_id === snap.id) : [];
+  const latestIds = new Set(snap ? latestCheckRuns(b.checkRuns, snap.id).latest.map((r) => r.id) : []);
   const canRun = can(actor.role, "check.run") && (status === "FROZEN" || status === "CHECK_COMPLETE");
   const runReason = !can(actor.role, "check.run") ? `Role ${actor.role} cannot run checks.` : status !== "FROZEN" && status !== "CHECK_COMPLETE" ? `Household is ${status.replace(/_/g, " ").toLowerCase()}; freeze a snapshot first.` : undefined;
 
@@ -44,7 +46,7 @@ export default async function ChecksPage({ params }: { params: Promise<{ id: str
             <EmptyState title="No frozen snapshot yet.">Resolve blockers on the Overview, then freeze the snapshot.</EmptyState>
           )}
           <div className="mt-4 flex flex-wrap gap-3">
-            <ActionForm action={runChecksAction} hidden={{ household_id: id }} submitLabel={<><Play size={14} aria-hidden /> Run independent RMD check</>} pendingLabel="Calling calculation service…" disabled={!canRun} disabledReason={runReason} inline />
+            <ActionForm action={runChecksAction} hidden={{ household_id: id }} submitLabel={<><Play size={14} aria-hidden /> {runsForSnapshot.length ? "Re-run independent RMD check" : "Run independent RMD check"}</>} pendingLabel="Calling calculation service…" disabled={!canRun} disabledReason={runReason} inline />
             <ActionForm action={sendToReviewAction} hidden={{ household_id: id }} submitLabel={<><Send size={14} aria-hidden /> Send to review</>} disabled={status !== "CHECK_COMPLETE"} disabledReason={status !== "CHECK_COMPLETE" ? "Available once a check has completed." : undefined} successMessage="Sent to review." variant="secondary" inline />
           </div>
         </Card>
@@ -60,10 +62,18 @@ export default async function ChecksPage({ params }: { params: Promise<{ id: str
           )}
         </Card>
       </div>
+      {snap && runsForSnapshot.length > 0 && (
+        <Card title="Coverage on this snapshot" subtitle="Latest attempt per account. A re-run after a failure recovers; a failure after a success blocks. Earlier attempts are kept, never deleted.">
+          <CoveragePanel b={b} />
+        </Card>
+      )}
       {runsForSnapshot.length > 0 ? (
         <div className="space-y-5">
           {[...runsForSnapshot].reverse().map((run) => (
-            <CheckRunCard key={run.id} run={run} discrepancy={b.discrepancies.find((d) => d.check_run_id === run.id) ?? null} b={b} />
+            <div key={run.id} className={latestIds.has(run.id) ? undefined : "opacity-70"} data-latest-attempt={latestIds.has(run.id) ? "true" : "false"}>
+              {!latestIds.has(run.id) && <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">Earlier attempt — kept as history, not evaluated for approval</p>}
+              <CheckRunCard run={run} discrepancy={b.discrepancies.find((d) => d.check_run_id === run.id) ?? null} b={b} />
+            </div>
           ))}
         </div>
       ) : (

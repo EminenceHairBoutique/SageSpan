@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { CheckCheck, MessageSquare, Stamp } from "lucide-react";
-import { FACT_FIELDS, can, canApprove, formatMoney } from "@sagespan/contracts";
+import { FACT_FIELDS, approvalReadiness, can, canApprove, coverageSummary, formatMoney, latestCheckRuns } from "@sagespan/contracts";
+import { CoveragePanel, OutcomeChip } from "@/ui/console/CoveragePanel";
 import { getDemoActor } from "@/auth/actor";
 import { factDisplayValue, householdBundle, householdOrNull, profileName, subjectLabel } from "@/domain/queries";
 import { getStore } from "@/domain/store";
@@ -19,13 +20,15 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const b = householdBundle(state, actor.org_id, id);
   const status = b.household.workflow_status;
   const snap = b.currentSnapshot;
-  const runIds = new Set(b.checkRuns.filter((r) => r.snapshot_id === snap?.id).map((r) => r.id));
+  // Discrepancies on the LATEST attempts only (N-02); earlier attempts' discrepancies are history.
+  const runIds = new Set(snap ? latestCheckRuns(b.checkRuns, snap.id).latest.map((r) => r.id) : []);
   const discrepancies = b.discrepancies.filter((d) => runIds.has(d.check_run_id));
   const openDisc = discrepancies.filter((d) => d.status === "OPEN");
+  const readiness = snap ? approvalReadiness(coverageSummary(snap, b.checkRuns, b.discrepancies)) : null;
   const policies = b.org.policies;
   const isApprover = canApprove(actor.role, policies.approver_roles);
   const sodConflict = policies.separation_of_duties && snap ? [snap.created_by === actor.user_id ? "froze the snapshot" : null, b.checkRuns.some((r) => r.snapshot_id === snap.id && r.executed_by === actor.user_id) ? "ran the check" : null].filter(Boolean) : [];
-  const approveDisabledReason = !isApprover ? `Approval requires ${policies.approver_roles.join(" or ")}; you are ${actor.role}.` : status !== "REVIEWED" ? `Household must be REVIEWED first (currently ${status.replace(/_/g, " ").toLowerCase()}).` : openDisc.length ? `${openDisc.length} discrepancy(ies) need a disposition.` : sodConflict.length ? `Separation of duties: you ${sodConflict.join(" and ")}.` : undefined;
+  const approveDisabledReason = !isApprover ? `Approval requires ${policies.approver_roles.join(" or ")}; you are ${actor.role}.` : status !== "REVIEWED" ? `Household must be REVIEWED first (currently ${status.replace(/_/g, " ").toLowerCase()}).` : readiness && !readiness.ready ? readiness.message : openDisc.length ? `${openDisc.length} discrepancy(ies) need a disposition.` : sodConflict.length ? `Separation of duties: you ${sodConflict.join(" and ")}.` : undefined;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
@@ -161,7 +164,12 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
       </div>
 
       <div className="space-y-6">
-        <Card title="Review and approval" subtitle="Arithmetic PASS is not approval. Approval records identity, role, rationale and a conflict attestation.">
+        {snap && (
+          <Card title="What approval would mean" subtitle="Derived from the latest check attempt per account in the frozen snapshot; the approver does not choose the label.">
+            <CoveragePanel b={b} />
+          </Card>
+        )}
+        <Card title="Review and approval" subtitle="Arithmetic PASS is not approval. Approval records identity, role, rationale, a conflict attestation and a typed coverage outcome.">
           <Alert tone="slate" className="mb-4">
             Firm policy: approvers {policies.approver_roles.join(", ")} · separation of duties {policies.separation_of_duties ? "on" : "off"} · nonmaterial exceptions {policies.allow_nonmaterial_exceptions ? "allowed" : "not allowed"}.
           </Alert>
@@ -191,6 +199,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
                 <li key={r.id} className="rounded-lg border border-line p-2.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <Chip tone={r.decision === "APPROVED" ? "teal" : r.decision === "REJECTED" ? "conflict" : "slate"}>{r.decision.toLowerCase()}</Chip>
+                    {r.decision === "APPROVED" && <OutcomeChip outcome={r.coverage_outcome} />}
                     <span className="font-medium">{profileName(state, r.reviewer_user_id)}</span>
                     <span className="text-xs text-ink-muted">
                       {r.reviewer_role} · {r.actor_type.toLowerCase().replace(/_/g, " ")} · {r.reviewed_at.replace("T", " ").slice(0, 16)} UTC

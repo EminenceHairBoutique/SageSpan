@@ -219,8 +219,8 @@ select tests.clear_auth();
 select is((select count(*) from information_schema.routine_privileges where specific_schema = 'app' and grantee = 'PUBLIC'), 0::bigint, 'N-04 PUBLIC holds no EXECUTE in schema app');
 select results_eq(
   $$ select distinct routine_name::text from information_schema.routine_privileges where specific_schema = 'app' and grantee = 'authenticated' order by 1 $$,
-  $$ values ('build_snapshot_payload'), ('can_transition'), ('canonical_json'), ('confirm_fact'), ('current_role_in'), ('current_user_id'), ('disposition_discrepancy'), ('document_exception'), ('freeze_snapshot'), ('has_role'), ('is_member'), ('member_orgs'), ('record_check_run'), ('record_review'), ('resolve_conflict'), ('send_to_review'), ('set_reconciliation_status'), ('sha256_canonical'), ('verify_audit_chain') $$,
-  'N-04 authenticated may execute exactly the sanctioned entry points');
+  $$ values ('build_snapshot_payload'), ('can_transition'), ('canonical_json'), ('confirm_fact'), ('coverage_summary'), ('current_role_in'), ('current_user_id'), ('disposition_discrepancy'), ('document_exception'), ('freeze_snapshot'), ('has_role'), ('is_member'), ('latest_check_runs'), ('member_orgs'), ('policy_record'), ('record_check_run'), ('record_review'), ('resolve_conflict'), ('send_to_review'), ('set_reconciliation_status'), ('sha256_canonical'), ('verify_audit_chain') $$,
+  'N-04 authenticated may execute exactly the sanctioned entry points (inventory as of migration 0007)');
 select is((select count(*) from information_schema.routine_privileges where specific_schema = 'app' and grantee = 'authenticated' and routine_name in ('transition_household', 'append_audit', 'assert_role')), 0::bigint, 'N-04 internal functions are not executable by authenticated');
 
 select * from finish();

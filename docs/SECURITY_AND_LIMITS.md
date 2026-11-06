@@ -48,10 +48,19 @@ fail if it regressed. "—" means the layer is not the control for that row.
 | N-04 privileges | revoke-all then explicit grants, re-asserted at the end of 0005 | — | — | — | — | SQL 005 N-04 inventory; `supabase/tests/probes/advisor_equivalent.sql` |
 | N-05 approval matrix | — | — | — | `record_review` policy check (`NOT_AN_APPROVER`, 42501) | `approvalDecision` / `canApprove` (UI + domain) | contracts `trust-boundaries`; web `trust-boundaries` N-05; SQL 005 N-05 |
 
-Out of scope for PR-001 and still open: S-06 (approval with insufficient
-coverage), S-07 (check request not derived solely from the frozen snapshot;
-live tolerance policy is read at check time) and N-02 (a transient ERROR run
-blocks approval permanently). They are PR-002.
+PR-002 (migration `0007_coverage_and_reproducibility.sql`, branch
+`feat/pr-002-coverage`) closes the three findings PR-001 left open:
+
+| Finding | Privileges | Function / trigger | Web tier | Tests |
+|---|---|---|---|---|
+| S-06 coverage ≠ approval | `reviews` gains `coverage_outcome` (enum `app.review_outcome`) + `coverage_summary`; check constraint ties them to `decision = 'APPROVED'` | `record_review` derives the outcome from `app.coverage_summary()`; the approver cannot supply it | `approveReview` records `approvalReadiness(coverageSummary(...))`; packet title/scope from `packetTitle` | SQL 007 E4/E5/E6; web `pr-002-coverage` S-06; contracts coverage helpers; e2e Okafor |
+| S-07 snapshot-only requests | — | `build_snapshot_payload` emits v2 (policy record with `policy_sha256`, vendor label, account classification); `freeze_snapshot` verifies all three against the organisation's rows and refuses v1 | `buildRmdRequest(snapshot, accountId)` reads only the payload; `policyRecord()` hashes the policy at freeze | SQL 007 E1 (live policy/label edit after freeze leaves the frozen payload and hash unchanged); web `pr-002-coverage` S-07 |
+| N-02 latest attempt | — | `app.latest_check_runs()`; `record_check_run` stamps `clock_timestamp()` and advances to CHECK_COMPLETE only when every payload account's latest attempt is clean; `record_review` refuses `CHECK_FAILED_LATEST` | `latestCheckRuns()` shared by approval, packet, UI and the AI evidence resolver | SQL 007 E2 (ERROR→PASS approvable), E3 (PASS→ERROR refused); web `pr-002-coverage` N-02 |
+
+The S-04 guard that refuses approval when any non-ERROR run lacks a verified
+receipt is kept unchanged on both tiers. The state machine has no
+CHECK_COMPLETE → FROZEN edge, so a failed retry after a success does not rewind
+the workflow status; approval evaluates the same latest attempts and refuses.
 
 ## What is deliberately not claimed
 

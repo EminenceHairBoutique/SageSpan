@@ -35,17 +35,34 @@ export function addPatelCheckRun(state: DataState, opts: { runId?: string; statu
       created_by_role: "ANALYST",
       created_at: "2026-11-05T09:00:00Z",
       status: "FROZEN",
-      canonical_payload: { snapshot_version: "sagespan.snapshot.v1", household_id: "hh_patel", tax_year: 2026, revision: 2, facts: [], source_documents: [], ownership: [], beneficiaries: [], assumptions: [], exceptions: [], imported_plan_values: [] },
+      canonical_payload: {
+        snapshot_version: "sagespan.snapshot.v2",
+        household_id: "hh_patel",
+        tax_year: 2026,
+        revision: 2,
+        policy: { separation_of_duties: true, allow_nonmaterial_exceptions: true, approver_roles: ["COMPLIANCE"], tolerance: { absolute: "1.00", relative: "0.001" }, policy_sha256: "3".repeat(64) },
+        household: { source_tool_label: "Planning tool export (synthetic)" },
+        accounts: [{ id: opts.accountRef ?? patelRequest.account.account_ref, account_type: "TRADITIONAL_IRA", tax_character: "PRE_TAX" }],
+        facts: [],
+        source_documents: [],
+        ownership: [],
+        beneficiaries: [],
+        assumptions: [],
+        exceptions: [],
+        imported_plan_values: [],
+      },
     };
     state.snapshots.push(snapshot);
   }
+  const snap: Snapshot = snapshot;
+  if (opts.accountRef && !snap.canonical_payload.accounts.some((a) => a.id === opts.accountRef)) snap.canonical_payload.accounts.push({ id: opts.accountRef, account_type: "TRADITIONAL_IRA", tax_character: "PRE_TAX" });
   const request = structuredClone(patelRequest) as CheckRun["request_payload"];
   if (opts.accountRef) request.account.account_ref = opts.accountRef;
   const response = status === "PASS" ? (structuredClone(patelResponse) as CheckRun["response"]) : status === "ERROR" ? null : ({ ...structuredClone(patelResponse), result_status: status, coverage_status: status === "NOT_REQUIRED" ? "SUPPORTED_VERIFIED" : status, annual_rmd: null, discrepancy: null, events: [], unsupported_reasons: [{ code: opts.unsupportedCode ?? "INHERITED_ACCOUNT_UNSUPPORTED", message: "synthetic", rule_ref: null }] } as unknown as CheckRun["response"]);
   const run: CheckRun = {
     id: runId,
     org_id: "org_harborpoint",
-    snapshot_id: snapshot.id,
+    snapshot_id: snap.id,
     household_id: "hh_patel",
     check_type: "RMD_ANNUAL",
     engine_name: response ? "sagespan-calculator" : null,
@@ -68,7 +85,7 @@ export function addPatelCheckRun(state: DataState, opts: { runId?: string; statu
     discrepancy = { id: `disc_${runId}`, org_id: "org_harborpoint", check_run_id: runId, household_id: "hh_patel", imported_plan_value_id: "ipv_patel_rmd_2026", classification: "SOURCE_CONFLICT", comparable: true, computed_amount: "25098.04", imported_amount: "24000.00", delta_amount: "1098.04", tolerance_applied: "25.10", explanation: "synthetic", next_step: "synthetic", status: "OPEN", disposition: null };
     state.discrepancies.push(discrepancy);
   }
-  return { snapshot, run, discrepancy };
+  return { snapshot: snap, run, discrepancy };
 }
 
 /** Give Castillo a current personal snapshot and receipted clarity + debt runs from the committed fixtures (no service call). */

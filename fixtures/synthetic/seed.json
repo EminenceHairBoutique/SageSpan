@@ -1,5 +1,5 @@
 {
-  "state_version": "sagespan.demo-state.v3",
+  "state_version": "sagespan.demo-state.v4",
   "seeded_at": "2026-11-05T00:00:00Z",
   "mode": "DEMO_SYNTHETIC",
   "organizations": [

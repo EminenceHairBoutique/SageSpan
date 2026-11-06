@@ -1,5 +1,7 @@
-// Audit probes 2026-11-05 (see docs/audits/REPOSITORY_AUDIT_2026-11-05_v2.md). Each `it` asserts the CURRENT unsafe behaviour, so a passing probe = finding confirmed.
-// Excluded from Vitest on purpose (not *.test.ts). To reproduce: copy to audit-probes.test.ts, run `npx vitest run audit-probes`, then delete the copy. PR-001 inverts these into __tests__/trust-boundaries.test.ts.
+// Audit probes 2026-11-05 (see docs/audits/REPOSITORY_AUDIT_2026-11-05_v2.md). Each `it` asserts the unsafe behaviour AS OF THE AUDIT, so a passing probe = finding confirmed.
+// Excluded from Vitest on purpose (not *.test.ts). To reproduce: copy to audit-probes.test.ts, run `npx vitest run audit-probes`, then delete the copy.
+// PR-001 inverted S-04, N-01, N-05 into __tests__/trust-boundaries.test.ts; PR-002 inverted S-06, S-07 and N-02 into __tests__/pr-002-coverage.test.ts.
+// The S-06 / S-07 / N-02 probes below are kept verbatim as the historical record and are EXPECTED TO FAIL on the current code (the finding is fixed).
 import { describe, expect, it, vi } from "vitest";
 import type { Actor } from "@/auth/types";
 import { buildRmdRequest, runRmdChecks, sendToReview } from "@/domain/checks";
@@ -93,10 +95,10 @@ describe("audit probes (TS tier)", () => {
   it("S-07: the check request for a frozen snapshot changes when live (unfrozen) org policy changes", () => {
     const store = new MemoryStore(); const snap = frozen(store);
     const s1 = store.read(); const b1 = householdBundle(s1, "org_harborpoint", "hh_patel");
-    const r1 = JSON.stringify(buildRmdRequest(b1.org, b1, snap, b1.accounts[0]!.id));
+    const r1 = JSON.stringify(buildRmdRequest(snap, b1.accounts[0]!.id)); // PR-002 signature: snapshot only
     const s2 = store.read(); s2.organizations.find((o) => o.id === "org_harborpoint")!.policies.tolerance.absolute = "25.00";
     const b2 = householdBundle(s2, "org_harborpoint", "hh_patel");
-    expect(JSON.stringify(buildRmdRequest(b2.org, b2, snap, b2.accounts[0]!.id))).not.toBe(r1);
+    expect(JSON.stringify(buildRmdRequest(snap, b2.accounts[0]!.id))).not.toBe(r1); // fails after PR-002: the request is now constant
   });
   it("N-05: firm policy can name ADVISOR as approver, but the TS tier still refuses ADVISOR approval (SQL tier would allow it)", async () => {
     Object.assign(control, { fail: false, hashOk: true, status: "PASS" });

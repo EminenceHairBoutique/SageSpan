@@ -1,10 +1,10 @@
-import { assertCan, canonicalJson, priorYearEnd, type CheckRun, type DataState, type Discrepancy, type Organization, type RmdCheckRequest, type RuleSetRef, type Snapshot } from "@sagespan/contracts";
+import { assertCan, canonicalJson, coverageSummary, priorYearEnd, type CheckRun, type DataState, type Discrepancy, type RmdCheckRequest, type RuleSetRef, type Snapshot } from "@sagespan/contracts";
 import type { Actor } from "@/auth/types";
 import { CalcServiceError, callRmdCheck, fetchRuleSets, type RmdCheckResult } from "@/provenance/calc-client";
 import { appendAudit, sha256 } from "./audit";
 import { DomainError } from "./errors";
 import { newId, nowIso } from "./ids";
-import { householdBundle, requireHousehold, type HouseholdBundle } from "./queries";
+import { householdBundle, requireHousehold } from "./queries";
 import type { Store } from "./store";
 import { transitionHousehold } from "./workflow";
 
@@ -15,17 +15,21 @@ export const TRUSTED_ENGINE_NAME = "sagespan-calculator";
 
 /**
  * Build the calculation-service request for one account STRICTLY from the
- * frozen snapshot payload (never from live facts), so the receipt's
- * request_hash is reproducible from the snapshot alone.
+ * frozen snapshot payload (S-07): facts, ownership, beneficiaries, imported
+ * comparison, tolerance, vendor label and account classification all come from
+ * the payload, never from live organisation settings or household rows, so the
+ * receipt's request_hash is reproducible from the snapshot alone and a policy or
+ * label change after freeze cannot move it.
  */
-export function buildRmdRequest(org: Organization, b: HouseholdBundle, snapshot: Snapshot, accountId: string): RmdCheckRequest {
+export function buildRmdRequest(snapshot: Snapshot, accountId: string): RmdCheckRequest {
   const p = snapshot.canonical_payload;
+  if (p.snapshot_version !== "sagespan.snapshot.v2") throw new DomainError("SNAPSHOT_VERSION_UNSUPPORTED", `Snapshot payload ${String(p.snapshot_version)} predates PR-002; re-freeze to produce a v2 snapshot.`);
   const find = (subjectType: string, subjectId: string, key: string, asOf?: string) => p.facts.find((f) => f.subject_type === subjectType && f.subject_id === subjectId && f.field_key === key && (asOf ? f.as_of_date === asOf : true));
   const owners = p.ownership.filter((o) => o.account_id === accountId && !o.effective_to);
   if (owners.length !== 1) throw new DomainError("UNSUPPORTED_OWNERSHIP", `Account ${accountId} has ${owners.length} active owners; the RMD check supports exactly one.`);
   const ownerId = owners[0]!.person_id;
-  const account = b.accounts.find((a) => a.id === accountId);
-  if (!account) throw new DomainError("NOT_FOUND", "Account not found", 404);
+  const account = p.accounts.find((a) => a.id === accountId);
+  if (!account) throw new DomainError("NOT_FOUND", "Account not found in the frozen snapshot", 404);
   const ty = p.tax_year;
   const yearEnd = priorYearEnd(ty);
   const balance = find("ACCOUNT", accountId, "account.year_end_balance", yearEnd);
@@ -70,14 +74,14 @@ export function buildRmdRequest(org: Organization, b: HouseholdBundle, snapshot:
           amount: ipv.value_decimal,
           currency: ipv.currency,
           tax_year: ipv.tax_year ?? ty,
-          vendor_label: b.household.source_tool_label,
+          vendor_label: p.household.source_tool_label,
           calculation_scope: ipv.calculation_scope,
           balance_basis: ipv.balance_basis,
           declared_inputs: ipv.declared_inputs ?? null,
           assumptions: ipv.assumptions,
         }
       : null,
-    tolerance: { absolute: org.policies.tolerance.absolute, relative: org.policies.tolerance.relative },
+    tolerance: { absolute: p.policy.tolerance.absolute, relative: p.policy.tolerance.relative },
     snapshot_ref: { snapshot_id: snapshot.id, revision: snapshot.revision, input_hash: snapshot.content_sha256 },
   };
   return request;
@@ -116,7 +120,8 @@ export async function runRmdChecks(store: Store, actor: Actor, householdId: stri
   const b = householdBundle(state, actor.org_id, householdId);
   const snapshot = b.currentSnapshot;
   if (!snapshot) throw new DomainError("INVALID_STATE", "No frozen snapshot exists.");
-  const requests = b.accounts.map((a) => ({ accountId: a.id, request: buildRmdRequest(b.org, b, snapshot, a.id) }));
+  // Accounts come from the frozen payload too (an account added after freeze belongs to the next revision).
+  const requests = snapshot.canonical_payload.accounts.map((a) => ({ accountId: a.id, request: buildRmdRequest(snapshot, a.id) }));
 
   let registry: readonly RuleSetRef[] = [];
   let registryError: CalcServiceError | null = null;
@@ -200,7 +205,12 @@ export async function runRmdChecks(store: Store, actor: Actor, householdId: stri
       snap.rule_set_versions = { ...snap.rule_set_versions, ...run.rule_set_versions };
       appendAudit(s, { org_id: actor.org_id, actor_user_id: actor.user_id, actor_role: actor.role, actor_type: actor.actor_type, event_type: "CHECK_RUN_COMPLETED", entity_type: "check_run", entity_id: run.id, summary: `RMD check ${run.id} completed for account ${r.accountId}: ${resp.result_status} (${resp.coverage_status}); engine ${resp.receipt.engine_version}; receipt verified; run hash ${resp.receipt.run_hash.slice(0, 12)}…`, payload: { run_hash: resp.receipt.run_hash, request_hash: resp.receipt.request_hash, result_status: resp.result_status } });
     }
-    if (outcome.errors.length === 0 && hh2.workflow_status === "FROZEN") transitionHousehold(hh2, "CHECK_COMPLETE");
+    // N-02: the household advances when the LATEST attempt for every account in the snapshot is a non-ERROR run
+    // with a verified receipt — not merely when this batch had no failures. A failed retry after an earlier
+    // success leaves that account's latest attempt as ERROR; the workflow status is not rewound (the state
+    // machine has no CHECK_COMPLETE -> FROZEN edge) but approval evaluates the same latest attempts and refuses.
+    const cov = coverageSummary(snap, s.check_runs.filter((r) => r.org_id === actor.org_id && r.household_id === householdId), []);
+    if (cov.not_run === 0 && cov.error === 0 && hh2.workflow_status === "FROZEN") transitionHousehold(hh2, "CHECK_COMPLETE");
     hh2.updated_at = nowIso();
     return outcome;
   });

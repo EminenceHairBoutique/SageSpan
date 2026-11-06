@@ -3,6 +3,7 @@ import { getDemoActor } from "@/auth/actor";
 import { listHouseholds, profileName } from "@/domain/queries";
 import { getStore } from "@/domain/store";
 import { Alert, Card, Chip, EmptyState, Td, Th } from "@/ui/primitives";
+import { OutcomeChip } from "@/ui/console/CoveragePanel";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function ApprovalsPage() {
               <tr>
                 <Th>Household</Th>
                 <Th>Decision</Th>
+                <Th>Coverage outcome</Th>
                 <Th>Reviewer</Th>
                 <Th>When</Th>
                 <Th>Attestation</Th>
@@ -45,6 +47,10 @@ export default async function ApprovalsPage() {
                   </Td>
                   <Td>
                     <Chip tone={r.decision === "APPROVED" ? "teal" : r.decision === "REJECTED" ? "conflict" : "slate"}>{r.decision.toLowerCase()}</Chip>
+                  </Td>
+                  <Td>
+                    {r.decision === "APPROVED" ? <OutcomeChip outcome={r.coverage_outcome} /> : <span className="text-xs text-ink-faint">—</span>}
+                    {r.coverage_summary && <span className="ml-2 text-xs text-ink-muted">{r.coverage_summary.verified + r.coverage_summary.not_required}/{r.coverage_summary.accounts_in_scope} verified</span>}
                   </Td>
                   <Td>
                     {profileName(state, r.reviewer_user_id)} ({r.reviewer_role}) · {r.actor_type === "SIMULATED_REVIEWER" ? "simulated" : "user"}

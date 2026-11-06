@@ -1,4 +1,4 @@
-import { DISCREPANCY_LABELS, FACT_FIELDS, assertCan, assertTransition, canonicalJson, formatMoney, type DataState, type EvidencePacket } from "@sagespan/contracts";
+import { DISCREPANCY_LABELS, FACT_FIELDS, REVIEW_OUTCOME_DESCRIPTIONS, REVIEW_OUTCOME_LABELS, assertCan, assertTransition, canonicalJson, coverageSummary, formatMoney, latestCheckRuns, packetTitle, type DataState, type EvidencePacket } from "@sagespan/contracts";
 import type { Actor } from "@/auth/types";
 import { brand } from "@/config/brand";
 import { toCsv } from "@/import/csv-export";
@@ -12,6 +12,8 @@ export const PACKET_LIMITATIONS = [
   "Only the checks listed under 'scope' were performed. Everything under 'not_checked' was outside scope and no conclusion is expressed about it.",
   "An arithmetic PASS means the independent engine reproduced the amount from the frozen inputs under the cited rule set. Professional approval is a separate human act recorded under 'reviews'.",
   "Differences classified as NOT_COMPARABLE, MISSING_EVIDENCE or UNSUPPORTED_CHECK are not findings of error.",
+  "Only the latest check attempt per account was evaluated for approval; earlier attempts are listed with latest_attempt=false as history.",
+  "An account marked UNSUPPORTED or INDETERMINATE under 'coverage' received no verified result; 'reviewed with limitations' means exactly that and is not a verified check of those accounts.",
   "Source documents are referenced by SHA-256 hash; the packet does not reproduce their content.",
 ];
 
@@ -30,16 +32,36 @@ export function buildPacket(b: HouseholdBundle, actor: Actor, state: DataState) 
   const runIds = new Set(runs.map((r) => r.id));
   const reviews = b.reviews.filter((r) => r.snapshot_id === snap.id);
   const chain = verifyAuditChain(state, b.org.id);
+  // S-06 / N-02: scope and title come from per-account coverage of the LATEST attempts, not from the existence of a run.
+  const summary = coverageSummary(snap, b.checkRuns, b.discrepancies);
+  const { latest } = latestCheckRuns(b.checkRuns, snap.id);
+  const latestIds = new Set(latest.map((r) => r.id));
+  const approval = reviews.find((r) => r.decision === "APPROVED") ?? null;
+  const outcome = approval?.coverage_outcome ?? null;
+  const engineRun = latest.find((r) => r.response) ?? null;
   return {
-    packet_version: "sagespan.evidence-packet.v1",
-    title: "Review evidence packet",
+    packet_version: "sagespan.evidence-packet.v2",
+    title: packetTitle(summary, outcome),
+    coverage: {
+      outcome,
+      outcome_label: outcome ? REVIEW_OUTCOME_LABELS[outcome] : "Not approved",
+      outcome_description: outcome ? REVIEW_OUTCOME_DESCRIPTIONS[outcome] : "No professional approval has been recorded for this snapshot.",
+      summary,
+      per_account: summary.rows.map((r) => ({ ...r, account_label: b.accounts.find((a) => a.id === r.account_ref)?.label ?? r.account_ref, account_type: snap.canonical_payload.accounts.find((a) => a.id === r.account_ref)?.account_type ?? null })),
+    },
     brand: { name: brand.name, status: brand.status },
     synthetic_notice: "All data in this packet is synthetic demonstration data; reviewer identities are simulated.",
     generated_at: nowIso(),
     generated_by: { user_id: actor.user_id, display_name: actor.display_name, role: actor.role, actor_type: actor.actor_type },
     organization: { id: b.org.id, name: b.org.name, policies: b.org.policies },
     household: { id: b.household.id, label: b.household.label, tax_year: b.household.tax_year, revision: snap.revision, source_tool_label: b.household.source_tool_label },
-    scope: { check_types: ["RMD_ANNUAL"], accounts: b.accounts.map((a) => ({ id: a.id, label: a.label, account_type: a.account_type })) },
+    scope: {
+      check_types: summary.check_types,
+      accounts: snap.canonical_payload.accounts.map((a) => ({ id: a.id, label: b.accounts.find((x) => x.id === a.id)?.label ?? a.id, account_type: a.account_type, coverage: summary.rows.find((r) => r.account_ref === a.id)?.coverage ?? "NOT_RUN" })),
+      accounts_verified: summary.verified + summary.not_required,
+      accounts_outside_supported_scope: summary.unsupported + summary.indeterminate,
+      policy_at_freeze: snap.canonical_payload.policy,
+    },
     not_checked: NOT_CHECKED,
     sources: snap.canonical_payload.source_documents.map((d) => ({ ...d, byte_length: b.documents.find((x) => x.id === d.id)?.byte_length ?? null, vendor_label: b.documents.find((x) => x.id === d.id)?.source_vendor_label ?? null })),
     facts: snap.canonical_payload.facts.map((f) => {
@@ -53,11 +75,13 @@ export function buildPacket(b: HouseholdBundle, actor: Actor, state: DataState) 
     exceptions: snap.canonical_payload.exceptions,
     conflicts_resolved: b.conflicts.filter((c) => c.status !== "OPEN").map((c) => ({ id: c.id, field_key: c.field_key, materiality: c.materiality, status: c.status, reason: c.reason, resolution_note: c.resolution_note, resolved_by: profileName(state, c.resolved_by), resolved_at: c.resolved_at, chosen_fact_id: c.chosen_fact_id })),
     snapshot: { id: snap.id, revision: snap.revision, content_sha256: snap.content_sha256, created_at: snap.created_at, created_by: profileName(state, snap.created_by), created_by_role: snap.created_by_role },
-    engine: runs[0]?.response ? { name: runs[0].response.receipt.engine_name, version: runs[0].response.receipt.engine_version } : null,
-    rule_sets: runs[0]?.response?.receipt.rule_sets ?? [],
+    engine: engineRun?.response ? { name: engineRun.response.receipt.engine_name, version: engineRun.response.receipt.engine_version } : null,
+    rule_sets: engineRun?.response?.receipt.rule_sets ?? [],
     check_runs: runs.map((r) => ({
       id: r.id,
       account_id: r.request_payload.account.account_ref,
+      /** false = an earlier attempt kept as history; it was not evaluated for approval. */
+      latest_attempt: latestIds.has(r.id),
       executed_at: r.executed_at,
       executed_by: profileName(state, r.executed_by),
       run_status: r.run_status,
@@ -71,7 +95,7 @@ export function buildPacket(b: HouseholdBundle, actor: Actor, state: DataState) 
       request: r.request_payload,
     })),
     discrepancies: b.discrepancies.filter((d) => runIds.has(d.check_run_id)).map((d) => ({ ...d, classification_label: DISCREPANCY_LABELS[d.classification], disposition: d.disposition ? { ...d.disposition, by: profileName(state, d.disposition.by) } : null })),
-    reviews: reviews.map((r) => ({ id: r.id, decision: r.decision, reviewer: profileName(state, r.reviewer_user_id), reviewer_role: r.reviewer_role, actor_type: r.actor_type, rationale: r.rationale, conflict_attestation: r.conflict_attestation, reviewed_at: r.reviewed_at })),
+    reviews: reviews.map((r) => ({ id: r.id, decision: r.decision, reviewer: profileName(state, r.reviewer_user_id), reviewer_role: r.reviewer_role, actor_type: r.actor_type, rationale: r.rationale, conflict_attestation: r.conflict_attestation, reviewed_at: r.reviewed_at, coverage_outcome: r.coverage_outcome })),
     comments: b.comments.filter((c) => c.snapshot_id === snap.id).map((c) => ({ author: profileName(state, c.author_user_id), role: c.author_role, body: c.body, created_at: c.created_at })),
     audit_trail: { chain_intact: chain.intact, events: b.audit.map((e) => ({ id: e.id, event_type: e.event_type, entity_type: e.entity_type, entity_id: e.entity_id, actor: profileName(state, e.actor_user_id), actor_role: e.actor_role, actor_type: e.actor_type, created_at: e.created_at, event_hash: e.event_hash, previous_event_hash: e.previous_event_hash }) ) },
     limitations: [...PACKET_LIMITATIONS, ...(runs[0]?.response?.receipt.limitations ?? [])],
@@ -121,7 +145,7 @@ export function renderPacketHtml(record: EvidencePacket): string {
   const runs = p.check_runs
     .map((r) => {
       const res = r.result;
-      return `<div class="card"><h3>Check run ${esc(r.id)} — ${esc(r.run_status)} (${esc(r.coverage_status ?? "n/a")})</h3><table>${row("Account", r.account_id)}${row("Executed", `${r.executed_at} by ${r.executed_by}`)}${row("Request SHA-256", r.request_sha256)}${row("Response SHA-256", r.response_sha256 ?? "")}${row("Request hash verified", r.request_hash_verified === null ? "n/a" : r.request_hash_verified ? "yes" : "NO")}${res?.annual_rmd ? row("Annual RMD (computed)", formatMoney(res.annual_rmd)) : ""}${r.receipt?.formula ? row("Formula", r.receipt.formula) : ""}${r.receipt ? row("Run hash", r.receipt.run_hash) : ""}${r.error ? row("Error", `${r.error.code}: ${r.error.message}`) : ""}</table>${res ? `<h4>Obligation events</h4><table><thead><tr><th>Event</th><th>Year</th><th>Deadline</th><th>Status</th><th>Amount</th></tr></thead><tbody>${res.events.map((e) => `<tr><td>${esc(e.event_type)}</td><td>${esc(e.distribution_year)}</td><td>${esc(e.deadline)}</td><td>${esc(e.status)}</td><td class="num">${esc(e.amount ? formatMoney(e.amount) : "—")}</td></tr>`).join("")}</tbody></table>` : ""}${res?.unsupported_reasons.length ? `<h4>Reasons</h4>${list(res.unsupported_reasons.map((x) => `${x.code}: ${x.message}`))}` : ""}</div>`;
+      return `<div class="card"><h3>Check run ${esc(r.id)} — ${esc(r.run_status)} (${esc(r.coverage_status ?? "n/a")})${r.latest_attempt ? "" : " — earlier attempt, kept as history"}</h3><table>${row("Account", r.account_id)}${row("Executed", `${r.executed_at} by ${r.executed_by}`)}${row("Request SHA-256", r.request_sha256)}${row("Response SHA-256", r.response_sha256 ?? "")}${row("Request hash verified", r.request_hash_verified === null ? "n/a" : r.request_hash_verified ? "yes" : "NO")}${res?.annual_rmd ? row("Annual RMD (computed)", formatMoney(res.annual_rmd)) : ""}${r.receipt?.formula ? row("Formula", r.receipt.formula) : ""}${r.receipt ? row("Run hash", r.receipt.run_hash) : ""}${r.error ? row("Error", `${r.error.code}: ${r.error.message}`) : ""}</table>${res ? `<h4>Obligation events</h4><table><thead><tr><th>Event</th><th>Year</th><th>Deadline</th><th>Status</th><th>Amount</th></tr></thead><tbody>${res.events.map((e) => `<tr><td>${esc(e.event_type)}</td><td>${esc(e.distribution_year)}</td><td>${esc(e.deadline)}</td><td>${esc(e.status)}</td><td class="num">${esc(e.amount ? formatMoney(e.amount) : "—")}</td></tr>`).join("")}</tbody></table>` : ""}${res?.unsupported_reasons.length ? `<h4>Reasons</h4>${list(res.unsupported_reasons.map((x) => `${x.code}: ${x.message}`))}` : ""}</div>`;
     })
     .join("");
   const disc = p.discrepancies.length
@@ -139,7 +163,8 @@ export function renderPacketHtml(record: EvidencePacket): string {
   </style></head><body>
   <h1>${esc(p.title)}</h1><div class="meta">${esc(p.brand.name)} (${esc(p.brand.status)} brand) · ${esc(p.household.label)} · tax year ${esc(p.household.tax_year)} · revision ${esc(p.household.revision)} · generated ${esc(p.generated_at)} by ${esc(p.generated_by.display_name)} (${esc(p.generated_by.role)}, ${esc(p.generated_by.actor_type)})</div>
   <div class="banner">${esc(p.synthetic_notice)}</div>
-  ${section("Scope and limitations", `<p><strong>Checks performed:</strong> ${esc(p.scope.check_types.join(", "))} on ${esc(p.scope.accounts.map((a) => `${a.label} (${a.account_type})`).join("; "))}.</p><h3>Not checked</h3>${list(p.not_checked)}<h3>Limitations</h3>${list(p.limitations)}`)}
+  ${section("Coverage outcome", `<p><strong>${esc(p.coverage.outcome_label)}.</strong> ${esc(p.coverage.outcome_description)}</p><table><thead><tr><th>Account</th><th>Classification at freeze</th><th>Coverage (latest attempt)</th><th>Latest run</th><th>Earlier attempts kept</th></tr></thead><tbody>${p.coverage.per_account.map((r) => `<tr><td>${esc(r.account_label)}</td><td>${esc(r.account_type ?? "")}</td><td>${esc(r.coverage)}${r.coverage_status ? ` (${esc(r.coverage_status)})` : ""}</td><td class="mono">${esc(r.latest_run_id ?? "—")}</td><td class="num">${esc(r.superseded_run_ids.length)}</td></tr>`).join("")}</tbody></table><p>${esc(p.scope.accounts_verified)} of ${esc(p.coverage.summary.accounts_in_scope)} account(s) verified; ${esc(p.scope.accounts_outside_supported_scope)} outside supported scope; ${esc(p.coverage.summary.documented_exceptions)} documented exception(s); ${esc(p.coverage.summary.dispositioned_material_differences)} dispositioned material difference(s). Policy at freeze: tolerance ±${esc(p.scope.policy_at_freeze.tolerance.absolute)} / ${esc(p.scope.policy_at_freeze.tolerance.relative)}, version ${esc(p.scope.policy_at_freeze.policy_sha256)}.</p>`)}
+  ${section("Scope and limitations", `<p><strong>Checks performed:</strong> ${esc(p.scope.check_types.join(", "))} on ${esc(p.scope.accounts.map((a) => `${a.label} (${a.account_type}, ${a.coverage})`).join("; "))}.</p><h3>Not checked</h3>${list(p.not_checked)}<h3>Limitations</h3>${list(p.limitations)}`)}
   ${section("Packet integrity", `<table>${row("Packet SHA-256", record.sha256)}${row("Snapshot id", p.snapshot.id)}${row("Snapshot content SHA-256", p.snapshot.content_sha256)}${row("Snapshot frozen", `${p.snapshot.created_at} by ${p.snapshot.created_by} (${p.snapshot.created_by_role})`)}${row("Engine", p.engine ? `${p.engine.name} ${p.engine.version}` : "n/a")}${row("Organisation", p.organization.name)}${row("Firm policy", `separation of duties: ${p.organization.policies.separation_of_duties}; nonmaterial exceptions: ${p.organization.policies.allow_nonmaterial_exceptions}; approvers: ${p.organization.policies.approver_roles.join("/")}`)}</table>`)}
   ${section("Source documents", `<table><thead><tr><th>Id</th><th>Kind</th><th>File</th><th>As of</th><th>SHA-256</th></tr></thead><tbody>${p.sources.map((s) => `<tr><td>${esc(s.id)}</td><td>${esc(s.source_kind)}</td><td>${esc(s.filename)}</td><td>${esc(s.source_as_of ?? "")}</td><td class="mono">${esc(s.sha256)}</td></tr>`).join("")}</tbody></table>`)}
   ${section("Frozen facts", factsTable)}

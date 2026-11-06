@@ -12,6 +12,7 @@ export * from "./workspace";
 export * from "./personal";
 export * from "./personal-calc";
 export * from "./personal-records";
+export * from "./coverage";
 export * from "./decisions";
 export * from "./decision-policy";
 export * from "./ai";

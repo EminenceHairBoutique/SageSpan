@@ -122,8 +122,12 @@ test("Patel: conflict blocks freeze; resolve, document exception, freeze, check,
   await switchPersona(page, "user_hp_cco", "Dana Whitfield");
   await page.getByLabel("Approval rationale").fill("Independent check reproduced; difference attributable to the plan's input balance.");
   await page.getByRole("checkbox").check();
+  // PR-002: before approving, the review page states what approval would mean, from the latest attempt per account
+  await expect(page.getByTestId("coverage-panel").getByText("Verified (PASS)")).toBeVisible();
+  await expect(page.getByText(/If approved now: Approved with exceptions/)).toBeVisible();
   await page.getByRole("button", { name: /Approve \(professional act\)/ }).click();
   await expect(page.getByText(/^Approved\./)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("Approved: Approved with exceptions")).toBeVisible({ timeout: 15_000 });
 
   // Export the packet and verify the download carries metadata and limitations.
   await page.goto("/demo/app/households/hh_patel/evidence");
@@ -138,7 +142,8 @@ test("Patel: conflict blocks freeze; resolve, document exception, freeze, check,
   expect(res.ok()).toBeTruthy();
   const body = (await res.json()) as { packet_sha256: string; packet: { title: string; snapshot: { content_sha256: string }; engine: { version: string }; limitations: string[]; reviews: Array<{ decision: string }> } };
   expect(body.packet_sha256).toMatch(/^[0-9a-f]{64}$/);
-  expect(body.packet.title).toBe("Review evidence packet");
+  // PR-002: the title derives from per-account coverage, not from the existence of a run
+  expect(body.packet.title).toBe("Review evidence packet — approved with exceptions (1 of 1 accounts verified; 1 exception(s), 1 dispositioned difference(s))");
   expect(body.packet.engine.version).toBe("0.1.0");
   expect(body.packet.limitations.join(" ")).toContain("not an SEC examination certification");
   expect(body.packet.reviews.map((r) => r.decision)).toContain("APPROVED");

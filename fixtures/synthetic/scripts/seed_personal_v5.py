@@ -26,7 +26,7 @@ GOAL_KIND = {"goal_castillo_reserve": "EMERGENCY_RESERVE", "goal_castillo_move":
 def main() -> None:
     seed = json.loads(SEED.read_text(encoding="utf-8"))
     req = json.loads(REQ.read_text(encoding="utf-8"))
-    seed["state_version"] = "sagespan.demo-state.v3"
+    seed["state_version"] = "sagespan.demo-state.v4"
 
     seed["principals"] = [
         {"id": PR, "display_name": "Maya Castillo", "simulated": True},
