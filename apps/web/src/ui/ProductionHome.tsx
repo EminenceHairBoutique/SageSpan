@@ -32,18 +32,19 @@ export function ProductionHome({ identity, requestedPath }: { identity: Resolved
           </form>
         }
       >
-        <Alert tone="amber" title="Production workflows are not available in this build">
-          Your identity and tenant memberships are resolved against the database under row-level security. The production data store adapter that the
-          firm console and Personal workspace need (DATA-001) is not implemented yet, so no plan, record or review is shown or editable here.
-          {requestedPath ? ` Requested: ${requestedPath}.` : ""} The synthetic demos remain at <Link href="/demo/personal" className="underline">/demo/personal</Link> and{" "}
-          <Link href="/demo/app" className="underline">/demo/app</Link>.
+        <Alert tone="amber" title="What works in production today">
+          Your identity and tenant memberships are resolved against the database under row-level security. Your personal records (accounts, income, bills,
+          spending, debts, goals) are stored and edited at <Link href="/app/personal" className="underline">/app/personal</Link> (DATA-001). Not yet built for
+          production: calculated baselines, what-ifs and recommendations (DATA-002), and the firm console&apos;s plan workflow — no plan or review is shown or
+          editable here.{requestedPath ? ` Requested: ${requestedPath}.` : ""} The synthetic demos remain at <Link href="/demo/personal" className="underline">/demo/personal</Link>{" "}
+          and <Link href="/demo/app" className="underline">/demo/app</Link>.
         </Alert>
       </Card>
 
       {nothing ? (
         <EmptyState title="No memberships yet">
-          This account is not an active member of any firm and owns no personal workspace. A firm administrator can add you to their roster; personal
-          workspace creation from this screen arrives with the store adapter.
+          This account is not an active member of any firm and owns no personal workspace. A firm administrator can add you to their roster, or{" "}
+          <Link href="/app/personal/start" className="underline">start your own workspace</Link>.
         </EmptyState>
       ) : null}
 
@@ -83,6 +84,11 @@ export function ProductionHome({ identity, requestedPath }: { identity: Resolved
                   {w.workspace_role === "OWNER" ? <Chip tone="neutral">all domains</Chip> : w.domains.map((d) => <Chip key={d} tone="neutral">{d}</Chip>)}
                   {personal?.workspace_id === w.workspace_id ? <Chip tone="teal">selected</Chip> : null}
                 </span>
+                {personal?.workspace_id === w.workspace_id ? (
+                  <Link href="/app/personal" className={buttonClasses("secondary", "sm")}>
+                    Open
+                  </Link>
+                ) : null}
                 {personal?.workspace_id !== w.workspace_id ? (
                   <form action={selectWorkspaceAction}>
                     <input type="hidden" name="workspace_id" value={w.workspace_id} />
