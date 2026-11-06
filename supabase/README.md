@@ -20,7 +20,7 @@
 
 ## Running
 
-On the real stack (requires Docker; **runs in the CI `realstack` job from PR-003 onward; never run from a developer machine for this repository yet**):
+On the real stack (requires Docker; runs in the CI `realstack` job; not yet run from a developer machine for this repository):
 
 ```bash
 supabase start -x studio,imgproxy,logflare,vector,edge-runtime
@@ -59,9 +59,12 @@ pgTAP does.
 * 2026-11-06 (PR-002, PR-003a): 8 migrations, **8/8 files** on embedded PostgreSQL 16
   via the runner. Three pre-existing `plan()` mismatches (002: 20→23, 003: 10→11,
   005: 58→71) were corrected; they would have failed under real pgTAP.
-* The real Supabase stack (`supabase test db` + `realstack/run.mjs`) runs only in
-  the CI `realstack` job, first on the PR-003 pull request. Until that job is green,
-  RLS must not be described as production-proven.
+* 2026-11-06 (PR-003c): the real Supabase stack ran in the CI `realstack` job
+  (PR #10, run 3): `supabase test db` **8 files, 251/251 assertions, PASS** with
+  genuine pgTAP, and `realstack/run.mjs` **50/50** with real GoTrue JWTs over
+  PostgREST. Runs 1–2 found an implicit-collation bug in three test files and a
+  deprecated auth setting; both fixed. This proves RLS and the entry points on a
+  disposable local stack, not a deployed project's configuration.
 
 ## Decisions recorded in 0005
 

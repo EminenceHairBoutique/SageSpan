@@ -8,7 +8,7 @@
 >
 > **Status note (2026-11-06, later):** PR-001 merged to `master` (#5), V5 session 1 + PERS-002 merged (#7). PR-002 is on `feat/pr-002-coverage` (`docs/engineering/V5_SESSION_3_PR_002_REPORT.md`). PR-003 remains open; nothing has been validated on a real Supabase stack.
 >
-> **Status note (2026-11-06, V5 session 4):** PR-003a/b on `feat/pr-003-identity` (stacked on PR-002): migration `0008_workspaces_and_consent.sql`, `supabase/tests/008_*` (74), production identity resolution in `apps/web/src/auth/{identity,supabase-server,actor}.ts`, `/app/sign-in`, and the CI `realstack` job (`supabase test db` + `supabase/realstack/run.mjs`). The real stack **cannot run in the build sandbox**; its first execution is the CI job on the PR-003 pull request. The Supabase store adapter (DATA-001) is still open. See `docs/engineering/V5_SESSION_4_PR_003_REPORT.md`.
+> **Status note (2026-11-06, V5 session 4):** PR-003a/b on `feat/pr-003-identity` (stacked on PR-002): migration `0008_workspaces_and_consent.sql`, `supabase/tests/008_*` (74), production identity resolution in `apps/web/src/auth/{identity,supabase-server,actor}.ts`, `/app/sign-in`, and the CI `realstack` job (`supabase test db` + `supabase/realstack/run.mjs`). The real stack cannot run in the build sandbox, but the CI job is **green on PR #10 run 3** (genuine pgTAP 251/251; JWT/PostgREST/RLS harness 50/50) — the first real-stack evidence for this repository. It proves RLS/entry points on a disposable local stack only, not a deployed project. The Supabase store adapter (DATA-001) is still open. See `docs/engineering/V5_SESSION_4_PR_003_REPORT.md`.
 
 ## 1. Mission and precedence
 
@@ -127,7 +127,7 @@ Executed in a Linux build environment (Node 22.23, Python 3.13 from `uv.lock`, C
 As recorded at the V3 milestone, these items were **not complete** (verify if still true):
 
 - **PR-002:** S-06 / S-07 / N-02 — **implemented on `feat/pr-002-coverage`** (verify merge state). Residual: not run against real Supabase; `app.review_outcome` and payload v2 are forward-only additions in 0007.
-- **PR-003:** session/actor resolution and the consumer identity schema **delivered on `feat/pr-003-identity`** (0008, `src/auth/*`, realstack CI job — verify the job is green before calling anything real-stack validated). Still open: production Supabase store adapter (`src/domain/store.ts`, DATA-001), private file bytes/storage, trusted document registration, real member management UI, real import mappings and PDF evidence rendering.
+- **PR-003:** session/actor resolution and the consumer identity schema **delivered on `feat/pr-003-identity`** (0008, `src/auth/*`; CI `realstack` job green on PR #10: real pgTAP 251/251, harness 50/50). Still open: production Supabase store adapter (`src/domain/store.ts`, DATA-001), private file bytes/storage, trusted document registration, real member management UI, real import mappings and PDF evidence rendering.
 - Professional financial-rule signoff; U.S. income-tax draft validation; model/version governance, privacy/consent and legal clearance before regulated or real-data features.
 - `mypy --strict` historical errors in `financial/checks.py` (the original record noted 25 `Discrepancy(**dict)` typing errors) and historical `auth_rls_initplan` RLS performance warnings.
 

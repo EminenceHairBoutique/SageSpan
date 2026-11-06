@@ -138,7 +138,7 @@ This matrix is **traceability, not a certification**. It does not mean every pos
 | Owner-only writes; participants/grantees read-only; no DELETE for end users | RLS insert/update policies, no DELETE grant | SQL 008; realstack §3 |
 | Per-workspace append-only event log, linear and hash-linked (S-04 analogue) | `workspace_events`, `workspace_append_event`, immutability trigger | SQL 008 chain assertions; realstack §6 |
 | N-04 inventory after 0008 | 0008 §8; tests 005/007/008 | SQL inventory assertions (3 files) |
-| Real GoTrue JWT / PostgREST / RLS run with two firms, consumers, shared household, firm grant, expiry/revocation | `supabase/realstack/run.mjs`, CI job `realstack` (also runs real pgTAP via `supabase test db`) | **CI only** — cannot run in the build sandbox (no Docker); first run happens on this PR |
+| Real GoTrue JWT / PostgREST / RLS run with two firms, consumers, shared household, firm grant, expiry/revocation | `supabase/realstack/run.mjs`, CI job `realstack` (also runs real pgTAP via `supabase test db`) | **Green on PR #10 run 3 (`fa2669b`): pgTAP 251/251, harness 50/50.** CI only (no Docker in the sandbox) |
 | Honest production state: no demo data behind a login; store adapter absent and said so | `/app`, `ui/ProductionHome.tsx`, `ProductionGate.tsx` | e2e `pr-003-identity.spec.ts` |
 | Latent pgTAP defect fixed | tests 002/003/005 `plan()` corrected (20→23, 10→11, 58→71); `run_sql_tests.py` enforces plan == tests run | SQL harness 8/8 (negative control verified) |
 | Not done | Supabase store adapter (DATA-001), private storage/document registration, member-management UI, vector search (none exists), professional sign-off | — |

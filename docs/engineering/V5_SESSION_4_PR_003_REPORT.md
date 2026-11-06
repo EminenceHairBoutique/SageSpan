@@ -1,6 +1,6 @@
 # V5 Session 4 — PR-003a/b/c: consumer identity schema, Supabase session resolution, real-stack verification job
 
-**Date:** 2026-11-06. **Branch:** `feat/pr-003-identity` (from `feat/pr-002-coverage` @ `c76ac11`; stacked on PR #9 so it builds on migration 0007). **Scope delivered:** the identity half of V5 §17.4 — principals, PERSONAL/HOUSEHOLD workspaces, memberships, purpose-limited consent grants and domain-scoped RLS (0008); production session resolution in the web tier; `/app` sign-in/out with an honest "store not wired" state; a real-stack CI job. **Not delivered (deliberately):** the Supabase store adapter for domain reads/writes (DATA-001), private document storage and trusted registration, member-management UI. **Synthetic data only; no real stack was run in this session.**
+**Date:** 2026-11-06. **Branch:** `feat/pr-003-identity` (from `feat/pr-002-coverage` @ `c76ac11`; stacked on PR #9 so it builds on migration 0007). **Scope delivered:** the identity half of V5 §17.4 — principals, PERSONAL/HOUSEHOLD workspaces, memberships, purpose-limited consent grants and domain-scoped RLS (0008); production session resolution in the web tier; `/app` sign-in/out with an honest "store not wired" state; a real-stack CI job. **Not delivered (deliberately):** the Supabase store adapter for domain reads/writes (DATA-001), private document storage and trusted registration, member-management UI. **Synthetic data only. The real stack ran in CI (see §2a) — three iterations on PR #10, the third green.**
 
 ## 1. What changed
 
@@ -23,7 +23,7 @@
 ### PR-003c — real-stack evidence (`supabase/realstack/run.mjs`, CI job `realstack`)
 - Node harness with `@supabase/supabase-js`: creates **synthetic** users through GoTrue admin (random passwords never stored), signs them in for real JWTs, then asserts over PostgREST: Ana creates P and H via RPC; Ben is a stranger (zero rows, empty `my_workspace_access`), registers, cannot self-invite (P0002), is invited for SAVINGS_GOALS only, INVITED sees nothing, accepts, reads the goal but not cash accounts nor P, cannot insert (42501) or update (0 rows); Dee (firm advisor) sees nothing until Ana grants F1 CASH_FLOW+DEBT, then reads cash accounts but not goals, cannot revoke or widen, and loses access the moment Ana revokes (grant kept as version 2); anon key alone reads nothing and cannot execute the entry point; direct membership/grant inserts and record deletes are 42501; the H event log is linear and hash-linked; grantees never see the log. Cleanup deletes the users and the org.
 - CI job: `supabase/setup-cli` → `supabase start` → `db reset` → `supabase test db` on the eight test files (**genuine pgTAP**, plan counts enforced) → harness → `supabase stop`.
-- **Cannot run in this build sandbox** (no Docker daemon; GitHub release downloads blocked, so no CLI/PostgREST binaries). The job's first execution is on the PR-003 pull request. Until it is green, nothing is real-stack validated, and the first run may surface CLI/pgTAP incompatibilities (e.g. `\ir` include resolution or `SET ROLE` semantics under the CLI's test runner) that need a follow-up commit.
+- **Cannot run in this build sandbox** (no Docker daemon; GitHub release downloads blocked). It ran three times on PR #10 (§2a); run 3 is green: pgTAP 251/251, harness 50/50.
 
 ### Fixed along the way
 - **Latent pgTAP defect**: tests 002/003/005 declared `plan(20/10/58)` but run 23/11/71 assertions. The shim's `plan()` ignored the count, so neither the local harness nor the CI `database` job noticed; genuine pgTAP would fail each file. Counts corrected; `run_sql_tests.py` now enforces `plan == tests run` under the shim (verified by a deliberate mismatch → FAIL, then restored).
@@ -40,10 +40,20 @@
 | Web Vitest (calculator up) | `npm run test --workspace apps/web` | **115 passed** (105 + 10 `auth/__tests__/identity.test.ts`) |
 | Playwright | `npx playwright test` (installed Chrome, locked Python) | **18 passed** (16 + 2 `pr-003-identity.spec.ts`) |
 | Calculator pytest / OpenAPI / generated SQL | not re-run (no calculator change in this PR; last run session 3: 99 passed) | — |
-| Real Supabase stack | **not run** (impossible here) | CI `realstack` job |
+| Real Supabase stack | **CI job `realstack` on PR #10, run 3 (`fa2669b`)** | `supabase test db`: 8 files, **251/251**, PASS; `realstack/run.mjs`: **50/50** |
+
+## 2a. Real-stack iterations (CI `realstack`, PR #10)
+
+| Run | Commit | Outcome | Lesson |
+|---|---|---|---|
+| 1 (`42207694390`) | `2d547a2` | Stack up, 0001–0008 applied, genuine pgTAP ran all 8 files; 246/246 executed assertions passed, but 005/007/008 aborted at the N-04 inventory `results_eq`: "could not determine which collation to use" | `information_schema` identifiers are `COLLATE "C"`, literals take the database default (`en_US.UTF-8` on Supabase). Fixed with explicit `COLLATE "C"` on both sides. The local harness could not see it (embedded initdb had no locale → `"C"`; shim `results_eq` compared text arrays). Now the embedded cluster uses `C.UTF-8` and the shim compares records like pgTAP; the pre-fix file fails locally with the same error. |
+| 2 (`42208674562`) | `2e7ad94` | `supabase test db` **8 files, 251/251, Result: PASS**. Harness failed at the first sign-in: GoTrue "Email logins are disabled" | `[auth.email] enable_signup = false` is deprecated and now disables the whole provider. Set `[auth.email] enabled = true`; `[auth] enable_signup = false` still blocks self-service sign-up. |
+| 3 (`42209646148`) | `fa2669b` | pgTAP 251/251 PASS; **harness 50/50 passed** on real GoTrue JWTs + PostgREST + RLS | First real-stack security evidence for this repository. Still a disposable local stack on a CI runner, not a deployed project; see §3. |
+
+[Run 3](https://github.com/EminenceHairBoutique/SageSpan/actions/runs/42209646148)
 
 ## 3. Security notes and residual risks
-- The schema's RLS and entry points are proven on plain PostgreSQL only. **Real-stack status is whatever the `realstack` job reports**; treat a red first run as expected engineering, not as a regression to hide.
+- The schema's RLS and entry points are now proven on a real Supabase stack (CLI local stack on a CI runner: GoTrue, PostgREST, genuine pgTAP) for the cases in 001–008 and the 50-assertion harness. This is **not** evidence about a deployed project (network policy, key handling, backups, Security Advisor warnings, rate limiting, log retention), nor about vector search (none exists), nor about any store adapter (none exists). G3 remains open.
 - `my_workspace_access`, `can_read_workspace_domain`, `is_workspace_*` are SECURITY DEFINER and therefore bypass RLS internally; each filters on `auth.uid()` itself. Any future helper of this kind must do the same (the stranger-disclosure found in the first 008 run is the pattern to test for).
 - Grantee access to a consumer workspace is *scope*, not an actor: PostgREST reads under RLS honour it today, but the web tier will only use it once the store adapter exists. Nothing in the UI reads personal records in production yet.
 - Session cookies set by `@supabase/ssr` inside Server Components are swallowed (read-only cookie jar); token refresh happens on the next mutable request. No middleware/proxy was added; if session refresh latency becomes an issue, add Next's `proxy.ts` refresh pattern in a later PR.
