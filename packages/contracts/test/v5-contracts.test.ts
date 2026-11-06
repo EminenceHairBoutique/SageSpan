@@ -17,6 +17,11 @@ import {
   EXECUTABLE_SCENARIO_KINDS,
   RecommendationSchema,
   ScenarioSpecSchema,
+  approvalReadiness,
+  coverageSummary,
+  latestCheckRuns,
+  packetTitle,
+  type CheckRun,
   actorCanReadDomain,
   evaluateDecisionPolicy,
   grantCovers,
@@ -237,5 +242,33 @@ describe("personal what-if scenarios (PERS-002c)", () => {
   it("the three cash-flow what-ifs are now executable scenario kinds for the AI proposer", () => {
     expect(EXECUTABLE_SCENARIO_KINDS).toEqual(expect.arrayContaining(["SPENDING_CHANGE", "SAVINGS_CHANGE", "INCOME_INTERRUPTION"]));
     expect(EXECUTABLE_SCENARIO_KINDS).not.toContain("RETIREMENT_DATE_CHANGE");
+  });
+});
+
+describe("PR-002 coverage helpers (pure)", () => {
+  const snap = { id: "s1", canonical_payload: { accounts: [{ id: "a1", account_type: "TRADITIONAL_IRA", tax_character: "PRE_TAX" }], exceptions: [] } } as unknown as Parameters<typeof coverageSummary>[0];
+  const run = (id: string, status: "PASS" | "ERROR" | "UNSUPPORTED", at: string, verified = status !== "ERROR") =>
+    ({ id, snapshot_id: "s1", check_type: "RMD_ANNUAL", run_status: status, coverage_status: status === "PASS" ? "SUPPORTED_VERIFIED" : status === "ERROR" ? null : "UNSUPPORTED", request_hash_verified: verified, executed_at: at, request_payload: { account: { account_ref: "a1" } } }) as unknown as CheckRun;
+
+  it("latestCheckRuns picks the newest attempt per account and keeps the rest as superseded; ties fall to the later insertion", () => {
+    const { latest, superseded } = latestCheckRuns([run("r1", "ERROR", "2026-11-06T10:00:00Z"), run("r2", "PASS", "2026-11-06T10:01:00Z"), run("r3", "PASS", "2026-11-06T10:01:00Z")], "s1");
+    expect(latest.map((r) => r.id)).toEqual(["r3"]);
+    expect(superseded.map((r) => r.id).sort()).toEqual(["r1", "r2"]);
+    expect(latestCheckRuns([run("x", "PASS", "2026-11-06T10:00:00Z")], "other").latest).toEqual([]);
+  });
+
+  it("approvalReadiness: ERROR->PASS recovers, PASS->ERROR blocks, unsupported-only is limitations, nothing run is CHECK_REQUIRED", () => {
+    expect(approvalReadiness(coverageSummary(snap, [run("r1", "ERROR", "2026-11-06T10:00:00Z"), run("r2", "PASS", "2026-11-06T10:01:00Z")], []))).toEqual({ ready: true, outcome: "SUPPORTED_CHECK_VERIFIED" });
+    expect(approvalReadiness(coverageSummary(snap, [run("r1", "PASS", "2026-11-06T10:00:00Z"), run("r2", "ERROR", "2026-11-06T10:01:00Z")], []))).toMatchObject({ ready: false, code: "CHECK_FAILED_LATEST" });
+    expect(approvalReadiness(coverageSummary(snap, [run("r1", "UNSUPPORTED", "2026-11-06T10:00:00Z")], []))).toEqual({ ready: true, outcome: "REVIEWED_WITH_LIMITATIONS" });
+    expect(approvalReadiness(coverageSummary(snap, [], []))).toMatchObject({ ready: false, code: "CHECK_REQUIRED" });
+    expect(approvalReadiness(coverageSummary({ ...snap, canonical_payload: { ...snap.canonical_payload, accounts: [] } } as typeof snap, [], []))).toMatchObject({ ready: false, code: "NO_ACCOUNTS_IN_SCOPE" });
+  });
+
+  it("packetTitle never says 'verified' for unsupported-only coverage", () => {
+    const s = coverageSummary(snap, [run("r1", "UNSUPPORTED", "2026-11-06T10:00:00Z")], []);
+    expect(packetTitle(s, "REVIEWED_WITH_LIMITATIONS")).toMatch(/no supported checks/);
+    expect(packetTitle(s, "REVIEWED_WITH_LIMITATIONS")).not.toMatch(/supported check verified/);
+    expect(packetTitle(s, null)).toMatch(/not approved/);
   });
 });

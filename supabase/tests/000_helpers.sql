@@ -101,7 +101,8 @@ language sql stable as $$
   select jsonb_build_object(
     'schema_version', 'sagespan.rmd-check.v1', 'tax_year', h.tax_year,
     'owner', jsonb_build_object('person_ref', 'owner', 'birth_date', '1952-03-14', 'is_alive', true),
-    'account', jsonb_build_object('account_ref', 'ira', 'account_type', 'TRADITIONAL_IRA', 'is_inherited', false,
+    -- account_ref is the household's real account id (PR-002 N-02 evaluates the latest attempt per payload account)
+    'account', jsonb_build_object('account_ref', (select a.id::text from app.accounts a where a.household_id = h.id order by a.id::text collate "C" limit 1), 'account_type', 'TRADITIONAL_IRA', 'is_inherited', false,
       'prior_year_end_balance', jsonb_build_object('amount', '640000.00', 'currency', 'USD', 'as_of_date', '2025-12-31')),
     'beneficiaries', '[]'::jsonb,
     'snapshot_ref', jsonb_build_object('snapshot_id', s.id::text, 'revision', s.revision, 'input_hash', s.content_sha256))

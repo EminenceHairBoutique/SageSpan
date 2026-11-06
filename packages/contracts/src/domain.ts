@@ -19,6 +19,7 @@ import type { AiFeedback, AiRunRecord } from "./ai";
 import type { UserDecisionEvent } from "./decisions";
 import type { CashAccount, IncomeStream, Liability, PersonalCalcRun, PersonalProfile, PersonalSnapshot, RecurringObligation, RetirementIntake, SavingsGoal, VariableSpendingPattern } from "./personal";
 import type { PersonalRecordRevision } from "./personal-records";
+import type { CoverageSummary, ReviewOutcome } from "./coverage";
 import type { ConsentGrant, Principal, Workspace, WorkspaceMembership } from "./workspace";
 
 /**
@@ -266,11 +267,33 @@ export interface Snapshot {
   canonical_payload: SnapshotPayload;
 }
 
+/**
+ * Frozen snapshot payload. v2 (PR-002, S-07) adds everything a calculator
+ * request depends on besides facts: the firm's policy at freeze (tolerance and
+ * approval settings, with its hash as the recorded policy version), the
+ * household's vendor label and each account's classification. A request is
+ * built from this payload alone, so changing live organisation settings or
+ * labels after freeze cannot change a request hash.
+ */
+export const SNAPSHOT_PAYLOAD_VERSION = "sagespan.snapshot.v2" as const;
+
+export interface SnapshotPolicyRecord {
+  separation_of_duties: boolean;
+  allow_nonmaterial_exceptions: boolean;
+  approver_roles: Role[];
+  tolerance: { absolute: string; relative: string };
+  /** SHA-256 of the canonical policies object at freeze; the recorded "policy version". */
+  policy_sha256: string;
+}
+
 export interface SnapshotPayload {
-  snapshot_version: "sagespan.snapshot.v1";
+  snapshot_version: typeof SNAPSHOT_PAYLOAD_VERSION;
   household_id: string;
   tax_year: number;
   revision: number;
+  policy: SnapshotPolicyRecord;
+  household: { source_tool_label: string | null };
+  accounts: Array<Pick<Account, "id" | "account_type" | "tax_character">>;
   facts: Array<Pick<Fact, "id" | "subject_type" | "subject_id" | "field_key" | "value_kind" | "value_number" | "value_text" | "value_date" | "value_bool" | "value_currency" | "as_of_date" | "verification_status" | "source_document_id">>;
   source_documents: Array<Pick<SourceDocument, "id" | "source_kind" | "filename" | "sha256" | "source_as_of">>;
   ownership: Array<Pick<AccountOwnership, "account_id" | "person_id" | "ownership_type" | "percentage" | "effective_from" | "effective_to">>;
@@ -331,6 +354,9 @@ export interface Review {
   rationale: string;
   conflict_attestation: boolean;
   reviewed_at: string;
+  /** PR-002 (S-06): typed coverage outcome computed server-side from the latest check attempts; null on non-approval reviews. */
+  coverage_outcome: ReviewOutcome | null;
+  coverage_summary: CoverageSummary | null;
 }
 
 export interface ReviewComment {
@@ -390,10 +416,11 @@ export interface PilotInterest {
  * Demo state version. v2 (V5) added the workspace model, Personal (B2C) records,
  * AI runs and feedback alongside the unchanged firm records; v3 (PERS-002) adds
  * the append-only personal record revision log and the `retired` flag on
- * personal records. A stored state with an older version is reseeded (synthetic
+ * personal records; v4 (PR-002) moves firm snapshots to payload v2 and adds
+ * coverage outcomes to reviews. A stored state with an older version is reseeded (synthetic
  * data only, nothing to migrate).
  */
-export const DEMO_STATE_VERSION = "sagespan.demo-state.v3" as const;
+export const DEMO_STATE_VERSION = "sagespan.demo-state.v4" as const;
 
 export interface DataState {
   state_version: typeof DEMO_STATE_VERSION;

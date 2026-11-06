@@ -44,8 +44,8 @@ This matrix describes what the checked-out tree does. It is not a certification 
 | Capability | V5 ref | Status | Evidence |
 |---|---|---|---|
 | Import → reconcile → freeze → RMD check → review → approval → packet (synthetic console) | §6, V3 | Implemented (synthetic), unchanged by V5 | existing suites; `assurance-flow.spec.ts` still passes |
-| PR-001 trust boundaries (migration 0005/0006, SQL suites, TS receipt verification) | §17.2 | Implemented on branch; **not merged to `master`; not real-stack validated** | `supabase/tests/005_*`, `006_*` (not run in this session — no PostgreSQL in the build environment) |
-| PR-002 coverage semantics (S-06/S-07/N-02) | §17.3 | **Blocked / open** | — |
+| PR-001 trust boundaries (migration 0005/0006, SQL suites, TS receipt verification) | §17.2 | Merged to `master` (#5); **not real-stack validated** | `supabase/tests/005_*`, `006_*` (run on embedded PostgreSQL 16 in the PR-002 session; CI `database` job on postgres:15) |
+| PR-002 coverage semantics (S-06/S-07/N-02): typed approval outcome, snapshot payload v2 with policy at freeze, latest-attempt retry semantics | §17.3 | Implemented on `feat/pr-002-coverage` (shim PostgreSQL 16 + CI postgres:15; **not real-stack validated**) | `supabase/migrations/0007_*`, `supabase/tests/007_*` (43 assertions), `packages/contracts/src/coverage.ts`, web `pr-002-coverage.test.ts` (10), e2e `pr-002-coverage.spec.ts` |
 | PR-003 production auth, store adapter, private storage, real RLS tests | §17.4 | **Blocked / open** | `/app` production gate |
 | Firm navigation: Review queue, Clients, Imports & evidence, Checks, Planning studio, AI plan review, Reviews & approvals, Firm settings | §7.2, DUAL-001 | Implemented (synthetic); Planning studio is a status page | `ui/console/ConsoleShell.tsx` |
 | AI plan review ("Analyze plan"): grounded findings, questions, draft memo; Accept / Edit / Dismiss / Request evidence as versioned feedback | §18, AI-000/AI-001 | Implemented (offline deterministic mock) | `apps/web/src/ai/*`, 28-case eval suite, e2e |

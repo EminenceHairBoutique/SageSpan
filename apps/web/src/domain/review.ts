@@ -1,4 +1,4 @@
-import { APPROVAL_CAPABLE_ROLES, FACT_FIELDS, PermissionDeniedError, approvalDecision, assertCan, type DataState, type Fact, type Review, type Role } from "@sagespan/contracts";
+import { APPROVAL_CAPABLE_ROLES, FACT_FIELDS, PermissionDeniedError, approvalDecision, approvalReadiness, assertCan, coverageSummary, type DataState, type Fact, type Review, type Role } from "@sagespan/contracts";
 import type { Actor } from "@/auth/types";
 import { appendAudit } from "./audit";
 import { DomainError } from "./errors";
@@ -177,7 +177,7 @@ export function recordReview(state: DataState, actor: Actor, householdId: string
   if (!b.currentSnapshot) throw new DomainError("INVALID_STATE", "No frozen snapshot to review.");
   const text = requireRationale(rationale, "Recording a review");
   transitionHousehold(hh, "REVIEWED");
-  const review: Review = { id: newId("rev"), org_id: actor.org_id, snapshot_id: b.currentSnapshot.id, household_id: hh.id, reviewer_user_id: actor.user_id, reviewer_role: actor.role, actor_type: actor.actor_type, decision: "REVIEWED", rationale: text, conflict_attestation: false, reviewed_at: nowIso() };
+  const review: Review = { id: newId("rev"), org_id: actor.org_id, snapshot_id: b.currentSnapshot.id, household_id: hh.id, reviewer_user_id: actor.user_id, reviewer_role: actor.role, actor_type: actor.actor_type, decision: "REVIEWED", rationale: text, conflict_attestation: false, reviewed_at: nowIso(), coverage_outcome: null, coverage_summary: null };
   state.reviews.push(review);
   appendAudit(state, { ...actorFields(actor), event_type: "REVIEW_RECORDED", entity_type: "review", entity_id: review.id, summary: `Review recorded for snapshot ${review.snapshot_id} by ${actor.role} (${actor.actor_type})` });
   return review;
@@ -207,12 +207,18 @@ export function approveReview(state: DataState, actor: Actor, householdId: strin
   if (!snap) throw new DomainError("INVALID_STATE", "No frozen snapshot to approve.");
   const text = requireRationale(input.rationale, "Approval");
   if (!input.conflictAttestation) throw new DomainError("ATTESTATION_REQUIRED", "You must attest that all conflicts were resolved or carried by documented exception and that the evidence was reviewed.");
+  // S-04 (kept): a non-ERROR run without a verified receipt is an integrity anomaly wherever it sits in history.
+  const anomalous = b.checkRuns.filter((r) => r.snapshot_id === snap.id && r.run_status !== "ERROR" && r.request_hash_verified !== true);
+  if (anomalous.length) throw new DomainError("CHECK_RECEIPT_UNVERIFIED", `${anomalous.length} check run(s) lack a verified calculation receipt; approval is refused.`);
+  // N-02 / S-06: only the latest attempt per account counts; history is kept but never evaluated. The typed
+  // coverage outcome is computed here, server-side, never chosen by the approver.
+  const summary = coverageSummary(snap, b.checkRuns, b.discrepancies);
+  const readiness = approvalReadiness(summary);
+  if (!readiness.ready) throw new DomainError(readiness.code, readiness.message);
+  const latestIds = new Set(summary.rows.map((r) => r.latest_run_id).filter((x): x is string => x !== null));
+  const openDisc = b.discrepancies.filter((d) => latestIds.has(d.check_run_id) && d.status === "OPEN");
+  if (openDisc.length) throw new DomainError("OPEN_DISCREPANCIES", `${openDisc.length} discrepancy(ies) on the latest check attempts still need a disposition before approval.`);
   const runs = b.checkRuns.filter((r) => r.snapshot_id === snap.id);
-  if (runs.length === 0 || runs.some((r) => r.run_status === "ERROR")) throw new DomainError("CHECK_REQUIRED", "A completed independent check is required before approval.");
-  const unverified = runs.filter((r) => r.run_status !== "ERROR" && r.request_hash_verified !== true);
-  if (unverified.length) throw new DomainError("CHECK_RECEIPT_UNVERIFIED", `${unverified.length} check run(s) lack a verified calculation receipt; approval is refused.`);
-  const openDisc = b.discrepancies.filter((d) => runs.some((r) => r.id === d.check_run_id) && d.status === "OPEN");
-  if (openDisc.length) throw new DomainError("OPEN_DISCREPANCIES", `${openDisc.length} discrepancy(ies) still need a disposition before approval.`);
   if (org.policies.separation_of_duties) {
     const conflictsWith: string[] = [];
     if (snap.created_by === actor.user_id) conflictsWith.push("froze the snapshot");
@@ -222,9 +228,9 @@ export function approveReview(state: DataState, actor: Actor, householdId: strin
     }
   }
   transitionHousehold(hh, "APPROVED");
-  const review: Review = { id: newId("rev"), org_id: actor.org_id, snapshot_id: snap.id, household_id: hh.id, reviewer_user_id: actor.user_id, reviewer_role: actor.role, actor_type: actor.actor_type, decision: "APPROVED", rationale: text, conflict_attestation: true, reviewed_at: nowIso() };
+  const review: Review = { id: newId("rev"), org_id: actor.org_id, snapshot_id: snap.id, household_id: hh.id, reviewer_user_id: actor.user_id, reviewer_role: actor.role, actor_type: actor.actor_type, decision: "APPROVED", rationale: text, conflict_attestation: true, reviewed_at: nowIso(), coverage_outcome: readiness.outcome, coverage_summary: summary };
   state.reviews.push(review);
-  appendAudit(state, { ...actorFields(actor), event_type: "APPROVAL_RECORDED", entity_type: "review", entity_id: review.id, summary: `Snapshot ${snap.id} approved by ${actor.role} (${actor.actor_type}) with conflict attestation`, payload: { review_id: review.id, snapshot_id: snap.id } });
+  appendAudit(state, { ...actorFields(actor), event_type: "APPROVAL_RECORDED", entity_type: "review", entity_id: review.id, summary: `Snapshot ${snap.id} approved by ${actor.role} (${actor.actor_type}) with conflict attestation; outcome ${readiness.outcome} (${summary.verified + summary.not_required} of ${summary.accounts_in_scope} accounts verified, ${summary.unsupported + summary.indeterminate} outside supported scope, ${summary.superseded_attempts} superseded attempt(s) kept as history)`, payload: { review_id: review.id, snapshot_id: snap.id, coverage_outcome: readiness.outcome } });
   return review;
 }
 
@@ -250,7 +256,7 @@ export function updatePolicy(state: DataState, actor: Actor, patch: { separation
   appendAudit(state, { ...actorFields(actor), event_type: "POLICY_UPDATED", entity_type: "organization", entity_id: org.id, summary: `Firm policy updated: SoD=${org.policies.separation_of_duties}, nonmaterial exceptions=${org.policies.allow_nonmaterial_exceptions}, approvers=${org.policies.approver_roles.join("/")}` });
 }
 
-const DENIAL_CODES = new Set(["PERMISSION_DENIED", "NOT_AN_APPROVER", "SEPARATION_OF_DUTIES", "ATTESTATION_REQUIRED", "OPEN_DISCREPANCIES", "CHECK_REQUIRED", "CHECK_RECEIPT_UNVERIFIED", "RATIONALE_REQUIRED"]);
+const DENIAL_CODES = new Set(["PERMISSION_DENIED", "NOT_AN_APPROVER", "SEPARATION_OF_DUTIES", "ATTESTATION_REQUIRED", "OPEN_DISCREPANCIES", "CHECK_REQUIRED", "CHECK_FAILED_LATEST", "CHECK_RECEIPT_UNVERIFIED", "NO_ACCOUNTS_IN_SCOPE", "RATIONALE_REQUIRED"]);
 
 /**
  * Approval attempt with durable denial logging. A denied approval raises

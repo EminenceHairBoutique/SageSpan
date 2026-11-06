@@ -1,4 +1,4 @@
-import { FACT_FIELDS, REQUIRED_FACT_KEYS_RMD, assertCan, assertTransition, canonicalJson, priorYearEnd, type DataState, type Fact, type Household, type Snapshot, type SnapshotPayload } from "@sagespan/contracts";
+import { FACT_FIELDS, REQUIRED_FACT_KEYS_RMD, SNAPSHOT_PAYLOAD_VERSION, assertCan, assertTransition, canonicalJson, priorYearEnd, type DataState, type Fact, type Household, type OrgPolicies, type Snapshot, type SnapshotPayload, type SnapshotPolicyRecord } from "@sagespan/contracts";
 import type { Actor } from "@/auth/types";
 import { appendAudit, sha256 } from "./audit";
 import { DomainError } from "./errors";
@@ -136,7 +136,22 @@ export function byteCompare(x: string, y: string): number {
   return x < y ? -1 : x > y ? 1 : 0;
 }
 
-/** Deterministic, canonical snapshot payload built only from confirmed/assumed active facts. */
+/** The firm policy as recorded at freeze (S-07). Its hash is the policy version cited by the snapshot. */
+export function policyRecord(policies: OrgPolicies): SnapshotPolicyRecord {
+  const core = {
+    separation_of_duties: policies.separation_of_duties,
+    allow_nonmaterial_exceptions: policies.allow_nonmaterial_exceptions,
+    approver_roles: [...policies.approver_roles].sort(byteCompare),
+    tolerance: { absolute: policies.tolerance.absolute, relative: policies.tolerance.relative },
+  };
+  return { ...core, policy_sha256: sha256(canonicalJson(core)) };
+}
+
+/**
+ * Deterministic, canonical snapshot payload built only from confirmed/assumed
+ * active facts plus everything else a calculator request depends on (payload
+ * v2): the policy at freeze, the vendor label and each account's classification.
+ */
 export function buildSnapshotPayload(b: HouseholdBundle, revision: number): SnapshotPayload {
   const facts = b.activeFacts
     .filter((f) => f.verification_status === "FACT_CONFIRMED" || f.verification_status === "FACT_ASSUMED")
@@ -144,10 +159,13 @@ export function buildSnapshotPayload(b: HouseholdBundle, revision: number): Snap
     .sort((a, c) => byteCompare(a.id, c.id));
   const docIds = new Set(facts.map((f) => f.source_document_id).filter(Boolean));
   return {
-    snapshot_version: "sagespan.snapshot.v1",
+    snapshot_version: SNAPSHOT_PAYLOAD_VERSION,
     household_id: b.household.id,
     tax_year: b.household.tax_year,
     revision,
+    policy: policyRecord(b.org.policies),
+    household: { source_tool_label: b.household.source_tool_label },
+    accounts: b.accounts.map((a) => ({ id: a.id, account_type: a.account_type, tax_character: a.tax_character })).sort((x, y) => byteCompare(x.id, y.id)),
     facts,
     source_documents: b.documents.filter((d) => docIds.has(d.id) || b.importedValues.some((v) => b.imports.find((i) => i.id === v.import_id)?.source_document_id === d.id)).map((d) => ({ id: d.id, source_kind: d.source_kind, filename: d.filename, sha256: d.sha256, source_as_of: d.source_as_of })).sort((a, c) => byteCompare(a.id, c.id)),
     ownership: b.ownership.map((o) => ({ account_id: o.account_id, person_id: o.person_id, ownership_type: o.ownership_type, percentage: o.percentage, effective_from: o.effective_from, effective_to: o.effective_to })).sort((a, c) => byteCompare((a.account_id + a.person_id), c.account_id + c.person_id)),

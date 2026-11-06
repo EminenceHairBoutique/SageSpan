@@ -289,7 +289,7 @@ describe("S-03: snapshot ordering is byte order, matching Postgres collate \"C\"
     expect(factIds).toEqual([...factIds].sort());
     const docIds = p.source_documents.map((d) => d.id);
     expect(docIds).toEqual([...docIds].sort());
-    expect(p.snapshot_version).toBe("sagespan.snapshot.v1");
+    expect(p.snapshot_version).toBe("sagespan.snapshot.v2");
   });
 });
 

@@ -38,9 +38,9 @@
 | N-03 chain sequence and concurrency, historic fork treatment | A2, P3 | §§17.2, 17.5 | PR-001 Annex A | One head, 20 same-tx and concurrent appends |
 | N-04 PUBLIC EXECUTE inventory/definer search_path/RLS helpers | A2, P3 | §§17.2, 17.5 | PR-001 Annex A | Explicit grants and real RPC/positive RLS tests |
 | N-05 COMPLIANCE-only final approval default and SoD | A2, P3 | §17.2 | PR-001 Annex A | TS/SQL/settings policy agree |
-| S-06 supported vs limited outcome/published packet scope | A2, P3 | §17.3 | PR-002 | Unsupported-only never verified |
-| S-07 frozen snapshot-only calculation inputs and policy version | A2, P3 | §17.3 | PR-002 | Live settings mutation leaves hash constant |
-| N-02 latest scoped attempt, ERROR→PASS/PASS→ERROR | A2, P3 | §17.3 | PR-002 | Recovery/no stale success cases |
+| S-06 supported vs limited outcome/published packet scope | A2, P3 | §17.3 | PR-002 — **implemented** (`feat/pr-002-coverage`) | Unsupported-only never verified — SQL 007 E4, web `pr-002-coverage`, e2e Okafor |
+| S-07 frozen snapshot-only calculation inputs and policy version | A2, P3 | §17.3 | PR-002 — **implemented** (payload v2, migration 0007) | Live settings mutation leaves hash constant — SQL 007 E1, web `pr-002-coverage` S-07 |
+| N-02 latest scoped attempt, ERROR→PASS/PASS→ERROR | A2, P3 | §17.3 | PR-002 — **implemented** (`app.latest_check_runs`, `latestCheckRuns`) | Recovery/no stale success — SQL 007 E2/E3, web `pr-002-coverage` N-02 |
 | S-08 unsafe demo leads/state local file use | A2 | §§16.2, 17.2 | PR-003 / operations | Production store not a demo file |
 | S-09 env/dependency/config hardening | A2, P3 | §§17.2, 17.5 | PR-001/OPS | Fail-closed prod, locked dependencies |
 | S-10 independent packet artifact manifest and hashes | A2 | §17.4 | PR-003/ASSURANCE-001 | Independent verifier and per-file digest |
@@ -113,3 +113,15 @@ This matrix is **traceability, not a certification**. It does not mean every pos
 | Investment education now, recommendations gated | `/demo/personal/learn`, `ENABLED_TIERS = [0,1,2]` | `v5-contracts.test.ts` |
 | Consumer "stress reduction" without clinical claims | copy review across `/demo/personal/*` and marketing | manual |
 | S-01–S-10 / N-01–N-05 | untouched; migrations 0001–0006 unchanged (`--check` green) | SQL suites **not rerun** this session |
+
+## F. PR-002 evidence (2026-11-06, `feat/pr-002-coverage`)
+
+| Requirement | Evidence in tree | Suite |
+|---|---|---|
+| S-06 typed outcome; unsupported-only never verified; packet title/scope from coverage | `packages/contracts/src/coverage.ts` (`coverageSummary`, `approvalReadiness`, `packetTitle`), `domain/review.ts`, `domain/evidence.ts` (packet v2), `ui/console/CoveragePanel.tsx`, migration 0007 §1, §5, §7 | SQL 007 E4–E6; web `pr-002-coverage.test.ts`; contracts `v5-contracts.test.ts`; e2e `pr-002-coverage.spec.ts`, `assurance-flow.spec.ts` |
+| S-07 snapshot payload v2 (policy + `policy_sha256`, vendor label, account classification); request from payload only; freeze verifies against org rows | `domain/freeze.ts` (`policyRecord`, `buildSnapshotPayload`), `domain/checks.ts` (`buildRmdRequest(snapshot, accountId)`), migration 0007 §2–§4 | SQL 007 E1 (5 negative + 4 positive); web `pr-002-coverage.test.ts` S-07 |
+| N-02 latest attempt per (account, check type); history kept; CHECK_COMPLETE only when every payload account's latest attempt is clean | `latestCheckRuns`, `domain/checks.ts`, `ai/evidence-resolver.ts` (same rule), migration 0007 §5–§7 (`clock_timestamp()` on runs) | SQL 007 E2/E3/E6; web `pr-002-coverage.test.ts` N-02 |
+| S-04 guard preserved (any non-ERROR unverified run refuses approval) | `approveReview`, `record_review` | SQL 005 HH5 (unchanged); web `trust-boundaries` |
+| N-04 inventory after 0007 (`policy_record`, `latest_check_runs`, `coverage_summary` added) | migration 0007 §8 | SQL 005 + 007 inventory assertions |
+| Demo state v4 (payload v2 snapshots, review outcomes) | `DEMO_STATE_VERSION`, `seed.json` | web suites |
+| Not done | real Supabase Auth/JWT/PostgREST/RLS run of 0007; professional sign-off | — |

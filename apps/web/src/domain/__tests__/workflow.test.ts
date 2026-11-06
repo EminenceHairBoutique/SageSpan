@@ -188,7 +188,7 @@ describe("Patel: conflict -> resolution -> freeze -> check -> review -> approval
     expect(pkt.sha256).toMatch(HEX64);
     expect(statusOf(store, "hh_patel")).toBe("EXPORTED");
     const packet = pkt.packet as { snapshot: { content_sha256: string }; engine: { version: string }; rule_sets: Array<{ rule_set_id: string; checksum: string }>; limitations: string[]; reviews: Array<{ decision: string }>; discrepancies: Array<{ classification: string }>; not_checked: string[]; title: string };
-    expect(packet.title).toBe("Review evidence packet");
+    expect(packet.title).toBe("Review evidence packet — approved with exceptions (1 of 1 accounts verified; 1 exception(s), 1 dispositioned difference(s))"); // PR-002: title derives from coverage
     expect(packet.snapshot.content_sha256).toBe(snap.content_sha256);
     expect(packet.engine.version).toBe("0.1.0");
     expect(packet.rule_sets.map((r) => r.rule_set_id)).toContain("rmd.uniform_lifetime_table");

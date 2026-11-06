@@ -1,4 +1,4 @@
-import { DebtPathsResponseSchema, PersonalClarityResponseSchema, assertCan, type AiReviewRequest, type CheckRun, type DataState, type Discrepancy, type Fact, type FactConflict, type Role, type SourceDocument } from "@sagespan/contracts";
+import { DebtPathsResponseSchema, PersonalClarityResponseSchema, assertCan, latestCheckRuns, type AiReviewRequest, type CheckRun, type DataState, type Discrepancy, type Fact, type FactConflict, type Role, type SourceDocument } from "@sagespan/contracts";
 import type { PersonalActor } from "@/auth/personal-actor";
 import type { Actor } from "@/auth/types";
 import { householdBundle, type HouseholdBundle } from "@/domain/queries";
@@ -135,12 +135,9 @@ export function resolveFirmContext(state: DataState, actor: Actor, householdId: 
   const snapshot = b.currentSnapshot;
   const facts = b.facts.map<GroundingFact>((f) => ({ id: f.id, subject_type: f.subject_type, subject_id: f.subject_id, field_key: f.field_key, value: factValue(f), as_of_date: f.as_of_date, verification_status: f.verification_status, source_document_id: f.source_document_id, source_location_id: f.source_location_id }));
   const superseded = new Set(b.facts.filter((f) => f.superseded).map((f) => f.id));
-  const latestByAccount = new Map<string, CheckRun>();
-  for (const r of b.checkRuns) {
-    const acct = r.request_payload.account.account_ref;
-    const prev = latestByAccount.get(acct);
-    if (!prev || prev.executed_at < r.executed_at) latestByAccount.set(acct, r);
-  }
+  // PR-002 (N-02): "latest" is the same rule the approval and the evidence packet use — the latest attempt per
+  // (check type, account) on the CURRENT snapshot. Runs on superseded snapshots are never "latest".
+  const latestIds = new Set(snapshot ? latestCheckRuns(b.checkRuns, snapshot.id).latest.map((r) => r.id) : []);
   const check_runs = b.checkRuns.map<GroundingCheckRun>((r) => {
     const acct = r.request_payload.account.account_ref;
     const d = b.discrepancies.find((x) => x.check_run_id === r.id);
@@ -150,7 +147,7 @@ export function resolveFirmContext(state: DataState, actor: Actor, householdId: 
       run_status: r.run_status,
       coverage_status: r.coverage_status,
       executed_at: r.executed_at,
-      is_latest_for_account: latestByAccount.get(acct)?.id === r.id,
+      is_latest_for_account: latestIds.has(r.id),
       unsupported_reasons: r.response?.unsupported_reasons.map((x) => x.code) ?? (r.error ? [r.error.code] : []),
       discrepancy: d ? { classification: d.classification, computed_amount: d.computed_amount, imported_amount: d.imported_amount, delta_amount: d.delta_amount } : null,
     };
