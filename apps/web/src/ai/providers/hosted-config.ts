@@ -14,7 +14,9 @@
  * Optional ceilings:
  *   SAGESPAN_AI_HOSTED_BASE_URL         default https://api.anthropic.com
  *   SAGESPAN_AI_HOSTED_MAX_TOKENS       per completion, default 4096
- *   SAGESPAN_AI_HOSTED_TIMEOUT_MS       per completion, default 15000
+ *   SAGESPAN_AI_HOSTED_TIMEOUT_MS       per completion, default 50000 (max 110000). The first live run
+ *                                       (claude-sonnet-5-5) needed more than 15 s for one completion.
+ *   SAGESPAN_AI_HOSTED_RUN_WALL_CLOCK_MS whole run (all turns), default 110000 (max 120000, the contract cap)
  *   SAGESPAN_AI_HOSTED_PROCESS_TOKEN_CEILING   total tokens this process may spend, default 250000 (fail closed, no mock fallback)
  *   SAGESPAN_AI_HOSTED_RUNS_PER_SCOPE_PER_HOUR default 10 (per workspace / household)
  *   SAGESPAN_AI_HOSTED_TOOL_CHOICE      auto (default) | forced. Some current models reject a
@@ -27,6 +29,8 @@ export interface HostedConfig {
   baseUrl: string;
   maxTokens: number;
   timeoutMs: number;
+  /** Wall clock for the whole hosted run (all turns); handed to the runtime as a budget hint. */
+  runWallClockMs: number;
   processTokenCeiling: number;
   runsPerScopePerHour: number;
   /** How the adapter asks for a tool call. `auto` works on every current model; `forced` only where the model supports it. */
@@ -63,7 +67,8 @@ export function resolveHostedConfig(env: Record<string, string | undefined>): Ho
       model: env.SAGESPAN_AI_HOSTED_MODEL!.trim(),
       baseUrl,
       maxTokens: int(env.SAGESPAN_AI_HOSTED_MAX_TOKENS, 4096, 256, 32_000),
-      timeoutMs: int(env.SAGESPAN_AI_HOSTED_TIMEOUT_MS, 15_000, 1_000, 60_000),
+      timeoutMs: int(env.SAGESPAN_AI_HOSTED_TIMEOUT_MS, 50_000, 1_000, 110_000),
+      runWallClockMs: int(env.SAGESPAN_AI_HOSTED_RUN_WALL_CLOCK_MS, 110_000, 5_000, 120_000),
       processTokenCeiling: int(env.SAGESPAN_AI_HOSTED_PROCESS_TOKEN_CEILING, 250_000, 1_000, 50_000_000),
       runsPerScopePerHour: int(env.SAGESPAN_AI_HOSTED_RUNS_PER_SCOPE_PER_HOUR, 10, 1, 1_000),
       toolChoice,

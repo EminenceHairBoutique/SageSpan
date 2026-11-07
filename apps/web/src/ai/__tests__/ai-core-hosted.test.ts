@@ -1,5 +1,5 @@
 /**
- * AI-CORE-002a — hosted adapter suite (AI-H01 … AI-H12). Offline: the vendor is a
+ * AI-CORE-002a — hosted adapter suite (AI-H01 … AI-H13). Offline: the vendor is a
  * scripted fake `fetch` that returns recorded Anthropic Messages API shapes. No
  * network, no key beyond a throwaway string that must never appear in any record.
  */
@@ -16,7 +16,7 @@ import { ALVAREZ, HP_CCO, addCastilloRuns, addPatelCheckRun } from "../evals/fix
 
 const KEY = "sk-test-DO-NOT-LEAK-7f3a9c";
 const FULL_ENV = { SAGESPAN_AI_PROVIDER: "hosted", SAGESPAN_AI_HOSTED_API_KEY: KEY, SAGESPAN_AI_HOSTED_MODEL: "claude-test-model", SAGESPAN_AI_HOSTED_SYNTHETIC_ACK: SYNTHETIC_ACK, SAGESPAN_DEMO_MODE: "1" };
-const CONFIG: HostedConfig = { apiKey: KEY, model: "claude-test-model", baseUrl: "https://api.anthropic.com", maxTokens: 4096, timeoutMs: 1000, processTokenCeiling: 250_000, runsPerScopePerHour: 10, toolChoice: "forced" };
+const CONFIG: HostedConfig = { apiKey: KEY, model: "claude-test-model", baseUrl: "https://api.anthropic.com", maxTokens: 4096, timeoutMs: 1000, runWallClockMs: 20_000, processTokenCeiling: 250_000, runsPerScopePerHour: 10, toolChoice: "forced" };
 
 type Body = Record<string, unknown> & { messages: Array<{ role: string; content: Array<Record<string, unknown>> }>; tools: Array<{ name: string }>; tool_choice: Record<string, unknown> };
 interface Captured {
@@ -289,5 +289,22 @@ describe("AI-CORE-002a hosted adapter", () => {
     expect(detail).not.toContain("x".repeat(400));
     noSecret(r);
     noSecret(store.read().ai_runs);
+  });
+
+  it("AI-H13 a hosted run gets a hosted-sized wall clock: per-completion timeout and run budget default to 50 s / 110 s, are clamped, and reach the runtime; a caller override still wins", async () => {
+    const cfg = resolveHostedConfig(FULL_ENV);
+    expect(cfg).toMatchObject({ enabled: true, config: { timeoutMs: 50_000, runWallClockMs: 110_000 } });
+    expect(resolveHostedConfig({ ...FULL_ENV, SAGESPAN_AI_HOSTED_RUN_WALL_CLOCK_MS: "999999", SAGESPAN_AI_HOSTED_TIMEOUT_MS: "999999" })).toMatchObject({ config: { timeoutMs: 110_000, runWallClockMs: 120_000 } });
+    const { store } = patelStore();
+    const ctx = resolveFirmContext(store.read(), HP_CCO, "hh_patel");
+    const draft = () => vendorMsg([emit("e", { status: "DRAFT_FOR_HUMAN_REVIEW", findings: [], summary: "s", limitations: ["l"] })]);
+    const { provider } = hosted([draft(), draft()], { runWallClockMs: 110_000 });
+    expect(provider.budgetHint).toEqual({ max_wall_clock_ms: 110_000 });
+    const a = await orchestrate(ctx, "RETIREMENT_PLAN_REVIEW", HP_CCO.user_id, provider);
+    expect(a.record.runtime!.budget.max_wall_clock_ms).toBe(110_000);
+    const b = await orchestrate(ctx, "RETIREMENT_PLAN_REVIEW", HP_CCO.user_id, provider, null, { budget: { max_wall_clock_ms: 30_000 } });
+    expect(b.record.runtime!.budget.max_wall_clock_ms).toBe(30_000);
+    const mock = await orchestrate(ctx, "RETIREMENT_PLAN_REVIEW", HP_CCO.user_id, new MockToolLoopProvider());
+    expect(mock.record.runtime!.budget.max_wall_clock_ms).toBe(20_000);
   });
 });

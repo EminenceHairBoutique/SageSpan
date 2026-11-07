@@ -64,7 +64,7 @@ describe.skipIf(!live)("hosted vendor on synthetic fixtures (opt-in, spends toke
     const vendorErrors = [firmLive, personalLive].filter((r) => r.run_status === "ERROR").flatMap((r) => r.validation_issues.map((i) => i.detail));
     expect(vendorErrors, `hosted run(s) ended in ERROR — report: ${file}`).toEqual([]);
     expect(report.tokens).toBeGreaterThan(0);
-  }, 120_000);
+  }, 600_000); // two live runs, each up to the hosted run wall clock (default 110 s)
 });
 
 function summarise(r: Awaited<ReturnType<typeof runFirmAnalyzePlan>>) {
