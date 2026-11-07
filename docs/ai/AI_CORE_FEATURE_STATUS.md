@@ -10,6 +10,7 @@ Baseline verified for this branch: `origin/master` = `5299791` ("AI Checklist");
 | **Bounded two-turn tool loop** (budgets before dispatch, strict args, de-dup, re-authorisation per call and before record, untrusted tool-result envelopes, honest stop reasons) | **Implemented in synthetic demo** (this branch); unit-tested | `runtime/tool-loop.ts`; `ai-core-toolloop.test.ts` 17/17 |
 | Deterministic two-turn mock as the demo default | Implemented in synthetic demo | `MockToolLoopProvider`; `diffReports`-identical to one-pass mock (AI-C02/C02b) |
 | `ai-runtime-v1` contracts (budget, envelopes, descriptor, trace), `ABSTAINED` outcome, new validation codes | Implemented; contract-tested | `packages/contracts/src/ai/runtime.ts`; `ai-runtime-contracts.test.ts` 4/4 |
+| **AI-SEC-001 narrative grounding** (summary, draft memo, questions, model limitations get the finding-level amount and pass-claim rules; failing field withheld via `REDACT_TEXT`) | Implemented; CI-tested (closes the independent audit's P0 of 2026-11-06) | `result-validator.ts`; `ai-sec-001-narrative.test.ts` AI-N01…N08 |
 | Runtime trace shown to reviewers / users | Implemented in synthetic demo | `AiReviewPanel` runtime line; firm list chip handles `ABSTAINED` |
 | `SAGESPAN_AI_PROVIDER` = `mock` / `mock_onepass` / `hosted` / `self_hosted` | Implemented (hosted/self_hosted resolve to mock with an explicit note) | AI-C14, AI-E17 |
 | Live provider **port** (types) | Implemented | `providers/port.ts` (now carries `output_json_schema`) |

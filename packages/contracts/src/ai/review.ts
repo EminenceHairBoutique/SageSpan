@@ -118,8 +118,12 @@ export interface AiValidationIssue {
   code: AiValidationCode;
   finding_id: string | null;
   detail: string;
-  /** REJECT_FINDING drops the finding; REJECT_REPORT fails the whole run; NOTE keeps the report and records the issue. */
-  disposition: "REJECT_FINDING" | "REJECT_REPORT" | "NOTE";
+  /**
+   * REJECT_FINDING drops the finding; REJECT_REPORT fails the whole run; NOTE keeps the report and records the issue;
+   * REDACT_TEXT (AI-SEC-001) keeps the report but replaces or drops one narrative field (summary, draft_memo, a question
+   * or a model limitation) that carried an unbacked amount or an unsupported pass/verified claim.
+   */
+  disposition: "REJECT_FINDING" | "REJECT_REPORT" | "NOTE" | "REDACT_TEXT";
 }
 
 /** Immutable record of one orchestrated run. Model output is stored as a digest plus the validated report; secrets and raw prompts are never stored. */
