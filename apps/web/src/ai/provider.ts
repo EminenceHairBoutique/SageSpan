@@ -1,4 +1,4 @@
-import { AI_ABSTAIN_STATUS, AI_REVIEW_SCHEMA_VERSION, AI_TOOLS, type AiAnalysisKind, type AiFinding, type AiModelMetadata, type AiModelOutput, type AiProviderDescriptor, type AiToolResultEnvelope } from "@sagespan/contracts";
+import { AI_ABSTAIN_STATUS, AI_REVIEW_SCHEMA_VERSION, AI_TOOLS, type AiAnalysisKind, type AiFinding, type AiModelMetadata, type AiModelOutput, type AiProviderDescriptor, type AiRunBudget, type AiToolResultEnvelope } from "@sagespan/contracts";
 import { formatMoney } from "@sagespan/contracts";
 import type { GroundingCheckRun, GroundingContext } from "./evidence-resolver";
 import { PROMPT_VERSION, SYSTEM_PROMPT_REVIEW_V1 } from "./prompts/review-v1";
@@ -56,6 +56,8 @@ export interface AiProvider {
   continue?(input: ContinuationInput): Promise<ProviderResult>;
   /** Capability/identity descriptor recorded on every run. Defaults are derived when absent. */
   describe?(): AiProviderDescriptor;
+  /** Budget fields this provider needs (e.g. a hosted model's longer wall clock). Applied between the default and any caller override; still validated by `AiRunBudgetSchema`. */
+  readonly budgetHint?: Partial<AiRunBudget>;
 }
 
 export function describeProvider(p: AiProvider): AiProviderDescriptor {

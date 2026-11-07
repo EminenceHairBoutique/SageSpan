@@ -60,8 +60,11 @@ describe.skipIf(!live)("hosted vendor on synthetic fixtures (opt-in, spends toke
     mkdirSync(dir, { recursive: true });
     const file = path.join(dir, `${report.generated_at.replace(/[:.]/g, "-")}-hosted.json`);
     writeFileSync(file, JSON.stringify(report, null, 2));
+    // a vendor-side failure (bad key, unsupported parameter, no credit) is reported with its reason, not as "0 tokens"
+    const vendorErrors = [firmLive, personalLive].filter((r) => r.run_status === "ERROR").flatMap((r) => r.validation_issues.map((i) => i.detail));
+    expect(vendorErrors, `hosted run(s) ended in ERROR — report: ${file}`).toEqual([]);
     expect(report.tokens).toBeGreaterThan(0);
-  }, 120_000);
+  }, 600_000); // two live runs, each up to the hosted run wall clock (default 110 s)
 });
 
 function summarise(r: Awaited<ReturnType<typeof runFirmAnalyzePlan>>) {
@@ -77,6 +80,7 @@ function summarise(r: Awaited<ReturnType<typeof runFirmAnalyzePlan>>) {
     accepted: r.accepted_finding_count,
     rejected: r.rejected_finding_count,
     issue_codes: r.validation_issues.map((i) => i.code),
+    issue_details: r.validation_issues.map((i) => i.detail),
     finding_categories: r.report?.findings.map((f) => f.category) ?? [],
     estimated_tokens: r.estimated_tokens,
   };
