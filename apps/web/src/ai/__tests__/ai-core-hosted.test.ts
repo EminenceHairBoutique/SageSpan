@@ -1,5 +1,5 @@
 /**
- * AI-CORE-002a — hosted adapter suite (AI-H01 … AI-H10). Offline: the vendor is a
+ * AI-CORE-002a — hosted adapter suite (AI-H01 … AI-H12). Offline: the vendor is a
  * scripted fake `fetch` that returns recorded Anthropic Messages API shapes. No
  * network, no key beyond a throwaway string that must never appear in any record.
  */
@@ -16,7 +16,7 @@ import { ALVAREZ, HP_CCO, addCastilloRuns, addPatelCheckRun } from "../evals/fix
 
 const KEY = "sk-test-DO-NOT-LEAK-7f3a9c";
 const FULL_ENV = { SAGESPAN_AI_PROVIDER: "hosted", SAGESPAN_AI_HOSTED_API_KEY: KEY, SAGESPAN_AI_HOSTED_MODEL: "claude-test-model", SAGESPAN_AI_HOSTED_SYNTHETIC_ACK: SYNTHETIC_ACK, SAGESPAN_DEMO_MODE: "1" };
-const CONFIG: HostedConfig = { apiKey: KEY, model: "claude-test-model", baseUrl: "https://api.anthropic.com", maxTokens: 4096, timeoutMs: 1000, processTokenCeiling: 250_000, runsPerScopePerHour: 10 };
+const CONFIG: HostedConfig = { apiKey: KEY, model: "claude-test-model", baseUrl: "https://api.anthropic.com", maxTokens: 4096, timeoutMs: 1000, processTokenCeiling: 250_000, runsPerScopePerHour: 10, toolChoice: "forced" };
 
 type Body = Record<string, unknown> & { messages: Array<{ role: string; content: Array<Record<string, unknown>> }>; tools: Array<{ name: string }>; tool_choice: Record<string, unknown> };
 interface Captured {
@@ -242,5 +242,52 @@ describe("AI-CORE-002a hosted adapter", () => {
     noSecret(r);
     noSecret(store.read().ai_runs);
     noSecret(provider.describe());
+  });
+
+  it("AI-H11 tool_choice defaults to auto (some current models reject a forced choice); the final turn still offers only emit_review, and free text still fails closed", async () => {
+    expect(resolveHostedConfig(FULL_ENV)).toMatchObject({ enabled: true, config: { toolChoice: "auto" } });
+    expect(resolveHostedConfig({ ...FULL_ENV, SAGESPAN_AI_HOSTED_TOOL_CHOICE: "forced" })).toMatchObject({ enabled: true, config: { toolChoice: "forced" } });
+    const bad = resolveHostedConfig({ ...FULL_ENV, SAGESPAN_AI_HOSTED_TOOL_CHOICE: "required" });
+    expect(bad.enabled).toBe(false);
+    expect((bad as { missing: string[] }).missing.join(" ")).toMatch(/TOOL_CHOICE must be auto or forced/);
+
+    const { store, runId } = patelStore();
+    const { provider, captured } = hosted(
+      [
+        vendorMsg([toolUse("toolu_01", "get_check_runs")]),
+        vendorMsg([emit("toolu_02", { status: "DRAFT_FOR_HUMAN_REVIEW", summary: "Reviewed.", findings: [], limitations: ["Draft only."] })], { stop_reason: "end_turn" }),
+      ],
+      { toolChoice: "auto" },
+    );
+    const r = await runFirmAnalyzePlan(store, HP_CCO, "hh_patel", provider);
+    expect(r.run_status).toBe("DRAFT_READY");
+    expect(runId).not.toBe("");
+    expect(captured[0]!.body.tool_choice).toEqual({ type: "auto" });
+    expect(captured[0]!.body.tools.length).toBe(6);
+    expect(captured[1]!.body.tool_choice).toEqual({ type: "auto" });
+    expect(captured[1]!.body.tools.map((t) => t.name)).toEqual([EMIT_REVIEW_TOOL]);
+    for (const c of captured) expect(JSON.stringify(c.body.tool_choice)).not.toMatch(/"any"|"tool"/);
+
+    const prose = hosted([vendorMsg([{ type: "text", text: "Here is my review in prose..." }], { stop_reason: "end_turn" })], { toolChoice: "auto" });
+    const ctx = resolveFirmContext(store.read(), HP_CCO, "hh_patel");
+    const { record } = await orchestrate(ctx, "RETIREMENT_PLAN_REVIEW", HP_CCO.user_id, prose.provider);
+    expect(record.run_status).toBe("ERROR");
+    expect(record.report).toBeNull();
+    expect(record.validation_issues.map((i) => i.detail).join(" ")).toMatch(/MALFORMED_OUTPUT.*no tool call/);
+  });
+
+  it("AI-H12 a vendor request error carries the vendor's reason (bounded, key-shaped text redacted) so an operator can see why it was refused", async () => {
+    const { store } = patelStore();
+    const message = `tool_choice: type "tool" and "any" are not supported for this model. key ${KEY} sk-ant-api03-abcdefghijk ${"x".repeat(600)}`;
+    const { provider } = hosted([{ status: 400, json: { type: "error", error: { type: "invalid_request_error", message } } }]);
+    const r = await runFirmAnalyzePlan(store, HP_CCO, "hh_patel", provider);
+    expect(r.run_status).toBe("ERROR");
+    const detail = r.validation_issues.map((i) => i.detail).join(" ");
+    expect(detail).toMatch(/HTTP 400 \(invalid_request_error\): tool_choice: type "tool" and "any" are not supported for this model/);
+    expect(detail).not.toMatch(/sk-ant-api03-abcdefghijk/);
+    expect(detail).toMatch(/\[redacted\]/);
+    expect(detail).not.toContain("x".repeat(400));
+    noSecret(r);
+    noSecret(store.read().ai_runs);
   });
 });

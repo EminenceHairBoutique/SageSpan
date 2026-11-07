@@ -17,6 +17,9 @@
  *   SAGESPAN_AI_HOSTED_TIMEOUT_MS       per completion, default 15000
  *   SAGESPAN_AI_HOSTED_PROCESS_TOKEN_CEILING   total tokens this process may spend, default 250000 (fail closed, no mock fallback)
  *   SAGESPAN_AI_HOSTED_RUNS_PER_SCOPE_PER_HOUR default 10 (per workspace / household)
+ *   SAGESPAN_AI_HOSTED_TOOL_CHOICE      auto (default) | forced. Some current models reject a
+ *                                       forced tool_choice ("any"/"tool") with HTTP 400; `auto`
+ *                                       still offers only tools and fails closed on free text.
  */
 export interface HostedConfig {
   apiKey: string;
@@ -26,7 +29,11 @@ export interface HostedConfig {
   timeoutMs: number;
   processTokenCeiling: number;
   runsPerScopePerHour: number;
+  /** How the adapter asks for a tool call. `auto` works on every current model; `forced` only where the model supports it. */
+  toolChoice: HostedToolChoice;
 }
+
+export type HostedToolChoice = "auto" | "forced";
 
 export type HostedResolution = { enabled: true; config: HostedConfig } | { enabled: false; missing: string[] };
 
@@ -47,6 +54,8 @@ export function resolveHostedConfig(env: Record<string, string | undefined>): Ho
   if (missing.length) return { enabled: false, missing };
   const baseUrl = (env.SAGESPAN_AI_HOSTED_BASE_URL?.trim() || "https://api.anthropic.com").replace(/\/+$/, "");
   if (!/^https:\/\//.test(baseUrl)) return { enabled: false, missing: ["SAGESPAN_AI_HOSTED_BASE_URL must be https://"] };
+  const toolChoice = (env.SAGESPAN_AI_HOSTED_TOOL_CHOICE?.trim() || "auto").toLowerCase();
+  if (toolChoice !== "auto" && toolChoice !== "forced") return { enabled: false, missing: ["SAGESPAN_AI_HOSTED_TOOL_CHOICE must be auto or forced"] };
   return {
     enabled: true,
     config: {
@@ -57,6 +66,7 @@ export function resolveHostedConfig(env: Record<string, string | undefined>): Ho
       timeoutMs: int(env.SAGESPAN_AI_HOSTED_TIMEOUT_MS, 15_000, 1_000, 60_000),
       processTokenCeiling: int(env.SAGESPAN_AI_HOSTED_PROCESS_TOKEN_CEILING, 250_000, 1_000, 50_000_000),
       runsPerScopePerHour: int(env.SAGESPAN_AI_HOSTED_RUNS_PER_SCOPE_PER_HOUR, 10, 1, 1_000),
+      toolChoice,
     },
   };
 }

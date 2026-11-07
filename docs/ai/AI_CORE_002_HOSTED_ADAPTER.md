@@ -12,7 +12,7 @@
 | `apps/web/src/ai/providers/anthropic-messages.ts` | Port implementation over plain `fetch` (no SDK, no new dependency, injectable fetch for tests) |
 | `apps/web/src/ai/providers/hosted-provider.ts` | `AiProvider` over the port: per-process token ceiling, per-scope run limit, server request ids, typed errors |
 | `apps/web/src/ai/provider.ts` | `resolveProvider()` wires `hosted` → `HostedProvider` only when every gate holds |
-| `apps/web/src/ai/__tests__/ai-core-hosted.test.ts` | AI-H01…H10 offline suite (fake vendor) |
+| `apps/web/src/ai/__tests__/ai-core-hosted.test.ts` | AI-H01…H12 offline suite (fake vendor) |
 | `apps/web/src/ai/__tests__/ai-hosted.live.test.ts` | Opt-in live benchmark; skipped without the gates; writes `apps/web/.ai-bench/*.json` (git-ignored) |
 
 ## 2. Gates — all required, or the mock runs and says why
@@ -50,4 +50,18 @@ It runs Patel (firm) and Castillo (personal) through the live adapter and the tw
 
 ## 6. Promotion rule for this adapter
 
-Before `hosted` is enabled anywhere outside a developer's own synthetic session: (1) AI-E01…E28, AI-C01…C16 and AI-H01…H10 green; (2) at least one live benchmark report reviewed with `diffReports` on the frozen fixtures; (3) a founder decision on vendor and data-handling class recorded in `docs/DECISIONS.md`; (4) for anything beyond synthetic data, the G3 gates.
+Before `hosted` is enabled anywhere outside a developer's own synthetic session: (1) AI-E01…E28, AI-C01…C16 and AI-H01…H12 green; (2) at least one live benchmark report reviewed with `diffReports` on the frozen fixtures; (3) a founder decision on vendor and data-handling class recorded in `docs/DECISIONS.md`; (4) for anything beyond synthetic data, the G3 gates.
+
+## 2026-11-06 — first live attempt and `tool_choice` (fix/ai-hosted-tool-choice)
+
+The founder's first local run with a real key and `SAGESPAN_AI_HOSTED_MODEL=claude-sonnet-5-5` failed closed with `ERROR` / 0 tokens. A direct one-line Messages call with the same key and model succeeded, and a diagnostic that printed the vendor body showed:
+
+`HTTP 400 invalid_request_error — tool_choice: type "tool" and "any" are not supported for this model.`
+
+Changes:
+
+- `SAGESPAN_AI_HOSTED_TOOL_CHOICE` = `auto` (**default**) | `forced`. `auto` sends `tool_choice: {type: "auto"}`; on the final (`force_final`) turn only `emit_review` is offered, the system prompt requires a tool call, and a turn with no tool call is still `MALFORMED_OUTPUT` → `ERROR` (fail closed, no report). `forced` keeps the original `any` / named-tool behaviour for models that accept it. Any other value disables the hosted provider with a note (AI-H11).
+- Request errors (4xx other than 401/403/429) now carry the vendor's `error.message`, whitespace-collapsed, truncated to 300 characters, with the configured key and anything `sk-…`-shaped replaced by `[redacted]`. 5xx and auth failures are unchanged (status and type only) (AI-H12, AI-H06, AI-H10).
+- `ai-hosted.live.test.ts` now fails with the runs' issue details before the token assertion, and the written report includes `issue_details`, so a bad key or unsupported parameter says why instead of "expected 0 to be greater than 0".
+
+No live run has been recorded in-repo yet; the vendor/model decision is still pending in `docs/DECISIONS.md`.
