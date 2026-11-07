@@ -6,7 +6,8 @@
 - `master` @ `74930bd` ("Merge pull request #20 … feat/data-002-personal-runs"; CI run 42324987527: success 5/5); open PRs: none (#10, #13, #16, #17, #18, #19, #20, #21 merged; only `master` on origin); founder tree: not inspected — worked in a separate cloud clone per operating model §5.2.
 - Applied migrations `0001`–`0009`; `0010` unallocated. No number requested this PR.
 - Branch: `feat/ai-core-002b-benchmark-prep` → PR (see §9) base `master`.
-- Brief executed: `SESSION_OPERATING_MODEL.md` §7.3 (AI — AI-CORE-002b). Item (1) needed a founder decision: asked in-session; **vendor confirmed (Anthropic Messages API), model pinned `claude-sonnet-5-5` (pinned, not verified against the Console)**.
+- Brief executed: `SESSION_OPERATING_MODEL.md` §7.3 (AI — AI-CORE-002b). Item (1) needed a founder decision: asked in-session; **vendor confirmed (Anthropic Messages API), model pinned `claude-sonnet-5-5`** — the same decision #23 recorded on `master` from the founder's first live run.
+- **Coordinator note on PR #27 (21:45 ET) and how it was followed:** `master` had moved to `7c5f13c` (#22 live-run fixes: `tool_choice` auto, 50 s timeout, `budgetHint` wall clock, vendor reason; #23 docs + DECISIONS row); #26 (`feat/ai-core-002b-bench-review`: `alignReports`, content capture, review #1, AI-H14) was the hand-off source. Instead of a force-pushed rebase (forbidden by the operating model §5), **`origin/master` and then `origin/feat/ai-core-002b-bench-review` were merged into this branch with merge commits** (`429269c`, `1d9745f`); conflicts in `hosted-config.ts`, both test configs, `.env.example` and `DECISIONS.md` were resolved by keeping #22's behaviour alongside the `ai-quota-v1` fields, and the live test was rewritten as the union of all three versions. The runbook and status docs were refreshed: live run #1 **has** happened and passed (invariants), its content was not reviewable, and review #2 is the next step. #26 stays open as the hand-off source; its content is now contained in #27.
 
 ## 2. What changed (file inventory)
 | Path | Change | Why |
@@ -23,7 +24,9 @@
 | `apps/web/src/ai/evals/baselines.ts`, `evals/baselines/*.mock-toolloop.json` (3) | added | committed `diffReports` baselines (Patel PASS, Patel UNSUPPORTED, Castillo) and helpers |
 | `apps/web/src/ai/__tests__/ai-baselines.test.ts` | added | AI-B: mock pinned to baselines; deliberate regeneration via `SAGESPAN_WRITE_AI_BASELINES=1` |
 | `apps/web/src/ai/__tests__/ai-core-002b-resolver-quota.test.ts` | added | AI-C17…C21, AI-Q01…Q06 |
-| `apps/web/src/ai/__tests__/ai-hosted.live.test.ts` | modified | runs the baseline cases, diffs live vs baseline, asserts invariants, writes JSON + Markdown |
+| `apps/web/src/ai/__tests__/ai-hosted.live.test.ts` | modified (union of #22, #26 and this branch) | runs every committed baseline case, asserts invariants, captures validated content, reports id-keyed diff **and** evidence-based `alignReports` against the baseline, surfaces vendor error reasons, writes JSON + Markdown |
+| `apps/web/src/ai/evals/regression.ts` | via #26 | `alignReports()` — evidence-based pairing (AI-H14) |
+| `docs/ai/AI_LIVE_BENCHMARK_REVIEW_2026-11-06.md` | via #26 | live run #1 review record (invariants pass; content not reviewed; personal-register divergence to check on rerun) |
 | `apps/web/src/ai/__tests__/ai-core-hosted.test.ts` | modified | config shape (`tokensPerScopePerHour`) |
 | `docs/ai/AI_CORE_002B_LIVE_BENCHMARK_REVIEW.md` | added | runbook, review protocol, decision vocabulary, durable persistence design (tables / SECURITY DEFINER entry points, no SQL) |
 | `docs/ai/AI_CORE_002_HOSTED_ADAPTER.md`, `docs/ai/AI_CORE_FEATURE_STATUS.md`, `docs/ai/AI_EVAL_MATRIX.md` | modified | 002b status and the AI-C17…C21 / AI-Q / AI-B inventory |
@@ -44,13 +47,13 @@ Not touched: `auth/**`, `domain/**` (consumed via `import type` only), `supabase
 |---|---|---|
 | typecheck / lint | `npm run typecheck`, `npm run lint` | clean / clean |
 | contracts Vitest | `npm run test --workspace packages/contracts` | **53 passed** |
-| web Vitest | `npm run test --workspace apps/web` (calculator up on :8010) | **267 passed / 5 skipped** (skips: opt-in real-stack repository test ×4 cases, opt-in live-vendor benchmark ×1) — +15 new (AI-C17…C21, AI-Q01…Q06, AI-B ×4) |
+| web Vitest | `npm run test --workspace apps/web` (calculator up on :8010) | first pass **267 passed / 5 skipped**; after merging `master` (#22 AI-H11…H13) and #26 (AI-H14): see the PR description for the final count — +15 new on this branch (AI-C17…C21, AI-Q01…Q06, AI-B ×4) plus the merged AI-H11…H14 |
 | pytest | `uv run --locked python -m pytest -p no:warnings` (services/calculator) | **119 passed** (no change) |
 | SQL shim | — | NOT RUN (no SQL change) |
 | build | `npm run build --workspace apps/web` | clean (48 routes) |
 | Playwright | `npx playwright test` (apps/web, `SAGESPAN_E2E_CHROME_PATH`, live calculator) | **20 passed** (2.1 min) |
 | CI | PR run URL in §9 | calculator / web / database / e2e / realstack: see §9 |
-| Live vendor | — | **NOT RUN** — no key in this environment, by design |
+| Live vendor | — | **NOT RUN here** — no key in this environment, by design. Live run #1 happened on the founder's machine after #22 (`docs/ai/AI_LIVE_BENCHMARK_REVIEW_2026-11-06.md`) |
 
 Real-stack evidence is the CI `realstack` job on a disposable local Supabase only. No deployed project, live model, real data or professional sign-off is claimed.
 
@@ -74,7 +77,7 @@ Real-stack evidence is the CI `realstack` job on a disposable local Supabase onl
 | `docs/project/IMPLEMENTATION_STATUS.md`, `CLAUDE.md` current-state line | Coordinator | On merge: open item 5 → "design closed, real-stack test open"; open item 6 → "contract + interface shipped, durable store pending migration". |
 
 ## 8. Next smallest PR for this track
-**AI-CORE-002c — first live benchmark review** (founder-dependent): the founder exports the five gates locally (`SAGESPAN_AI_HOSTED_MODEL=claude-sonnet-5-5` after verifying the id), runs `npx vitest run src/ai/__tests__/ai-hosted.live.test.ts` from `apps/web`, and reviews `.ai-bench/<ts>-hosted.md` per the runbook §4; the AI session records the outcome in `AI_EVAL_MATRIX.md` and fixes any adapter defect under AI-H tests. Acceptance: one reviewed report with a recorded decision; no invariant violation. No migration.
+**AI-CORE-002c — live benchmark review #2 (content)**: the founder reruns `npx vitest run src/ai/__tests__/ai-hosted.live.test.ts` from `apps/web` on this branch (or `master` after merge) with the five gates; the reviewer reads `.ai-bench/<ts>-hosted.md` — alignment table and captured content — per the runbook §4 (firm: balance/custodian conflicts present, discrepancy with engine figures only; personal: consumer register, what the "discrepancy" referred to, education present; all: no implied promise/advice/approval) and records the decision in `AI_EVAL_MATRIX.md`. Acceptance: one content-reviewed report with a recorded decision; no invariant violation. No migration.
 
 If the founder's run is not yet possible, the offline alternative is **AI-CORE-002d — realstack AI resolver test**: a `supabase-repository`-style vitest (skipped without the realstack env) that drives `runPersonalUnderstandForRepository(productionPersonalRepository())` with the two-turn mock on the disposable local Supabase: owner gets a draft, revoked member gets NotFound mid-run, stranger NotFound. Needs the CI `realstack` job body (Data/coordinator) to include the new file — a cross-track request.
 
