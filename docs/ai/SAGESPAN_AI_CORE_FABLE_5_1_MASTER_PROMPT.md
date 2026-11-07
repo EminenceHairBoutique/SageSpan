@@ -1,12 +1,14 @@
 # SAGESPAN INTELLIGENCE — CLAUDE CODE / FABLE 5.1 MASTER ENGINEERING PROMPT
 
 **Program:** AI-CORE — Proprietary Financial Intelligence Runtime and Future Fine-Tuned LLM  
-**Edition:** 1.0 — November 6, 2026  
+**Edition:** 1.1 — November 6, 2026, incorporating Session 3 and post-PR-002 integration  
 **Use:** Open Claude Code at the root of `EminenceHairBoutique/SageSpan`, select **Claude Fable 5.1** if available, provide this file as the implementation brief.  
 **Goal:** Build proprietary SageSpan intelligence (decision engine + trusted tools + model adapters + governed knowledge/evaluation infrastructure), then establish the technical path to a privately served, fine-tuned open-weight model.  
 **Initial authority:** **AI-CORE-000/001 only** in an isolated **synthetic-data** branch; the roadmap below is not authorization to build everything at once.
 
 ---
+
+> **Reconciliation note (2026-11-06, post-merge):** edition 1.1 is the founder's Session-3 update and replaces edition 1.0 (kept at `docs/history/SAGESPAN_AI_CORE_FABLE_5_1_MASTER_PROMPT_v1.0_2026-11-06.md`). Its "current merged baseline" paragraph predates the same-day merges of PR-003/DATA-001/002 (#10), **AI-CORE-001 (#13) and AI-CORE-002a (#16)**: the bounded two-turn tool loop, the `ai-runtime-v1` contracts, AI-C01…C16, the hosted-adapter skeleton (disabled by default) and AI-H01…H10 are now on `master`. Current status: `docs/ai/AI_CORE_FEATURE_STATUS.md` and `docs/engineering/V5_SESSION_7_BASELINE_RECONCILIATION_REPORT.md`. The roles, boundaries and sequencing in this prompt remain authoritative.
 
 ## 0. ROLE, MISSION AND EXECUTION BEHAVIOR
 
@@ -37,16 +39,34 @@ Read these first, if present, using the actual current names/locations:
 2. `docs/product/SAGESPAN_V5_MASTER_SOURCE_OF_TRUTH.md`.
 3. `docs/requirements/SAGESPAN_V5_TRACEABILITY.md`.
 4. `docs/engineering/SAGESPAN_V5_ENGINEERING_PROMPT.md`.
-5. `docs/product/FEATURE_STATUS_MATRIX.md` and `docs/ai/AI_EVAL_MATRIX.md`.
+5. `docs/product/FEATURE_STATUS_MATRIX.md`, `docs/ai/AI_EVAL_MATRIX.md`, and **`docs/ai/AI_EVALUATION_PLAN.md`** (new plan; if absent in repo, add the supplied file before dependent evaluation work).
 6. `docs/architecture/DUAL_WORKSPACE_ADR.md`; `docs/legal/FEATURE_RELEASE_GATES.md`; finance rule/model registry.
 7. Existing AI source and tests: `apps/web/src/ai/{provider,review-orchestrator,evidence-resolver,result-validator,tools}.ts`, prompts, AI evals and UI; contracts in `packages/contracts`; `services/calculator` Python methods; Supabase schema/migrations.
 8. Current CI, active branches, open PRs, uncommitted changes, and actual test status.
 
-At the November 6 V5 review, `feat/v5-dual-market` included a deterministic mock provider, scripted adversarial provider, a one-pass `provider.complete()` orchestration, a read-only tool dispatcher, a draft-result validator, and 28 labeled offline AI cases (30 AI tests reported in that environment). **Those are historical observations, not a substitute for examining current HEAD.** PR-001 had been merged; PR-002 and real Supabase testing were still outstanding. Verify now.
+**Current merged baseline (verified 2026-11-06; recheck HEAD):** PR-001 (#5), PERS-002 (#6 via V5), V5 dual-market (#7), and PR-002 (#9, migration `0007_coverage_and_reproducibility.sql`) are merged into `master`. The inspected `master` commit was `52997912dba0`; latest observed GitHub Actions run `42207031870` succeeded. Reported Session 3 results were Python 119, contracts 47, web 104 passed/2 skipped, and Playwright 16; SQL comprised seven PostgreSQL/pgTAP-shim test files. These are **not real Supabase Auth/JWT/PostgREST/RLS tests**, financial expert review, or production AI benchmarks. The prior unmerged-V5, unmerged-PR-002 and failing-master-CI statements are superseded. The runtime remains an offline mock/scripted provider with one-pass `provider.complete()`, read-only dispatcher, draft validator, 28 named evaluations, plus two consumer cases; a real model adapter and true model-tool-model loop are not demonstrated. PR-003A/B/C/D is now the production critical path. Verify live repository state before work.
 
 Before editing, produce a **reality matrix** with columns `component`, `actual file`, `implemented behavior`, `gaps/risks`, `specific planned change`, `tests`. Use `git status --short`, `git branch --show-current`, `git log -8 --oneline`, `git fetch` only if safe, branch comparison and CI evidence. Never discard the founder's edits, edit applied migrations or force-push. Develop in a separate `feat/ai-core-001-runtime` branch after checking that the working tree is clean and reviewing its base.
 
 **V5 dual-market direction is binding.** Financial accuracy, tenant isolation, consent, PR-001/002 invariants, and legal feature release gates are binding. Resolve code/document differences transparently. Do not silently supersede established correct functionality.
+
+---
+
+## 1A. SESSION 3 AI-GOVERNANCE AND FINANCIAL-CORRECTNESS INTEGRATION
+
+**Reference companion:** `docs/ai/AI_EVALUATION_PLAN.md`. This is distinct from the implemented offline test-case inventory `AI_EVAL_MATRIX.md`; follow both and never infer that a mock-provider pass predicts live model accuracy.
+
+**PR-002 semantics to preserve in AI:**
+
+- **S-06:** distinguish `SUPPORTED_CHECK_VERIFIED`, `APPROVED_WITH_EXCEPTIONS`, and `REVIEWED_WITH_LIMITATIONS`. Human approval of a bounded review does **not** mean unsupported accounts were independently verified. AI cannot promote `UNSUPPORTED`, `INDETERMINATE`, `ERROR`, or `NOT_REQUIRED` into PASS.
+- **S-07:** all calculation-relevant tolerance/account classifications must be frozen in the calculation snapshot; model and scenarios can read only authorized frozen or clearly provisional data, never silently substitute live assumptions for reproducible calculations.
+- **N-02:** latest calculation attempt determines current review; preserve historical ERROR. There is a potential TS/SQL equal-timestamp tie-break mismatch: design a shared attempt sequence/total-order regression rather than trusting string timestamps or random UUID semantics. AI evidence and packet rendering must share the same resolver.
+- **Policy distinction:** immutable historical calculation assumptions versus **current** actor permissions, consent status, membership, approval rights. A revoked user cannot continue an old AI/tool call, even if their old frozen snapshot remains reproducible for authorized reviewers.
+- **New B2C AI tools:** The user-controlled intake and deterministic cash-flow what-if scenarios from PERS-002 exist in the synthetic app. Reuse them; the model may propose permitted scenario inputs, and a trusted engine must issue versioned receipts before the assistant describes financial impacts.
+
+**Evaluation progression:** offline labeled AI-E01…AI-E28 → typed two-turn tool loop → 50+ distinct synthetic benchmark groups → hosted/open-weight model head-to-head on expert-scored holdout → optional LoRA experiment with authorized data and model registry → private serving only when it materially improves measured tasks. Keep each experimental stage separately gateable. **No fine-tuning in AI-CORE-001.**
+
+**Implementation sequencing:** PR-003 is the critical-path program. AI-CORE-000/001 may progress on synthetic, separate branches. Do not put live-model integration and database/auth migration changes into one PR. In all code/handoffs, verify latest master SHA and CI before claiming status.
 
 ---
 
@@ -67,7 +87,7 @@ The ownership model is:
 
 AI may **never** autonomously verify a fact, certify coverage, alter a financial input, approve a plan, change policy or permissions, move money, trade, publish regulated advice or send sensitive data elsewhere. A review “PASS” is not an overall approved plan. Invalid, stale or unsupported numerical results must never become recommended dollars.
 
-**Release constraints:** Use synthetic data and mock tools for initial AI-CORE. Real financial data, live Supabase sessions and live provider processing require PR-001/002 correctness; PR-003 production Auth/JWT/PostgREST/RLS; consent/revocation; private storage; appropriate vendor contracts, logs and legal review. Tier-3 personalized securities advice remains OFF without the proper regulated business model and supervisory controls. Tier-4 trading/transfers remain out of scope.
+**Release constraints:** Use synthetic data and mock tools for initial AI-CORE. PR-001/002 are already merged into the audited baseline but not real-stack validated; real financial data and provider processing of identifiable financial records require completed PR-003 production Auth/JWT/PostgREST/RLS/Storage, consent/revocation, private storage, vendor data-processing approval, model governance, privacy and legal review. Tier-3 personalized securities advice remains OFF without the proper regulated business model and supervisory controls. Tier-4 trading/transfers remain out of scope.
 
 ---
 
@@ -257,7 +277,7 @@ Deliver:
 - `docs/ai/AI_CORE_THREAT_MODEL.md` — attacker/asset/trust boundary, privacy/consent, injection, excessive agency, provider risks and mitigations.
 - `docs/ai/AI_CORE_EVALUATION_PLAN.md` — 28-case inheritance, additional labels, error classes, pass/fail measures and withheld-set policy.
 - `docs/ai/AI_CORE_MODEL_AND_TRAINING_ROADMAP.md` — provider options, private hosting, dataset rights, LoRA experiment gates, cost plan and model registry.
-- `docs/ai/AI_CORE_FEATURE_STATUS.md` — verified current vs proposed and dependencies on PR-002/003.
+- `docs/ai/AI_CORE_FEATURE_STATUS.md` — verified current vs proposed and dependencies on merged PR-002 versus open PR-003.
 
 No new provider keys, financial schema migrations or live customer data.
 
@@ -298,7 +318,7 @@ Only after data/eval/license gates; benchmark base vs adapter on permanently hel
 
 Owner-signed model register, provider routing policy, version changes, rollback, per-workspace controls, professional/counsel release gates, data retention, drift monitoring, cost/latency dashboards and canary strategy.
 
-**Parallel-track dependencies:** PR-002 approval coverage and frozen requests remain priority for production assurance. PR-003 production Auth/consent and private storage block real personal data. PERS-002 account/bill/debt onboarding and PLAN-001 validated retirement scenario model are distinct financial/product workstreams. The AI-CORE branch should not silently implement them to satisfy a demo.
+**Parallel-track dependencies:** PR-001 and PR-002 are merged at the inspected baseline; preserve their tests. **PR-003A/B/C/D real Auth, RLS, consent and storage is now the highest-priority production workstream**, blocking real personal data and external model processing of customer records. **PERS-002 guided intake and cash-flow scenario comparison are already integrated in the synthetic tier**; do not duplicate or rebuild them. PERS-003 transaction/spending intelligence, PERS-004 budgeting and PLAN-001 validated retirement projection are distinct financial/product workstreams. AI-CORE-000/001 can proceed in a separate synthetic-only branch while PR-003 advances. Do not silently absorb those workstreams into an AI task.
 
 ---
 

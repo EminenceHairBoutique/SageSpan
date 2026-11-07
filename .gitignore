@@ -51,3 +51,9 @@ supabase/.temp
 
 # AI-CORE-002a opt-in live benchmark reports (contain vendor output; never committed)
 apps/web/.ai-bench/
+
+# Transfer staging folder used by cloud sessions to bridge files to the local checkout; never commit.
+.ai-core-staging/
+
+# Per-session contract (see docs/project/SESSION_OPERATING_MODEL.md §5); never committed.
+SESSION_CONTRACT.md
