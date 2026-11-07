@@ -1,5 +1,7 @@
 # SageSpan UI/UX — Session 3 Update to the V5 Master Design Brief
 
+> **Reconciliation note (2026-11-06, post-merge, added by the baseline-reconciliation session):** this document is part of the founder's Session-3 planning package (committed as `032c61d` "Plans"). Its status statements describe `master` at `52997912` and **predate** the work merged later the same day: PR-003a/b/c + DATA-001 + DATA-002 (#10, migrations `0008`–`0009`, real-stack CI), AI-CORE-001/002a (#13, #16), UI-000/001a (#14, #17). **UI-000 (#14) and UI-001a (#17) have since been merged**; the `/app/personal` production pages (DATA-001/002) are additional screens in scope for UI-002+. Treat the design priorities here as current; the live status is `docs/engineering/V5_SESSION_7_BASELINE_RECONCILIATION_REPORT.md`, `docs/product/FEATURE_STATUS_MATRIX.md` and the root `CLAUDE.md`.
+
 **Date:** 2026-11-06  
 **Purpose:** Preserve the existing premium navy/teal concept while redesigning the **now-integrated** PERS-002 workflows and PR-002 approval semantics. This is a companion to `docs/design/03_SageSpan_Claude_Code_UI_UX_Master_Prompt.md`, not a replacement for its design system or accessibility standard.
 

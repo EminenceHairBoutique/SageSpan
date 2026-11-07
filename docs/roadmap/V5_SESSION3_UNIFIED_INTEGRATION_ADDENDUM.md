@@ -1,5 +1,7 @@
 # SageSpan V5 — Unified Integration Addendum: Session 3 and Current Development Priorities
 
+> **Reconciliation note (2026-11-06, post-merge, added by the baseline-reconciliation session):** this document is part of the founder's Session-3 planning package (committed as `032c61d` "Plans"). Its status statements describe `master` at `52997912` and **predate** the work merged later the same day: PR-003a/b/c + DATA-001 + DATA-002 (#10, migrations `0008`–`0009`, real-stack CI), AI-CORE-001/002a (#13, #16), UI-000/001a (#14, #17). Treat its roadmap and guardrails as current and its status table as historical; the live status is `docs/engineering/V5_SESSION_7_BASELINE_RECONCILIATION_REPORT.md`, `docs/product/FEATURE_STATUS_MATRIX.md` and the root `CLAUDE.md`.
+
 **Issued:** November 6, 2026  
 **Purpose:** Update earlier V5 Blueprint, Claude Project Instructions, repository `CLAUDE.md`, engineering execution checklist, AI-CORE, AI Evaluation Plan, and UI/UX briefing **without replacing the existing source documents or overwriting working code**.  
 **Source:** User-supplied `Pasted text(2).txt` — Session 3 Evaluation & Next Development Priorities, and connected GitHub verification on the same date.  

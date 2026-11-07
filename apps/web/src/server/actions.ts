@@ -233,7 +233,7 @@ export async function pilotInterestAction(_prev: ActionResult | null, formData: 
 export async function analyzePlanAction(_prev: ActionResult<{ runId: string; message: string }> | null, formData: FormData): Res<{ runId: string; message: string }> {
   return run(async (actor) => {
     const record = await runFirmAnalyzePlan(getStore(), actor, str(formData, "household_id"));
-    return { runId: record.id, message: record.run_status === "DRAFT_READY" ? `Draft ready: ${record.accepted_finding_count} grounded finding(s), ${record.rejected_finding_count} rejected by the validator. Nothing has been approved or verified.` : `No draft produced (${record.run_status}); see the validator log.` };
+    return { runId: record.id, message: record.run_status === "DRAFT_READY" ? `Draft ready: ${record.accepted_finding_count} grounded finding(s), ${record.rejected_finding_count} rejected by the validator. Nothing has been approved or verified.` : record.run_status === "ABSTAINED" ? "The assistant abstained: it did not have the evidence to draft anything. Nothing has been approved or verified." : `No draft produced (${record.run_status}); see the validator log.` };
   });
 }
 

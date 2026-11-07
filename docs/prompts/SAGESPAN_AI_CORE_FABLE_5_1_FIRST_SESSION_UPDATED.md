@@ -1,5 +1,7 @@
 # Claude Code / Fable 5.1 — SageSpan Intelligence First Session (Post-Session 3)
 
+> **Reconciliation note (2026-11-06, post-merge, added by the baseline-reconciliation session):** this document is part of the founder's Session-3 planning package (committed as `032c61d` "Plans"). Its status statements describe `master` at `52997912` and **predate** the work merged later the same day: PR-003a/b/c + DATA-001 + DATA-002 (#10, migrations `0008`–`0009`, real-stack CI), AI-CORE-001/002a (#13, #16), UI-000/001a (#14, #17). **AI-CORE-000/001 (#13) and the AI-CORE-002a hosted-adapter skeleton (#16) have since been delivered and merged**; the next AI step is AI-CORE-002b (see the reconciliation report). Treat the boundaries here as current and the status as historical; the live status is `docs/engineering/V5_SESSION_7_BASELINE_RECONCILIATION_REPORT.md`, `docs/product/FEATURE_STATUS_MATRIX.md` and the root `CLAUDE.md`.
+
 **Use:** Copy/paste into Claude Code at the SageSpan repository root with your preferred available high-capability coding model (Fable 5.1 if your Claude environment offers it). This prompt is an *implementation task*, not a permanent Project Instruction.
 
 ## Current baseline (must reverify)

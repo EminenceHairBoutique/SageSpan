@@ -40,8 +40,22 @@ export function AiReviewPanel({ run, feedback, labels, feedbackAction, audience,
           · {run.accepted_finding_count} accepted, {run.rejected_finding_count} rejected by the validator
         </span>
       </div>
+      {run.runtime && (
+        <p className="text-xs text-ink-muted" data-testid="ai-runtime-trace">
+          Runtime {run.runtime.schema_version} · {run.runtime.turns.length} model turn{run.runtime.turns.length === 1 ? "" : "s"} · {run.runtime.tool_calls_executed} tool call{run.runtime.tool_calls_executed === 1 ? "" : "s"} executed
+          {run.tool_calls.length > 0 && <> ({[...new Set(run.tool_calls.map((t) => t.tool))].join(", ")})</>} · {run.runtime.tool_calls_denied} denied · re-authorised {run.runtime.reauthorizations}× · stop: {run.runtime.stop_reason.toLowerCase().replace(/_/g, " ")}
+        </p>
+      )}
 
-      {run.run_status !== "DRAFT_READY" && (
+      {run.run_status === "ABSTAINED" && (
+        <Alert tone="amber" title="The assistant abstained: it did not have the evidence to draft anything.">
+          {notes
+            .filter((i) => i.code === "MODEL_ABSTAINED")
+            .map((i) => i.detail)
+            .join(" ")}
+        </Alert>
+      )}
+      {run.run_status !== "DRAFT_READY" && run.run_status !== "ABSTAINED" && (
         <Alert tone="conflict" title={run.run_status === "REJECTED" ? "The validator rejected this output; nothing is shown as a finding." : "The provider failed; nothing was produced."}>
           {rejected.map((i) => i.detail).join(" ")}
         </Alert>

@@ -6,7 +6,9 @@ import { MAX_TOOL_CALLS_PER_RUN } from "./tools";
  * Deterministic validation of untrusted model output against the authorised
  * grounding context. The validator, not the model, decides:
  *  - which findings survive (every cited id must resolve to current, in-scope evidence);
- *  - whether any dollar figure is allowed (only amounts copied from a cited run);
+ *  - whether any dollar figure is allowed (only amounts copied from a cited run) —
+ *    in findings AND in the top-level narrative (summary, draft_memo, questions,
+ *    model limitations), which is redacted field by field (AI-SEC-001);
  *  - that no status other than DRAFT_FOR_HUMAN_REVIEW exists;
  *  - that an UNSUPPORTED/ERROR run is never described as PASS/verified;
  *  - that tool requests outside the allowlist are recorded and ignored;
@@ -151,11 +153,46 @@ export function validateModelOutput(raw: unknown, ctx: GroundingContext, analysi
     issues.push({ code: "UNKNOWN_TOOL_CALL", finding_id: null, detail: `Model requested tool "${call.tool}" in its output; tool requests are dispatched only through the allowlisted dispatcher.`, disposition: "NOTE" });
   }
 
-  const summary = (out.summary ?? "").slice(0, 4000);
-  const memo = out.draft_memo ? out.draft_memo.slice(0, 8000) : null;
-  for (const t of [summary, memo ?? "", ...(out.questions ?? [])]) {
+  // AI-SEC-001: the narrative is rendered to humans exactly like a finding, so it gets the same
+  // grounding rules. The only amounts allowed anywhere in the report are the ones the server just
+  // confirmed inside accepted findings' cited runs; pass/verified language is judged against the
+  // runs those findings cite. A field that fails is replaced or dropped (REDACT_TEXT) — never
+  // rendered — while the validated findings survive, so a reviewer still sees the grounded parts.
+  const acceptedAmounts = new Set(accepted.flatMap((f) => f.cited_amounts.map((a) => a.amount)));
+  const acceptedRunRefs = [...new Set(accepted.flatMap((f) => f.check_run_refs))];
+  const badAcceptedRun = acceptedRunRefs.find((r) => ["UNSUPPORTED", "INDETERMINATE", "ERROR"].includes(runStatus.get(r) ?? ""));
+  const narrativeProblem = (field: string, t: string, checkPassClaims: boolean): boolean => {
+    let bad = false;
+    for (const m of t.match(MONEY_IN_TEXT) ?? []) {
+      if (looksLikeMoney(m) && !acceptedAmounts.has(normaliseAmount(m))) {
+        issues.push({ code: "AMOUNT_WITHOUT_TOOL_BACKING", finding_id: null, detail: `"${m}" appears in the model's ${field} without a cited calculation run; the ${field} was withheld.`, disposition: "REDACT_TEXT" });
+        bad = true;
+        break;
+      }
+    }
+    if (checkPassClaims && PASS_CLAIM.test(stripNegations(t))) {
+      if (badAcceptedRun) {
+        issues.push({ code: "UNSUPPORTED_PROMOTED_TO_PASS", finding_id: null, detail: `The model's ${field} uses pass/verified language while run ${badAcceptedRun} is ${runStatus.get(badAcceptedRun)}; the ${field} was withheld.`, disposition: "REDACT_TEXT" });
+        bad = true;
+      } else if (acceptedRunRefs.length === 0 && /\b(verified|approved|certified)\b/i.test(stripNegations(t))) {
+        issues.push({ code: "UNSUPPORTED_PROMOTED_TO_PASS", finding_id: null, detail: `The model's ${field} uses verified/approved language without any calculation run; the ${field} was withheld.`, disposition: "REDACT_TEXT" });
+        bad = true;
+      }
+    }
+    return bad;
+  };
+
+  const rawSummary = (out.summary ?? "").slice(0, 4000);
+  const rawMemo = out.draft_memo ? out.draft_memo.slice(0, 8000) : null;
+  const rawQuestions = (out.questions ?? []).map((q) => q.slice(0, 400)).slice(0, 20);
+  const rawModelLimitations = (out.limitations ?? []).map((l) => l.slice(0, 400));
+  for (const t of [rawSummary, rawMemo ?? "", ...rawQuestions]) {
     if (looksLikeInjection(t)) issues.push({ code: "INJECTION_TEXT_DETECTED", finding_id: null, detail: "Instruction-like text in the model's narrative was kept as text only.", disposition: "NOTE" });
   }
+  const summary = narrativeProblem("summary", rawSummary, true) ? "Summary withheld: the model's summary contained a figure or a verification claim that no cited calculation run supports. The findings below were validated individually." : rawSummary;
+  const memo = rawMemo !== null && narrativeProblem("draft_memo", rawMemo, true) ? null : rawMemo;
+  const questions = rawQuestions.filter((q) => !narrativeProblem("question", q, true));
+  const modelLimitations = rawModelLimitations.filter((l) => !narrativeProblem("limitation", l, false));
 
   const report = AiReviewReportSchema.safeParse({
     schema_version: AI_REVIEW_SCHEMA_VERSION,
@@ -165,8 +202,8 @@ export function validateModelOutput(raw: unknown, ctx: GroundingContext, analysi
     findings: accepted,
     summary,
     draft_memo: memo,
-    questions: (out.questions ?? []).map((q) => q.slice(0, 400)).slice(0, 20),
-    limitations: [...new Set([...(out.limitations ?? []).map((l) => l.slice(0, 400)), ...serverLimitations])],
+    questions,
+    limitations: [...new Set([...modelLimitations, ...serverLimitations])],
     model_metadata: metadata,
   });
   if (!report.success) {

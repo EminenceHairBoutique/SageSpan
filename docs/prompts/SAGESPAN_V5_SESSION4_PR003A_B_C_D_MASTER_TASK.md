@@ -1,5 +1,7 @@
 # Claude Code — SageSpan V5 Session 4: PR-003 Production Foundation (Post–Session 3)
 
+> **Reconciliation note (2026-11-06, post-merge, added by the baseline-reconciliation session):** this document is part of the founder's Session-3 planning package (committed as `032c61d` "Plans"). Its status statements describe `master` at `52997912` and **predate** the work merged later the same day: PR-003a/b/c + DATA-001 + DATA-002 (#10, migrations `0008`–`0009`, real-stack CI), AI-CORE-001/002a (#13, #16), UI-000/001a (#14, #17). **PR-003A/B/C and DATA-001/002 have since been delivered and merged (#10); the remaining PR-003D/DATA-003 scope is listed in the reconciliation report.** Treat the boundaries here as current and the status as historical; the live status is `docs/engineering/V5_SESSION_7_BASELINE_RECONCILIATION_REPORT.md`, `docs/product/FEATURE_STATUS_MATRIX.md` and the root `CLAUDE.md`.
+
 **Primary implementation sequence:** PR-003A → PR-003B → PR-003C → PR-003D, **one independently reviewed PR at a time**. You are the senior fintech data architect, PostgreSQL/Supabase security engineer, full-stack developer and privacy engineer. You may design all four subphases, but implement **only PR-003A** in this session after inspecting the repository and current branch.
 
 ## Current status to reverify

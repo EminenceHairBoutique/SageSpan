@@ -64,6 +64,7 @@
 | Zod schema `AiReviewReport`, source links and draft statuses | AI | §18.2 | AI-000 Annex B | Invalid schema/status rejected |
 | Server validates org/workspace/source/calc references | AI | §§18.2–18.3 | AI-001 | 100% accepted citations valid |
 | Prompt injection/untrusted PDF/CSV/source text | AI, V3 | §§18.3–18.4 | AI-000/001 | Injection and exfiltration tests |
+| Second-order injection through tool results; tenant ids smuggled through tool args; revoked consent mid-run; snapshot drift between turns; tool/turn budgets enforced before dispatch | AI-CORE | `docs/ai/AI_CORE_THREAT_MODEL.md` T2, T4, T6, T7, T12 | AI-CORE-001 | AI-C03–C08, C11, C12 |
 | AI cannot approve, verify fact, move money or alter policies | AI, founder | §§18.1–18.3, 20.2 | AI-001 onward | No mutation/approval path exposed |
 | Human reviewer Accept/Edit/Dismiss/Request Evidence with version history | AI | §§18.2, 18.4 | AI-001 | Feedback separate from model record |
 | Offline deterministic mock provider | AI | §§18.1, 18.4 | AI-000 | Runs without provider/network |
@@ -109,6 +110,9 @@ This matrix is **traceability, not a certification**. It does not mean every pos
 | Shared planning, separate workspaces and permissions | `packages/contracts/src/workspace.ts` (`actorCanReadDomain`), `auth/personal-actor.ts`, `domain/personal/queries.ts` | `v5-contracts.test.ts`, `personal.test.ts`, AI-E11/E12/E25 |
 | AI-000 contracts, mock, 28 cases | `packages/contracts/src/ai/*`, `apps/web/src/ai/{provider,evals}` | `ai-evals.test.ts` (30) |
 | AI-001 orchestrator, read-only tools, validator, draft persistence, feedback | `apps/web/src/ai/{evidence-resolver,tools,result-validator,review-orchestrator}.ts`, `domain/ai/feedback.ts` | `ai-evals.test.ts`, e2e firm + personal |
+| AI-CORE-001 bounded tool loop: budgets before dispatch, strict tool args, de-dup, per-call + pre-record re-authorisation, untrusted tool results, abstention, runtime trace; live-provider port (types only) | `apps/web/src/ai/runtime/tool-loop.ts`, `ai/provider.ts` (`MockToolLoopProvider`, `continue()`), `ai/tools.ts`, `ai/providers/port.ts`, `packages/contracts/src/ai/runtime.ts` | `ai-core-toolloop.test.ts` AI-C01…C16 (17), `ai-runtime-contracts.test.ts` (4); AI-E01…E28 unchanged |
+| AI-CORE-002a hosted adapter skeleton: enablement gates, Anthropic Messages port, structured output via forced tool, tool_result replay as untrusted data, typed failures, token ceiling and per-scope run limit that fail closed, served-model recording, no secret in records | `apps/web/src/ai/providers/{hosted-config,anthropic-messages,hosted-provider}.ts`, `ai/provider.ts` (`resolveProvider`) | `ai-core-hosted.test.ts` AI-H01…H10 (10); `ai-hosted.live.test.ts` opt-in (skipped without gates) |
+| AI-SEC-001 narrative grounding: the summary, draft memo, questions and model limitations obey the same amount and pass-claim rules as findings; a failing field is withheld (`REDACT_TEXT`), never rendered, and the run status is never promoted | `apps/web/src/ai/result-validator.ts` (narrative sweep after finding validation), `packages/contracts/src/ai/review.ts` (`REDACT_TEXT` disposition) | `ai-sec-001-narrative.test.ts` AI-N01…N08 (8); AI-E/AI-C/AI-H unchanged |
 | Trusted calculator invocation vs matching hash (personal analogue of S-04) | `domain/personal/runs.ts` `verifyPersonalReceipt` | `personal.test.ts` |
 | Investment education now, recommendations gated | `/demo/personal/learn`, `ENABLED_TIERS = [0,1,2]` | `v5-contracts.test.ts` |
 | Consumer "stress reduction" without clinical claims | copy review across `/demo/personal/*` and marketing | manual |
@@ -166,3 +170,17 @@ This matrix is **traceability, not a certification**. It does not mean every pos
 | Same engines/policy for demo and production; no arithmetic in the web tier | `runs.ts` over `PersonalDataSource`; `/app/personal` renders receipted figures via `Money`/`Stat` | web `personal.test.ts` unchanged (28), `supabase-repository.test.ts` (14), Playwright 20/20 |
 | Workspace event per logical change incl. snapshots, runs, decisions, retirement | 0009 §3 allow-list widened; RPC appends events | SQL 009 `results_eq` on the event log |
 
+
+## J. Baseline reconciliation evidence (2026-11-06 evening, `master` after #10 → #13 → #16)
+
+Scope: no new product behaviour. Three open PRs merged in dependency order with merge commits; two semantic merge fixes; founder Session-3 planning package installed; status documents reconciled. Suites below were executed on the integrated tree (byte-identical to `master` after #16) in the Linux build sandbox; real-stack evidence is the CI `realstack` job on each PR head.
+
+| Requirement | Evidence in tree | Suite |
+|---|---|---|
+| Merged branches keep every invariant S-01–S-10 / N-01–N-05 and the AI-E/AI-C/AI-H cases green together, not only on their own branches | `master` @ post-#16; `49a79ab` (#10 head), `93724d0` (#13 head), `14bf17e` (#16 head) | typecheck + lint clean; pytest 119; contracts Vitest 53; web Vitest 244 passed / 5 skipped (opt-in realstack repository test, opt-in live-vendor benchmark); SQL shim 9/9 files on embedded PostgreSQL 16; `next build` clean; Playwright 20/20; CI (calculator, web, database, e2e, realstack) green on all three PR heads |
+| Retire confirmation (UI-001a D-series, "retire never deletes") also protects the production `/app/personal` path, not only the demo | `apps/web/src/ui/personal/RecordForms.tsx`: `ConfirmDialog.onConfirm` calls the injectable `retire` action (demo default `retireRecordAction`, production `appRetireRecordAction`) | Playwright `pers-002-intake.spec.ts` (dialog), `data-001-personal.spec.ts`; typecheck |
+| Every AI run outcome has an honest UI state; `ABSTAINED` (no draft, nothing asserted) is neither a draft nor an error | `apps/web/src/ui/status/ai.tsx` `AI_RUN_STATUS_CHIP.ABSTAINED` (neutral tone); `AiReviewPanel.tsx` abstention copy | `status-chips.test.tsx` (exhaustive over `AiRunStatus`), `ai-core-toolloop.test.ts` AI-C abstention cases |
+| Founder planning documents are preserved and dated; no stale status is presented as current; no stray staging artefact or subdirectory `CLAUDE.md` is committed | `docs/prompts/*`, `docs/roadmap/V5_SESSION3_UNIFIED_INTEGRATION_ADDENDUM.md`, `docs/design/V5_SESSION3_UI_UX_DESIGN_ADDENDUM.md`, `docs/project/*`, `docs/ai/SAGESPAN_AI_CORE_FABLE_5_1_MASTER_PROMPT.md` (1.1), `docs/history/*2026-11-06.md`, `.gitignore` (`.ai-core-staging/`) | Reconciliation note at the top of each; `git grep -l "ai-core-staging"`; no `docs/CLAUDE.md` |
+| One current-state paragraph and one status vocabulary in the root `CLAUDE.md`; delivery order shows done vs open per package | `CLAUDE.md` header + §6 | Review |
+
+Open regression items carried forward (not closed by this section): TS/SQL equal-timestamp latest-attempt tie-break (PR-002 follow-up); frozen calculation policy vs *current* authorisation and revoked consent at action time (PR-003 follow-up, partly covered by 0008 RLS + per-call re-authorisation in the AI runtime); `REVIEWED_WITH_LIMITATIONS` visual distinction through UI-003.

@@ -2,7 +2,7 @@ import { ButtonLink, Card } from "@/ui/primitives";
 
 export default function NotFound() {
   return (
-    <main className="mx-auto max-w-lg px-4 py-20">
+    <main id="main" className="mx-auto max-w-lg px-4 py-20">
       <Card title="Not found" subtitle="The page or record does not exist, or belongs to another organisation.">
         <div className="flex gap-3">
           <ButtonLink href="/">Home</ButtonLink>

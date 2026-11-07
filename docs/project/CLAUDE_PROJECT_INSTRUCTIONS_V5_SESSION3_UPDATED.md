@@ -1,5 +1,7 @@
 # Claude Project Instructions — SageSpan V5 Unified (Post–Session 3)
 
+> **Reconciliation note (2026-11-06, post-merge, added by the baseline-reconciliation session):** this document is part of the founder's Session-3 planning package (committed as `032c61d` "Plans"). Its status statements describe `master` at `52997912` and **predate** the work merged later the same day: PR-003a/b/c + DATA-001 + DATA-002 (#10, migrations `0008`–`0009`, real-stack CI), AI-CORE-001/002a (#13, #16), UI-000/001a (#14, #17). The Project Instructions currently pasted in the Claude Project already contain this text (Part 2); its 'historical baseline' paragraph is superseded by the reconciliation report; the live status is `docs/engineering/V5_SESSION_7_BASELINE_RECONCILIATION_REPORT.md`, `docs/product/FEATURE_STATUS_MATRIX.md` and the root `CLAUDE.md`.
+
 **Usage:** Paste the body of this document into the SageSpan **Claude Project → Instructions** tab. Keep detailed source documents in Project Knowledge and in the GitHub repository. This is persistent guidance, not a command to run a large implementation job.
 
 ## Role and overall mission

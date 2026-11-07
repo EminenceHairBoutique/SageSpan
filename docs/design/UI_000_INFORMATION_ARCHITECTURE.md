@@ -1,6 +1,6 @@
 # SageSpan dual-market information architecture
 
-**Document:** `docs/design/UI_000_INFORMATION_ARCHITECTURE.md` · **Version:** 1.0 · **Date:** 2026-11-06 · **Status:** specification (UI-000, documentation only)
+**Document:** `docs/design/UI_000_INFORMATION_ARCHITECTURE.md` · **Version:** 1.1 (IA decisions recorded) · **Date:** 2026-11-06 · **Status:** specification (UI-000, documentation only)
 **Baseline:** `master` @ `5299791`; reconciled with PR #10 (`feat/pr-003-identity`: `/app/sign-in`, `ProductionHome`, workspace and consent resolution) and PR #11 (docs/fixtures).
 **Controlling sources:** `docs/product/SAGESPAN_V5_MASTER_SOURCE_OF_TRUTH.md` §2, §7, §8; `docs/architecture/DUAL_WORKSPACE_ADR.md`; `docs/product/FEATURE_STATUS_MATRIX.md`; `docs/design/03_SageSpan_Claude_Code_UI_UX_Master_Prompt.md`.
 
@@ -136,9 +136,11 @@ Status vocabulary follows `FEATURE_STATUS_MATRIX.md`: **Implemented (synthetic)*
 
 ---
 
-## 7. Open decisions for the founder (IA)
+## 7. Founder decisions on the IA (decided 2026-11-06)
 
-1. Rename the public nav item "Retirement Planning" to "Retirement Studio" (test update required).
-2. Keep the Personal mobile bottom navigation at four items (Home · Money · Plan · More) or five (adding Assistant). Recommendation: four; the Assistant is one tap inside More and must never be the primary way to use the product.
-3. Whether the console gets a mobile-first pass beyond operability (recommendation: no; desktop-first per V5 §7.2).
-4. Brand mark: one interim mark for all three surfaces now (recommendation: yes) versus waiting for the brand clearance.
+The founder accepted all recommendations on 2026-11-06 (see the roadmap's decision record, D1–D7):
+
+1. **Decided:** the public nav item "Retirement Planning" becomes "Retirement Studio" (D1; `dual-market.spec.ts` updated in the same PR, UI-001b).
+2. **Decided:** the Personal mobile bottom navigation has four items (Home · Money · Plan · More); the Assistant is one tap inside More and is never the primary way to use the product (D2, UI-001b).
+3. **Decided by recommendation:** the console stays desktop-first per V5 §7.2 and gets an operability pass only (no mobile-first redesign).
+4. **Decided:** one interim brand mark (navy tile) on all three surfaces now (D3, UI-001b); a purpose-designed mark waits for brand clearance.
