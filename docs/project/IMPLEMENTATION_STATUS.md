@@ -6,16 +6,14 @@
 
 | Item | Value |
 |---|---|
-| **Date** | 2026-11-06 (evening, America/New_York) |
-| **`master` head** | `f645858` — "Merge pull request #18" (AI-SEC-001). Previous: `5494be3` (#16), CI run 42318504861 5/5 green; #18 head `ff11706` CI run 42319415139 5/5 green |
-| **Merged today, in order** | #10 PR-003a/b/c + DATA-001 (#12) + DATA-002 (#15) → #13 AI-CORE-001 → #16 AI-CORE-002a → #18 AI-SEC-001 (after #14 UI-000 docs, #17 UI-001a earlier in the day) |
-| **Open PRs** | the docs/status PR that adds this file (merges next) |
+| **Date** | 2026-11-06 (late evening, America/New_York) |
+| **`master` head** | `8ed8bf8` — "Merge pull request #22" (hosted `tool_choice` auto + hosted wall clock, AI-H11…H13); #22 head `bbff25c` CI 5/5 + GitGuardian green. This status update lands with #23 |
+| **Merged today, in order** | #14 UI-000 docs, #17 UI-001a → #10 PR-003a/b/c + DATA-001 (#12) + DATA-002 (#15) → #13 AI-CORE-001 → #16 AI-CORE-002a → #18 AI-SEC-001 → #19 docs/status reconciliation → #21, #20 (founder; docs only, re-added four duplicates) → #22 hosted adapter live-run fixes → #23 duplicate removal + this update |
+| **Open PRs** | none after #23 |
 | **Closed unmerged** | #8 (superseded; its one-line e2e retry is in `master` via `4c97476`) |
 | **Applied migrations** | `0001`–`0009`; **next free: `0010`** — allocate in `supabase/migrations/REGISTRY.md` only |
-| **Branches fully contained in `master`** (safe to delete from GitHub; this session cannot delete branches) | `feat/pr-002-coverage`, `feat/v5-dual-market`, `claude/brave-gates-2b1262`, `feat/pr-003-identity`, `feat/data-001-store-adapter`, `feat/ai-core-001-runtime`, `feat/ai-core-002a-hosted-adapter`, `fix/ai-sec-001-narrative-grounding`, `claude/frosty-kowalevski-1c3f29` (remote already gone) |
-| **Branches whose patches are in `master` but whose commits are not ancestors** (squash/cherry-pick ancestry; safe to delete after a tree compare) | `ci/e2e-job-and-pg15`, `fix/web-coverage-label-and-dialog`, `fix/e2e-evidence-export-keepalive-reset`, `feat/pers-002-intake`, `claude/nice-kapitsa-6ae656` |
-| **Branch with unique content not yet in `master`** | `feat/data-002-personal-runs` — only the founder's docs commit `032c61d` "Plans", which the docs/status PR installs properly (then the branch is fully contained) |
-| **Founder local checkout** | `C:\Users\chinx\OneDrive\Documents\GitHub\SageSpan` was on `feat/pr-003-identity` @ `a269d0b`, clean, at the start of this session; three `.claude/worktrees/*` for the UI/PR-002 sessions. Sync instructions: reconciliation report §8 |
+| **Remote branches** | `master`; `fix/ai-hosted-tool-choice` (merged as #22) and `docs/relocate-pr20-duplicates` (#23) are safe to delete after #23 merges. All earlier feature branches were deleted by the founder and verified contained or patch-equivalent |
+| **First live model run** | **2026-11-06, founder's machine, synthetic fixtures only:** Anthropic Messages API, `claude-sonnet-5-5`, `ai-hosted.live.test.ts` **passed** (both runs reached a non-ERROR status with tokens > 0; invariants held). The `.ai-bench` report stays on the founder's machine (git-ignored); its human `diffReports` review is still open |
 
 ## Release gates (evidence-based)
 
@@ -32,8 +30,8 @@
 
 | Track | On `master` now | Next package (smallest reviewable PR) | Owner session |
 |---|---|---|---|
-| Integration | #10/#13/#16/#18 merged; semantic fixes; status docs reconciled; operating model adopted | Merge the docs PR; delete contained branches (founder); set branch protection on `master` (founder: require the five CI checks, 1 review, no force-push) | Coordinator |
-| AI | AI-000/001 + AI-CORE-001 runtime + AI-CORE-002a adapter (disabled) + AI-SEC-001 narrative grounding (#18) | **AI-CORE-002b**: founder confirms vendor (Anthropic Messages API recorded as assumption) and pins a model id; run the opt-in live benchmark locally on synthetic fixtures with the five gates; `diffReports` review; then async `reauthorize()` interface for production RLS + durable budgets + AI persistence (allocate `0010`?) | AI session |
+| Integration | #10/#13/#16/#18/#19/#22/#23 merged; semantic fixes; status docs reconciled; operating model adopted | Delete the two merged branches (founder); set branch protection on `master` (founder: require the five CI checks, 1 review, no force-push) | Coordinator |
+| AI | AI-000/001 + AI-CORE-001 runtime + AI-CORE-002a adapter (disabled by default) + AI-SEC-001 narrative grounding (#18) + live-run fixes (#22: `tool_choice` auto, vendor reason in errors, hosted wall clock; AI-H11…H13). First live synthetic benchmark passed on `claude-sonnet-5-5` | **AI-CORE-002b** remainder: human `diffReports` review of the founder's `.ai-bench` report (live vs mock) recorded in `docs/ai/AI_EVAL_MATRIX.md`; run the AI-E/AI-N cases against the live model as a scored benchmark per `docs/ai/AI_EVALUATION_PLAN.md`; then async `reauthorize()` for production RLS + durable budgets + AI run/feedback persistence (allocate `0010`) | AI session |
 | UI/UX | UI-000 docs, UI-001a tokens/primitives/chips, `ABSTAINED` chip | **UI-001b** shells/navigation (Personal 4-group nav + mobile bottom nav, console rail active state, marketing responsive nav, skeletons) then **UI-001c** axe + visual baseline + contrast in CI; `/app/personal` restyle only via handoff from Data | UI session |
 | Data/security | PR-003a/b/c identity + consent RLS, DATA-001 records store, DATA-002 snapshots/runs/decisions atomic RPC, realstack CI | **DATA-003a** firm-side Supabase store (`HouseholdBundle` over 0002–0007 + workflow functions) → **003b** private document storage with server-side hashing → **003c** member/consent UI on `/app`; replace render-time `refreshBaseline` on GET with an explicit recompute action + stale/recomputing state | Data session |
 | Financial modelling | RMD rules (published), `personal.cashflow_baseline@2026.1`, `personal.debt_amortization@2026.1`, `personal.cashflow_scenario@2026.1`; income-tax rules DRAFT | **PLAN-001 / SCENARIO-001** gross-basis deterministic annual projection with hand-computed goldens, versioned assumptions ADR, `UNSUPPORTED`/`INFEASIBLE` states; no SS/tax/Roth/Monte Carlo; FIN-VERIFY-001 reviewer request | Finance session |
