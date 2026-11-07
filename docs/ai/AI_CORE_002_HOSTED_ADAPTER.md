@@ -66,4 +66,4 @@ Changes:
 
 - **Second attempt (same evening):** the 400 was gone, but both completions hit the 15 s per-completion timeout. Hosted runs now get a hosted-sized wall clock: `SAGESPAN_AI_HOSTED_TIMEOUT_MS` defaults to 50 s (max 110 s) and `SAGESPAN_AI_HOSTED_RUN_WALL_CLOCK_MS` to 110 s (max 120 s, the `AiRunBudgetSchema` cap). The provider passes the latter to the runtime as `budgetHint`; a caller's explicit budget still wins, and the mock keeps 20 s (AI-H13). The live test's own timeout is 600 s.
 
-No live run has been recorded in-repo yet; the vendor/model decision is still pending in `docs/DECISIONS.md`.
+**Third attempt (after #22 merged): passed** on the founder's machine — Anthropic Messages API, `claude-sonnet-5-5`, synthetic Patel/Castillo fixtures, every invariant in `ai-hosted.live.test.ts` held. The report (`apps/web/.ai-bench/*-hosted.json`) is git-ignored and stays on that machine; its human `diffReports` review is still open. The vendor/model is recorded in `docs/DECISIONS.md` for **synthetic development only**; real data remains G3.
