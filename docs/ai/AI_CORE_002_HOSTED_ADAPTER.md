@@ -12,7 +12,7 @@
 | `apps/web/src/ai/providers/anthropic-messages.ts` | Port implementation over plain `fetch` (no SDK, no new dependency, injectable fetch for tests) |
 | `apps/web/src/ai/providers/hosted-provider.ts` | `AiProvider` over the port: per-process token ceiling, per-scope run limit, server request ids, typed errors |
 | `apps/web/src/ai/provider.ts` | `resolveProvider()` wires `hosted` → `HostedProvider` only when every gate holds |
-| `apps/web/src/ai/__tests__/ai-core-hosted.test.ts` | AI-H01…H13 offline suite (fake vendor) |
+| `apps/web/src/ai/__tests__/ai-core-hosted.test.ts` | AI-H01…H14 offline suite (fake vendor) |
 | `apps/web/src/ai/__tests__/ai-hosted.live.test.ts` | Opt-in live benchmark; skipped without the gates; writes `apps/web/.ai-bench/*.json` (git-ignored) |
 
 ## 2. Gates — all required, or the mock runs and says why
@@ -50,7 +50,7 @@ It runs Patel (firm) and Castillo (personal) through the live adapter and the tw
 
 ## 6. Promotion rule for this adapter
 
-Before `hosted` is enabled anywhere outside a developer's own synthetic session: (1) AI-E01…E28, AI-C01…C16 and AI-H01…H13 green; (2) at least one live benchmark report reviewed with `diffReports` on the frozen fixtures; (3) a founder decision on vendor and data-handling class recorded in `docs/DECISIONS.md`; (4) for anything beyond synthetic data, the G3 gates.
+Before `hosted` is enabled anywhere outside a developer's own synthetic session: (1) AI-E01…E28, AI-C01…C16 and AI-H01…H14 green; (2) at least one live benchmark report reviewed with `diffReports` on the frozen fixtures; (3) a founder decision on vendor and data-handling class recorded in `docs/DECISIONS.md`; (4) for anything beyond synthetic data, the G3 gates.
 
 ## 2026-11-06 — first live attempt and `tool_choice` (fix/ai-hosted-tool-choice)
 
@@ -66,4 +66,4 @@ Changes:
 
 - **Second attempt (same evening):** the 400 was gone, but both completions hit the 15 s per-completion timeout. Hosted runs now get a hosted-sized wall clock: `SAGESPAN_AI_HOSTED_TIMEOUT_MS` defaults to 50 s (max 110 s) and `SAGESPAN_AI_HOSTED_RUN_WALL_CLOCK_MS` to 110 s (max 120 s, the `AiRunBudgetSchema` cap). The provider passes the latter to the runtime as `budgetHint`; a caller's explicit budget still wins, and the mock keeps 20 s (AI-H13). The live test's own timeout is 600 s.
 
-**Third attempt (after #22 merged): passed** on the founder's machine — Anthropic Messages API, `claude-sonnet-5-5`, synthetic Patel/Castillo fixtures, every invariant in `ai-hosted.live.test.ts` held. The report (`apps/web/.ai-bench/*-hosted.json`) is git-ignored and stays on that machine; its human `diffReports` review is still open. The vendor/model is recorded in `docs/DECISIONS.md` for **synthetic development only**; real data remains G3.
+**Third attempt (after #22 merged): passed** on the founder's machine — Anthropic Messages API, `claude-sonnet-5-5`, synthetic Patel/Castillo fixtures, every invariant in `ai-hosted.live.test.ts` held. The report (`apps/web/.ai-bench/*-hosted.json`) is git-ignored and stays on that machine; review #1 is `docs/ai/AI_LIVE_BENCHMARK_REVIEW_2026-11-06.md` (invariants pass; content not captured, so the live report now records finding content and an evidence-based `alignReports` view, AI-H14). The vendor/model is recorded in `docs/DECISIONS.md` for **synthetic development only**; real data remains G3.

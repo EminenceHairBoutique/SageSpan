@@ -18,7 +18,7 @@ import { resolveHostedConfig } from "../providers/hosted-config";
 import { HostedProvider } from "../providers/hosted-provider";
 import { runFirmAnalyzePlan, runPersonalUnderstand } from "../review-orchestrator";
 import { ALVAREZ, HP_CCO, addCastilloRuns, addPatelCheckRun } from "../evals/fixtures";
-import { diffReports } from "../evals/regression";
+import { alignReports, diffReports } from "../evals/regression";
 
 const live = process.env.SAGESPAN_AI_PROVIDER === "hosted" && resolveHostedConfig(process.env).enabled;
 
@@ -52,8 +52,8 @@ describe.skipIf(!live)("hosted vendor on synthetic fixtures (opt-in, spends toke
       generated_at: new Date().toISOString(),
       provider_note: resolved.note,
       served_by: firmLive.runtime?.provider_descriptor,
-      firm: { live: summarise(firmLive), mock: summarise(firmMock), diff: firmLive.report && firmMock.report ? diffReports(firmMock.report, firmLive.report) : null },
-      personal: { live: summarise(personalLive), mock: summarise(personalMock), diff: personalLive.report && personalMock.report ? diffReports(personalMock.report, personalLive.report) : null },
+      firm: { live: summarise(firmLive), mock: summarise(firmMock), diff: firmLive.report && firmMock.report ? diffReports(firmMock.report, firmLive.report) : null, alignment: firmLive.report && firmMock.report ? alignReports(firmMock.report, firmLive.report) : null },
+      personal: { live: summarise(personalLive), mock: summarise(personalMock), diff: personalLive.report && personalMock.report ? diffReports(personalMock.report, personalLive.report) : null, alignment: personalLive.report && personalMock.report ? alignReports(personalMock.report, personalLive.report) : null },
       tokens: (firmLive.estimated_tokens ?? 0) + (personalLive.estimated_tokens ?? 0),
     };
     const dir = path.resolve(process.cwd(), ".ai-bench");
@@ -83,5 +83,26 @@ function summarise(r: Awaited<ReturnType<typeof runFirmAnalyzePlan>>) {
     issue_details: r.validation_issues.map((i) => i.detail),
     finding_categories: r.report?.findings.map((f) => f.category) ?? [],
     estimated_tokens: r.estimated_tokens,
+    // AI-CORE-002b: the validated content itself, so a human can review it (synthetic fixtures only; file is git-ignored)
+    report: r.report
+      ? {
+          summary: r.report.summary,
+          draft_memo: r.report.draft_memo,
+          questions: r.report.questions,
+          limitations: r.report.limitations,
+          findings: r.report.findings.map((f) => ({
+            id: f.finding_id,
+            category: f.category,
+            severity: f.severity,
+            evidence_status: f.evidence_status,
+            title: f.title,
+            explanation: f.explanation,
+            refs: { facts: f.fact_refs, documents: f.document_refs, check_runs: f.check_run_refs },
+            cited_amounts: f.cited_amounts,
+            suggested_next_action: f.suggested_next_action,
+            question: f.question ?? null,
+          })),
+        }
+      : null,
   };
 }
