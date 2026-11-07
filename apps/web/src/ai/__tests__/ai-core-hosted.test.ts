@@ -1,5 +1,5 @@
 /**
- * AI-CORE-002a — hosted adapter suite (AI-H01 … AI-H13). Offline: the vendor is a
+ * AI-CORE-002a — hosted adapter suite (AI-H01 … AI-H14). Offline: the vendor is a
  * scripted fake `fetch` that returns recorded Anthropic Messages API shapes. No
  * network, no key beyond a throwaway string that must never appear in any record.
  */
@@ -13,10 +13,11 @@ import { SYNTHETIC_ACK, resolveHostedConfig, type HostedConfig } from "../provid
 import { HostedProvider, outputJsonSchema, toolJsonSchemas } from "../providers/hosted-provider";
 import { orchestrate, runFirmAnalyzePlan, runPersonalUnderstand } from "../review-orchestrator";
 import { ALVAREZ, HP_CCO, addCastilloRuns, addPatelCheckRun } from "../evals/fixtures";
+import { alignReports, diffReports } from "../evals/regression";
 
 const KEY = "sk-test-DO-NOT-LEAK-7f3a9c";
 const FULL_ENV = { SAGESPAN_AI_PROVIDER: "hosted", SAGESPAN_AI_HOSTED_API_KEY: KEY, SAGESPAN_AI_HOSTED_MODEL: "claude-test-model", SAGESPAN_AI_HOSTED_SYNTHETIC_ACK: SYNTHETIC_ACK, SAGESPAN_DEMO_MODE: "1" };
-const CONFIG: HostedConfig = { apiKey: KEY, model: "claude-test-model", baseUrl: "https://api.anthropic.com", maxTokens: 4096, timeoutMs: 1000, runWallClockMs: 20_000, processTokenCeiling: 250_000, runsPerScopePerHour: 10, toolChoice: "forced" };
+const CONFIG: HostedConfig = { apiKey: KEY, model: "claude-test-model", baseUrl: "https://api.anthropic.com", maxTokens: 4096, timeoutMs: 1000, runWallClockMs: 20_000, processTokenCeiling: 250_000, runsPerScopePerHour: 10, toolChoice: "forced", tokensPerScopePerHour: 200_000 };
 
 type Body = Record<string, unknown> & { messages: Array<{ role: string; content: Array<Record<string, unknown>> }>; tools: Array<{ name: string }>; tool_choice: Record<string, unknown> };
 interface Captured {
@@ -306,5 +307,33 @@ describe("AI-CORE-002a hosted adapter", () => {
     expect(b.record.runtime!.budget.max_wall_clock_ms).toBe(30_000);
     const mock = await orchestrate(ctx, "RETIREMENT_PLAN_REVIEW", HP_CCO.user_id, new MockToolLoopProvider());
     expect(mock.record.runtime!.budget.max_wall_clock_ms).toBe(20_000);
+  });
+
+  it("AI-H14 the live-benchmark review aid pairs findings by the evidence they cite, not by the model's own ids, and lists coverage gaps and new findings", async () => {
+    const { store } = patelStore();
+    const reference = (await runFirmAnalyzePlan(store, HP_CCO, "hh_patel", new MockToolLoopProvider())).report!;
+    expect(reference.findings.length).toBeGreaterThanOrEqual(2);
+    // a "live" report: same evidence, renamed ids (as a hosted model does), first finding dropped, one extra finding
+    const [dropped, ...kept] = reference.findings;
+    const candidate = {
+      ...reference,
+      findings: [
+        ...kept.map((f, i) => ({ ...f, finding_id: `F${i + 1}` })),
+        { ...kept[0]!, finding_id: "F_extra", fact_refs: [], document_refs: [], check_run_refs: [], cited_amounts: [], category: "FOLLOWUP_QUESTION" as const },
+      ],
+    };
+    expect(diffReports(reference, candidate).changed).toEqual([]); // id-keyed diff sees only add/remove
+    expect(diffReports(reference, candidate).added).toHaveLength(candidate.findings.length);
+    const a = alignReports(reference, candidate);
+    expect(a.pairs.map((p) => p.candidate).sort()).toEqual(kept.map((_, i) => `F${i + 1}`).sort());
+    expect(a.pairs.every((p) => p.same_category && p.shared_refs.length > 0)).toBe(true);
+    expect(a.candidate_only).toEqual(["F_extra"]);
+    // every kept finding keeps its exact counterpart (best-first matching), so the dropped one is the coverage gap
+    expect(a.reference_only).toEqual([dropped!.finding_id]);
+    // identical reports align one-to-one
+    const self = alignReports(reference, reference);
+    expect(self.pairs).toHaveLength(reference.findings.length);
+    expect(self.reference_only).toEqual([]);
+    expect(self.candidate_only).toEqual([]);
   });
 });

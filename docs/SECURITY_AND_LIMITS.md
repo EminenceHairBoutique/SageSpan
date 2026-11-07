@@ -150,3 +150,23 @@ The shim run proves the policies and functions on plain Postgres; the real-stack
   on every review and packet.
 * PDF rendering is not bundled; the HTML packet is print-ready.
 * The P1 tax module is a DRAFT and is not exposed.
+
+## AI runtime limits (AI track; appended 2026-11-06, AI-CORE-002b)
+
+* `reauthorize()` in the AI tool loop is awaited before every tool execution and
+  before the run is recorded; in the demo it re-reads the file store, in
+  production it is `PersonalRepository.bundle()` under the user's own RLS
+  session (DATA-001/002). A revoked membership ends the run with the
+  repository's non-disclosing NotFound and nothing is recorded; a new CURRENT
+  snapshot between turns rejects the run (`CONTEXT_CHANGED`). Firm-side
+  production grounding does not exist yet (needs DATA-003a).
+* AI run records for PRODUCTION workspaces are **not persisted**: there is no
+  AI-run table (the AI track's future migration, number from the registry).
+  `runPersonalUnderstandForRepository()` returns `persisted:false` with a note
+  rather than writing into a repository view that would drop the record.
+* Hosted-provider quotas (`ai-quota-v1`) are enforced by a per-process store:
+  two web instances do not share counters, so the effective limit is per
+  instance until the durable store (same migration) exists. A store failure
+  fails the run closed; it never admits a vendor call without a decision.
+* No live vendor call has been made from this repository or its CI; the live
+  benchmark is opt-in with five gates and writes to a git-ignored folder.

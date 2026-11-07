@@ -40,6 +40,8 @@
 
 **AI-SEC-001 (2026-11-06, baseline reconciliation, `fix/ai-sec-001-narrative-grounding`):** the independent audit found that `validateModelOutput` grounded every finding but copied `summary`, `draft_memo`, `questions` and model `limitations` after only an injection check — a forged amount or an unsupported "verified" claim in the summary would have rendered. The validator now applies the same amount rule (only amounts the server confirmed in accepted findings' cited runs) and the same pass-claim rule (judged against the runs accepted findings cite) to every narrative field, and **withholds the failing field** (`disposition: "REDACT_TEXT"`, `finding_id: null`) while the validated findings survive. Cases AI-N01…AI-N08 (8 tests, `ai-sec-001-narrative.test.ts`): invented amount in summary / memo / question / limitation withheld individually; a cited amount may be repeated (no false positive); pass/verified language with an UNSUPPORTED cited run withheld; verified/approved with no run anywhere withheld while negated language is kept; no redaction ever changes `DRAFT_READY` / `DRAFT_FOR_HUMAN_REVIEW`. AI-E, AI-C and AI-H unchanged (65/65 + 1 opt-in skip in the build environment).
 
+**AI-CORE-002b (2026-11-06 evening, `feat/ai-core-002b-benchmark-prep`):** AI-C17…AI-C21 (async resolver over the Data track's repository seam: awaited before each tool and before RECORD, revocation → NotFound with nothing persisted, snapshot drift → `CONTEXT_CHANGED`, PRODUCTION non-persistence is explicit, resolver errors end the run), AI-Q01…AI-Q06 (`ai-quota-v1` contracts, in-process store reserve/settle/window, hosted provider reserves before any vendor call and fails closed on runs/tokens/store failure), and AI-B (the two-turn mock is pinned to the committed baselines `evals/baselines/*.json`; baselines contain no approval or verified claim). The live benchmark (`ai-hosted.live.test.ts`) now runs every committed baseline case, captures the validated content, reports the id-keyed diff **and** the evidence-based `alignReports` pairing against the baseline (AI-H14, from #26), surfaces vendor error reasons, and writes JSON + Markdown; it never runs in CI. Live run #1 (founder's machine, after #22) is recorded in the table below; review #2 — content against the baselines — is the next step. Review protocol and decision vocabulary (`KEEP MOCK DEFAULT` / `ALLOW HOSTED IN DEVELOPER SESSIONS` / `REWORK ADAPTER`): `docs/ai/AI_CORE_002B_LIVE_BENCHMARK_REVIEW.md` §4.
+
 ## Acceptance (§18.4) — measured on this suite
 
 - All references in accepted findings resolve to allowed current evidence: **enforced by validator; asserted E01–E12, E24**.
@@ -57,4 +59,10 @@
 
 ## Promotion rule
 
-A model, prompt, tool-schema, validator, runtime or adapter change must (1) pass this suite, AI-C01…C16, AI-H01…H13 **and** AI-N01…N08 unchanged, (2) produce a `diffReports` review on the frozen Patel/Okafor/Reyes/Castillo fixtures that a human accepts, and (3) record the decision here with date and reviewer. No automatic promotion.
+A model, prompt, tool-schema, validator, runtime or adapter change must (1) pass this suite, AI-C01…C16, AI-H01…H14 **and** AI-N01…N08 unchanged, (2) produce a `diffReports` review on the frozen Patel/Okafor/Reyes/Castillo fixtures that a human accepts, and (3) record the decision here with date and reviewer. No automatic promotion.
+
+## Live benchmark reviews
+
+| Date | Model | Reviewer | Result | Record |
+|---|---|---|---|---|
+| 2026-11-06 | `claude-sonnet-5-5` (Anthropic Messages API), synthetic Patel + Alvarez | Integration coordinator for the founder (not independent) | Invariants **pass** (all runs `DRAFT_READY`, 0 denied tools, 0 rejected findings, 0 validation issues). Content **not reviewed** because the report stored categories only and `diffReports` keys on ids. Personal draft diverges from the mock (audit-style categories, no education item). **Not accepted for promotion** | `docs/ai/AI_LIVE_BENCHMARK_REVIEW_2026-11-06.md`; `alignReports` + content capture added (AI-H14) |
