@@ -38,6 +38,8 @@
 
 **AI-CORE-002a (2026-11-06, `feat/ai-core-002a-hosted-adapter`):** AI-H01…AI-H10 (10 tests, `ai-core-hosted.test.ts`) exercise the hosted adapter against a scripted fake vendor: gates, request shape and secret containment, two live turns through the runtime with `tool_use`/`tool_result` replay, denied-call replay, validator parity for a live `APPROVED` / invented amount / foreign id, typed vendor failures, token-ceiling and per-scope rate-limit fail-closed behaviour, live abstention, and no-secret-anywhere. `ai-hosted.live.test.ts` is the opt-in live benchmark (skipped without the gates; **never run in-repo**). See `docs/ai/AI_CORE_002_HOSTED_ADAPTER.md`.
 
+**AI-SEC-001 (2026-11-06, baseline reconciliation, `fix/ai-sec-001-narrative-grounding`):** the independent audit found that `validateModelOutput` grounded every finding but copied `summary`, `draft_memo`, `questions` and model `limitations` after only an injection check — a forged amount or an unsupported "verified" claim in the summary would have rendered. The validator now applies the same amount rule (only amounts the server confirmed in accepted findings' cited runs) and the same pass-claim rule (judged against the runs accepted findings cite) to every narrative field, and **withholds the failing field** (`disposition: "REDACT_TEXT"`, `finding_id: null`) while the validated findings survive. Cases AI-N01…AI-N08 (8 tests, `ai-sec-001-narrative.test.ts`): invented amount in summary / memo / question / limitation withheld individually; a cited amount may be repeated (no false positive); pass/verified language with an UNSUPPORTED cited run withheld; verified/approved with no run anywhere withheld while negated language is kept; no redaction ever changes `DRAFT_READY` / `DRAFT_FOR_HUMAN_REVIEW`. AI-E, AI-C and AI-H unchanged (65/65 + 1 opt-in skip in the build environment).
+
 ## Acceptance (§18.4) — measured on this suite
 
 - All references in accepted findings resolve to allowed current evidence: **enforced by validator; asserted E01–E12, E24**.
@@ -55,4 +57,4 @@
 
 ## Promotion rule
 
-A model, prompt, tool-schema, validator, runtime or adapter change must (1) pass this suite, AI-C01…C16 **and** AI-H01…H10 unchanged, (2) produce a `diffReports` review on the frozen Patel/Okafor/Reyes/Castillo fixtures that a human accepts, and (3) record the decision here with date and reviewer. No automatic promotion.
+A model, prompt, tool-schema, validator, runtime or adapter change must (1) pass this suite, AI-C01…C16, AI-H01…H10 **and** AI-N01…N08 unchanged, (2) produce a `diffReports` review on the frozen Patel/Okafor/Reyes/Castillo fixtures that a human accepts, and (3) record the decision here with date and reviewer. No automatic promotion.
