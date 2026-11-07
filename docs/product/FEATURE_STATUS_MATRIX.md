@@ -60,10 +60,12 @@ This matrix describes what the checked-out tree does. It is not a certification 
 | Capability | V5 ref | Status |
 |---|---|---|
 | Versioned contracts: `AiReviewReport` (ai-review-v1), findings, scenario proposal, run record, feedback | §18.2, AI-000 | Implemented |
-| Provider adapter: deterministic mock, scripted test provider; live adapter | §18.1 | Mock + scripted implemented; **live adapter not implemented** (configuration yields the mock plus an explicit note) |
+| Provider adapter: deterministic mock, scripted test provider; live adapter | §18.1 | One-pass mock + two-turn mock + scripted providers implemented; **live adapter not implemented** — `hosted` / `self_hosted` are a typed port only (`ai/providers/port.ts`) and resolve to the mock with an explicit note |
+| **AI-CORE-001 bounded tool loop**: budgets before dispatch, strict tool args, de-dup, re-authorisation per call and before record, untrusted tool-result envelopes, `ABSTAINED` outcome, `ai-runtime-v1` trace | AI-CORE-001 (`docs/ai/AI_CORE_ARCHITECTURE.md`) | Implemented in synthetic demo on `feat/ai-core-001-runtime`; `ai-core-toolloop.test.ts` (17) + `ai-runtime-contracts.test.ts` (4) |
 | Evidence resolver (authorised scope only), allowlisted read-only tools, forbidden-tool denial | §18.1, §18.3 | Implemented |
 | Result validator: unresolved/superseded refs, forged locators, uncited amounts, forbidden status, unsupported→PASS, budgets, injection notes | §18.2–18.3 | Implemented |
-| 28 labelled evaluation cases AI-E01…E28 | §18.4 | Implemented as Vitest (`ai-evals.test.ts`), all passing on the mock/scripted providers |
+| 28 labelled evaluation cases AI-E01…E28 | §18.4 | Implemented as Vitest (`ai-evals.test.ts`), all passing on the mock/scripted providers; assertions unchanged under the AI-CORE-001 runtime |
+| AI-CORE-002 hosted adapter, -003 knowledge registry, -004 training data, -005 open-weight/private serving, -006 LoRA experiment, -007 governance | `docs/ai/AI_CORE_MODEL_AND_TRAINING_ROADMAP.md` | Proposed; -002 blocked on G3 vendor DPA and a founder vendor decision |
 | AI-002 extraction, AI-003 scenario execution, AI-004 memo publication, AI-005 monitoring | §18.5 | Proposed |
 
 ## Cross-cutting

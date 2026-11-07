@@ -64,6 +64,7 @@
 | Zod schema `AiReviewReport`, source links and draft statuses | AI | §18.2 | AI-000 Annex B | Invalid schema/status rejected |
 | Server validates org/workspace/source/calc references | AI | §§18.2–18.3 | AI-001 | 100% accepted citations valid |
 | Prompt injection/untrusted PDF/CSV/source text | AI, V3 | §§18.3–18.4 | AI-000/001 | Injection and exfiltration tests |
+| Second-order injection through tool results; tenant ids smuggled through tool args; revoked consent mid-run; snapshot drift between turns; tool/turn budgets enforced before dispatch | AI-CORE | `docs/ai/AI_CORE_THREAT_MODEL.md` T2, T4, T6, T7, T12 | AI-CORE-001 | AI-C03–C08, C11, C12 |
 | AI cannot approve, verify fact, move money or alter policies | AI, founder | §§18.1–18.3, 20.2 | AI-001 onward | No mutation/approval path exposed |
 | Human reviewer Accept/Edit/Dismiss/Request Evidence with version history | AI | §§18.2, 18.4 | AI-001 | Feedback separate from model record |
 | Offline deterministic mock provider | AI | §§18.1, 18.4 | AI-000 | Runs without provider/network |
@@ -109,6 +110,7 @@ This matrix is **traceability, not a certification**. It does not mean every pos
 | Shared planning, separate workspaces and permissions | `packages/contracts/src/workspace.ts` (`actorCanReadDomain`), `auth/personal-actor.ts`, `domain/personal/queries.ts` | `v5-contracts.test.ts`, `personal.test.ts`, AI-E11/E12/E25 |
 | AI-000 contracts, mock, 28 cases | `packages/contracts/src/ai/*`, `apps/web/src/ai/{provider,evals}` | `ai-evals.test.ts` (30) |
 | AI-001 orchestrator, read-only tools, validator, draft persistence, feedback | `apps/web/src/ai/{evidence-resolver,tools,result-validator,review-orchestrator}.ts`, `domain/ai/feedback.ts` | `ai-evals.test.ts`, e2e firm + personal |
+| AI-CORE-001 bounded tool loop: budgets before dispatch, strict tool args, de-dup, per-call + pre-record re-authorisation, untrusted tool results, abstention, runtime trace; live-provider port (types only) | `apps/web/src/ai/runtime/tool-loop.ts`, `ai/provider.ts` (`MockToolLoopProvider`, `continue()`), `ai/tools.ts`, `ai/providers/port.ts`, `packages/contracts/src/ai/runtime.ts` | `ai-core-toolloop.test.ts` AI-C01…C16 (17), `ai-runtime-contracts.test.ts` (4); AI-E01…E28 unchanged |
 | Trusted calculator invocation vs matching hash (personal analogue of S-04) | `domain/personal/runs.ts` `verifyPersonalReceipt` | `personal.test.ts` |
 | Investment education now, recommendations gated | `/demo/personal/learn`, `ENABLED_TIERS = [0,1,2]` | `v5-contracts.test.ts` |
 | Consumer "stress reduction" without clinical claims | copy review across `/demo/personal/*` and marketing | manual |

@@ -173,7 +173,7 @@ describe("SeverityChip, PriorityChip, DecisionChip (§6.8)", () => {
 
 describe("AI chips (§6.9)", () => {
   it("run status", () => {
-    const expected: Record<AiRunStatus, string> = { DRAFT_READY: "slate", REJECTED: "conflict", ERROR: "conflict" };
+    const expected: Record<AiRunStatus, string> = { DRAFT_READY: "slate", REJECTED: "conflict", ERROR: "conflict", ABSTAINED: "neutral" };
     for (const s of Object.keys(expected) as AiRunStatus[]) {
       const html = render(<AiRunStatusChip status={s} />);
       expect(html).toContain(AI_RUN_STATUS_CHIP[s].label);

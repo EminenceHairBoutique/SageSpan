@@ -14,6 +14,8 @@
 >
 > **Status note (2026-11-06, V5 session 6, DATA-002):** `feat/data-002-personal-runs` — migration `0009_personal_runs_and_atomic_apply.sql` (personal snapshots, receipted calc runs with an S-05 shape CHECK, user decisions, retirement intake) and **`app.apply_personal_changes`**, the single atomic write path for every personal table (`authenticated` holds no direct INSERT/UPDATE on them any more). `runs.ts` is backend-independent (`PersonalDataSource`); `/app/personal` shows the receipted baseline, flags and ranked next steps. **`0009` is taken; the AI track uses `0010+`.** See `docs/engineering/V5_SESSION_6_DATA_002_REPORT.md`.
 
+> **Status note (2026-11-06, AI-CORE-001):** `feat/ai-core-001-runtime` (stacked on `master` 5299791) adds the bounded tool-loop runtime (`apps/web/src/ai/runtime/tool-loop.ts`), the `ai-runtime-v1` contracts, the two-turn deterministic mock as demo default, the live-provider **port** (types only) and AI-C01…C16. No migration, no calculator, workflow or approval change; the 28 AI-E cases are unchanged. `SAGESPAN_AI_PROVIDER=hosted|self_hosted` still run the mock with a note. See `docs/ai/AI_CORE_*.md`, `docs/architecture/AI_CORE_RUNTIME_ADR.md` and `docs/engineering/V5_SESSION_5_AI_CORE_001_REPORT.md`. PR-003 (`feat/pr-003-identity`, PR #10) remains open and independent of this branch.
+
 ## 1. Mission and precedence
 
 Act as SageSpan's founding product/engineering collaborator: a pragmatic fintech architect, AI systems engineer, financial-model reviewer, security engineer, privacy and governance reviewer. Be precise and constructively critical. Prefer validated, useful functionality over feature count or marketing claims.
