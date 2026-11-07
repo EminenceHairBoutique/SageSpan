@@ -16,7 +16,8 @@
  *   SAGESPAN_AI_HOSTED_MAX_TOKENS       per completion, default 4096
  *   SAGESPAN_AI_HOSTED_TIMEOUT_MS       per completion, default 15000
  *   SAGESPAN_AI_HOSTED_PROCESS_TOKEN_CEILING   total tokens this process may spend, default 250000 (fail closed, no mock fallback)
- *   SAGESPAN_AI_HOSTED_RUNS_PER_SCOPE_PER_HOUR default 10 (per workspace / household)
+ *   SAGESPAN_AI_HOSTED_RUNS_PER_SCOPE_PER_HOUR default 10 (per workspace / household; ai-quota-v1 policy)
+ *   SAGESPAN_AI_HOSTED_TOKENS_PER_SCOPE_PER_HOUR default 200000 (per workspace / household; ai-quota-v1 policy)
  */
 export interface HostedConfig {
   apiKey: string;
@@ -26,6 +27,7 @@ export interface HostedConfig {
   timeoutMs: number;
   processTokenCeiling: number;
   runsPerScopePerHour: number;
+  tokensPerScopePerHour: number;
 }
 
 export type HostedResolution = { enabled: true; config: HostedConfig } | { enabled: false; missing: string[] };
@@ -57,6 +59,7 @@ export function resolveHostedConfig(env: Record<string, string | undefined>): Ho
       timeoutMs: int(env.SAGESPAN_AI_HOSTED_TIMEOUT_MS, 15_000, 1_000, 60_000),
       processTokenCeiling: int(env.SAGESPAN_AI_HOSTED_PROCESS_TOKEN_CEILING, 250_000, 1_000, 50_000_000),
       runsPerScopePerHour: int(env.SAGESPAN_AI_HOSTED_RUNS_PER_SCOPE_PER_HOUR, 10, 1, 1_000),
+      tokensPerScopePerHour: int(env.SAGESPAN_AI_HOSTED_TOKENS_PER_SCOPE_PER_HOUR, 200_000, 1_000, 50_000_000),
     },
   };
 }

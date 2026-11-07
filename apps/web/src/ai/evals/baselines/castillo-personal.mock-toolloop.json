@@ -1,0 +1,177 @@
+{
+  "schema_version": "ai-review-v1",
+  "analysis_kind": "PERSONAL_FINANCES_UNDERSTAND",
+  "scope": {
+    "kind": "PERSONAL_WORKSPACE",
+    "workspace_id": "ws_castillo_personal",
+    "snapshot_id": "psnap_castillo_1"
+  },
+  "status": "DRAFT_FOR_HUMAN_REVIEW",
+  "findings": [
+    {
+      "finding_id": "f_personal_where_i_stand",
+      "category": "PATTERN_OBSERVATION",
+      "severity": "INFO",
+      "title": "Where you stand this month",
+      "explanation": "Your liquid cash is $3,650.00 against the $1,500.00 floor you chose, covering about 1.21 months of essentials. In a typical month $1,503.50 is left after commitments and usual spending; in a low month it is $533.50.",
+      "fact_refs": [],
+      "document_refs": [],
+      "check_run_refs": [
+        "pcr_castillo_clarity_1"
+      ],
+      "cited_amounts": [
+        {
+          "amount": "3650.00",
+          "currency": "USD",
+          "check_run_ref": "pcr_castillo_clarity_1",
+          "field": "cash.liquid_total"
+        },
+        {
+          "amount": "1500.00",
+          "currency": "USD",
+          "check_run_ref": "pcr_castillo_clarity_1",
+          "field": "cash.cash_floor"
+        },
+        {
+          "amount": "1503.50",
+          "currency": "USD",
+          "check_run_ref": "pcr_castillo_clarity_1",
+          "field": "margin.typical"
+        },
+        {
+          "amount": "533.50",
+          "currency": "USD",
+          "check_run_ref": "pcr_castillo_clarity_1",
+          "field": "margin.low"
+        }
+      ],
+      "evidence_status": "TOOL_BACKED",
+      "suggested_next_action": null,
+      "question": null
+    },
+    {
+      "finding_id": "f_personal_irregular",
+      "category": "PATTERN_OBSERVATION",
+      "severity": "MEDIUM",
+      "title": "Your income is irregular, so the low month is the one to plan around",
+      "explanation": "Across 6 observed months your income varied enough to count as irregular. The outlook already uses the lowest month for your irregular stream; budgets built on the average will feel tight in slow months.",
+      "fact_refs": [
+        "inc_castillo_contract",
+        "inc_castillo_parttime"
+      ],
+      "document_refs": [],
+      "check_run_refs": [
+        "pcr_castillo_clarity_1"
+      ],
+      "cited_amounts": [],
+      "evidence_status": "UNVERIFIED",
+      "suggested_next_action": "Treat the low month as your planning income.",
+      "question": null
+    },
+    {
+      "finding_id": "f_personal_buffer_gap",
+      "category": "PATTERN_OBSERVATION",
+      "severity": "MEDIUM",
+      "title": "Your reserve is below the target you set",
+      "explanation": "You are $2,399.00 short of your own buffer target. This is your target, not a rule; it matters because a buffer is what keeps a slow month from becoming card debt.",
+      "fact_refs": [],
+      "document_refs": [],
+      "check_run_refs": [
+        "pcr_castillo_clarity_1"
+      ],
+      "cited_amounts": [
+        {
+          "amount": "2399.00",
+          "currency": "USD",
+          "check_run_ref": "pcr_castillo_clarity_1",
+          "field": "cash.buffer_gap_amount"
+        }
+      ],
+      "evidence_status": "TOOL_BACKED",
+      "suggested_next_action": "Decide a monthly pace for the reserve in Next steps.",
+      "question": null
+    },
+    {
+      "finding_id": "f_personal_debt_tradeoff",
+      "category": "PATTERN_OBSERVATION",
+      "severity": "MEDIUM",
+      "title": "Paying extra on Rewards credit card would avoid $3,026.04 in interest",
+      "explanation": "Compared with minimums only, the highest-rate-first path on your stated extra payment avoids $3,026.04 of interest and finishes 32 months sooner. The trade-off is less cash each month, which is why the buffer question comes first.",
+      "fact_refs": [
+        "liab_castillo_card"
+      ],
+      "document_refs": [],
+      "check_run_refs": [
+        "pcr_castillo_debt_1"
+      ],
+      "cited_amounts": [
+        {
+          "amount": "3026.04",
+          "currency": "USD",
+          "check_run_ref": "pcr_castillo_debt_1",
+          "field": "results.AVALANCHE.interest_saved_vs_minimums"
+        }
+      ],
+      "evidence_status": "TOOL_BACKED",
+      "suggested_next_action": "Compare the paths in Scenarios before choosing a pace.",
+      "question": null
+    },
+    {
+      "finding_id": "f_personal_collision",
+      "category": "PATTERN_OBSERVATION",
+      "severity": "LOW",
+      "title": "Several essential payments land in the same week",
+      "explanation": "2 essential payments totalling $1,760.00 fall between 2026-11-01 and 2026-11-07. Timing causes most short-term squeezes; knowing the week lets you set the money aside from the previous income.",
+      "fact_refs": [
+        "obl_castillo_rent",
+        "obl_castillo_car_loan_min"
+      ],
+      "document_refs": [],
+      "check_run_refs": [
+        "pcr_castillo_clarity_1"
+      ],
+      "cited_amounts": [
+        {
+          "amount": "1760.00",
+          "currency": "USD",
+          "check_run_ref": "pcr_castillo_clarity_1",
+          "field": "outlook.collisions[0].total_due"
+        }
+      ],
+      "evidence_status": "TOOL_BACKED",
+      "suggested_next_action": "Check which income arrives before that week.",
+      "question": null
+    },
+    {
+      "finding_id": "f_personal_learn",
+      "category": "EDUCATION",
+      "severity": "INFO",
+      "title": "Why the buffer question comes before the debt question",
+      "explanation": "A reserve covers a slow month without new borrowing; interest savings from extra payments only help if the payment never has to be reversed with a card. The Learn section walks through this trade-off with your own numbers.",
+      "fact_refs": [],
+      "document_refs": [],
+      "check_run_refs": [],
+      "cited_amounts": [],
+      "evidence_status": "UNVERIFIED",
+      "suggested_next_action": null,
+      "question": null
+    }
+  ],
+  "summary": "6 draft note(s) explaining your receipted baseline.",
+  "draft_memo": null,
+  "questions": [],
+  "limitations": [
+    "Explanations of your own receipted baseline; not financial, tax, investment or legal advice.",
+    "Nothing here changes a fact, a calculation or a decision; you decide.",
+    "AI-drafted. Not a verification, approval, professional opinion or regulated advice.",
+    "Every amount shown is copied from a receipted deterministic calculation; the assistant performs no arithmetic.",
+    "Scope is the authorised household/workspace only; nothing outside it was read."
+  ],
+  "model_metadata": {
+    "provider": "sagespan-mock",
+    "model": "deterministic-rules-2-toolloop",
+    "prompt_version": "review-v1",
+    "mode": "MOCK_DETERMINISTIC",
+    "estimated_tokens": 3505
+  }
+}

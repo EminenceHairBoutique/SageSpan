@@ -16,7 +16,7 @@ import { ALVAREZ, HP_CCO, addCastilloRuns, addPatelCheckRun } from "../evals/fix
 
 const KEY = "sk-test-DO-NOT-LEAK-7f3a9c";
 const FULL_ENV = { SAGESPAN_AI_PROVIDER: "hosted", SAGESPAN_AI_HOSTED_API_KEY: KEY, SAGESPAN_AI_HOSTED_MODEL: "claude-test-model", SAGESPAN_AI_HOSTED_SYNTHETIC_ACK: SYNTHETIC_ACK, SAGESPAN_DEMO_MODE: "1" };
-const CONFIG: HostedConfig = { apiKey: KEY, model: "claude-test-model", baseUrl: "https://api.anthropic.com", maxTokens: 4096, timeoutMs: 1000, processTokenCeiling: 250_000, runsPerScopePerHour: 10 };
+const CONFIG: HostedConfig = { apiKey: KEY, model: "claude-test-model", baseUrl: "https://api.anthropic.com", maxTokens: 4096, timeoutMs: 1000, processTokenCeiling: 250_000, runsPerScopePerHour: 10, tokensPerScopePerHour: 200_000 };
 
 type Body = Record<string, unknown> & { messages: Array<{ role: string; content: Array<Record<string, unknown>> }>; tools: Array<{ name: string }>; tool_choice: Record<string, unknown> };
 interface Captured {

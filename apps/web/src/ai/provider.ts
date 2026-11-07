@@ -33,6 +33,8 @@ export interface ProviderInput {
   system_prompt: string;
   prompt_version: string;
   context: GroundingContext;
+  /** Server-generated run id (AI-CORE-002b): lets a provider tie quota reservations and request ids to one run. */
+  run_id?: string;
 }
 
 /** Second (or later) turn: the model's own prior output plus the server's tool results, marked untrusted. */

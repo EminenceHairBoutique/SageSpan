@@ -189,6 +189,43 @@ export function resolveFirmContext(state: DataState, actor: Actor, householdId: 
 /** Personal scope: the actor must be an ACTIVE member of the workspace; firm actors never reach here. */
 export function resolvePersonalContext(state: DataState, actor: PersonalActor): GroundingContext {
   const b: PersonalBundle = personalBundle(state, actor); // throws NotFound when the membership is missing/revoked
+  return personalContextFromBundle(b);
+}
+
+/**
+ * AI-CORE-002b — an authorised context is re-resolved from CURRENT state before every tool
+ * execution and before RECORD. In the demo that is a synchronous read of the file store; in
+ * production it is an RLS-scoped read through the Data track's `PersonalRepository.bundle()`
+ * (DATA-001/002), which is async and decided by the database. Both are expressed as this
+ * interface so the runtime does not care which backs it. A resolver MUST throw (the
+ * resolver's own non-disclosing error) when the actor no longer has access, and MUST return
+ * the current snapshot so the runtime can detect drift (`CONTEXT_CHANGED`).
+ */
+export interface GroundingResolver {
+  readonly kind: "FIRM_HOUSEHOLD" | "PERSONAL_WORKSPACE";
+  readonly backend: "DEMO_STORE" | "RLS_REPOSITORY" | "TEST";
+  resolve(): Promise<GroundingContext>;
+}
+
+/** Minimal seam the AI layer needs from the Data track's repository: the authorised bundle, nothing else. */
+export interface PersonalBundleSource {
+  readonly mode: "DEMO" | "PRODUCTION";
+  bundle(): Promise<PersonalBundle>;
+}
+
+/** Production-shaped personal resolver: every call is a fresh RLS-scoped read; the database decides what exists. */
+export function personalRepositoryResolver(repo: PersonalBundleSource): GroundingResolver {
+  return {
+    kind: "PERSONAL_WORKSPACE",
+    backend: repo.mode === "PRODUCTION" ? "RLS_REPOSITORY" : "DEMO_STORE",
+    async resolve() {
+      return personalContextFromBundle(await repo.bundle()); // repo.bundle() throws NotFound when access is gone
+    },
+  };
+}
+
+/** Build the personal grounding context from an already-authorised bundle (demo store or RLS repository). */
+export function personalContextFromBundle(b: PersonalBundle): GroundingContext {
   const clarityRun = currentRun(b, "PERSONAL_CLARITY");
   const debtRun = currentRun(b, "DEBT_PATHS");
   const clarity = clarityRun?.response ? PersonalClarityResponseSchema.parse(clarityRun.response) : null;

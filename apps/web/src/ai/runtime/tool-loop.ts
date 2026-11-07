@@ -49,8 +49,12 @@ import { dispatchTool, type ToolDispatch } from "../tools";
  */
 export interface ToolLoopOptions {
   budget?: Partial<AiRunBudget>;
-  /** Re-resolve the authorised context from CURRENT state. Must throw (NotFoundError) when access no longer exists. */
-  reauthorize?: () => GroundingContext;
+  /**
+   * Re-resolve the authorised context from CURRENT state. Must throw (NotFoundError) when access no
+   * longer exists. Sync (demo store) or async (AI-CORE-002b: RLS-scoped `PersonalRepository.bundle()`);
+   * the runtime awaits it before every tool execution and before RECORD.
+   */
+  reauthorize?: () => GroundingContext | Promise<GroundingContext>;
   /** Clock injection for tests. */
   now?: () => number;
   /** Cooperative cancellation: checked before each model call and each tool execution. */
@@ -115,10 +119,11 @@ export async function runToolLoop(initialCtx: GroundingContext, analysisKind: Ai
   let estimatedTokens: number | null = null;
   let providerError: string | null = null;
 
-  const firstInput: ProviderInput = buildProviderInput(analysisKind, ctx);
+  const runId = newId("airun");
+  const firstInput: ProviderInput = { ...buildProviderInput(analysisKind, ctx), run_id: runId };
   const metadata: AiModelMetadata = { provider: provider.name, model: provider.model, prompt_version: firstInput.prompt_version, mode: provider.mode, estimated_tokens: null };
   const base = {
-    id: newId("airun"),
+    id: runId,
     scope_kind: ctx.scope.kind,
     org_id: ctx.scope.kind === "FIRM_HOUSEHOLD" ? ctx.scope.org_id : null,
     workspace_id: ctx.scope.kind === "PERSONAL_WORKSPACE" ? ctx.scope.workspace_id : null,
@@ -134,11 +139,11 @@ export async function runToolLoop(initialCtx: GroundingContext, analysisKind: Ai
     created_at: nowIso(),
   } as const;
 
-  /** Fresh authorisation. Throws the resolver's own error (non-disclosing) when access is gone. */
-  const reauthorize = (): "OK" | "CONTEXT_CHANGED" => {
+  /** Fresh authorisation. Throws (or rejects with) the resolver's own error (non-disclosing) when access is gone. */
+  const reauthorize = async (): Promise<"OK" | "CONTEXT_CHANGED"> => {
     if (!options.reauthorize) return "OK";
     reauthorizations++;
-    const fresh = options.reauthorize(); // throws NotFoundError on revoked membership / foreign scope
+    const fresh = await options.reauthorize(); // throws NotFoundError on revoked membership / foreign scope
     if (!sameScope(ctx, fresh)) return "CONTEXT_CHANGED";
     ctx = fresh;
     return "OK";
@@ -271,7 +276,7 @@ export async function runToolLoop(initialCtx: GroundingContext, analysisKind: Ai
       }
       seenRequests.add(key);
       // Fresh authorisation for THIS execution. A revoked actor gets the resolver's own NotFound; nothing is recorded.
-      const auth = reauthorize();
+      const auth = await reauthorize();
       if (auth === "CONTEXT_CHANGED") {
         deny("AUTHORIZATION_LOST", `The authorised scope or snapshot changed during the run; tool "${r.tool}" was not executed.`, "CONTEXT_CHANGED");
         issues.push({ code: "CONTEXT_CHANGED", finding_id: null, detail: "The household/workspace snapshot changed between turns. The run is rejected; start a new run on the current snapshot.", disposition: "REJECT_REPORT" });
@@ -340,7 +345,7 @@ export async function runToolLoop(initialCtx: GroundingContext, analysisKind: Ai
   }
 
   enter("RECORD");
-  if (reauthorize() === "CONTEXT_CHANGED") {
+  if ((await reauthorize()) === "CONTEXT_CHANGED") {
     issues.push({ code: "CONTEXT_CHANGED", finding_id: null, detail: "The authorised scope or snapshot changed before the run could be recorded; the draft is rejected.", disposition: "REJECT_REPORT" });
     report = null;
     accepted = 0;

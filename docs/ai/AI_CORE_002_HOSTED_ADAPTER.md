@@ -1,7 +1,7 @@
 # AI-CORE-002a — hosted adapter skeleton (synthetic-only, disabled by default)
 
 **Status:** implemented on `feat/ai-core-002a-hosted-adapter` (stacked on `feat/ai-core-001-runtime`, 2026-11-06). Offline-tested against recorded vendor shapes (AI-H01…H10). **No live run has been executed in this repository**; the opt-in benchmark exists but needs a key you supply. Real-data processing remains gate G3.
-**Founder decision recorded as an assumption:** the first hosted port targets the **Anthropic Messages API** because it is already the stack's AI vendor (`Noir Peptides`/`Forge` use the Anthropic API). Any other vendor plugs into the same `LiveProviderPort`; the runtime does not change. A different first vendor is a one-file swap, not a redesign.
+**Founder decision (confirmed 2026-11-06 evening, AI-CORE-002b; `docs/DECISIONS.md`):** the first hosted port targets the **Anthropic Messages API**; the first benchmark model is pinned as `claude-sonnet-5-5` (verify the exact string in the Console before exporting it). Any other vendor plugs into the same `LiveProviderPort`; the runtime does not change.
 
 ## 1. What it is
 
@@ -44,7 +44,7 @@ It runs Patel (firm) and Castillo (personal) through the live adapter and the tw
 
 - No live run has been executed here: no key exists in this environment, by design.
 - No per-request cost in USD (`cost_usd_estimate` is `null`): pricing is a vendor fact that must be looked up and versioned, not hard-coded.
-- No persistent rate limiting or token metering (per-process memory only): persistence belongs with AI run tables (`0010+`, AI track) once DATA-002 lands.
+- No persistent rate limiting or token metering (per-process memory only): **AI-CORE-002b** replaced the ad-hoc counters with the `ai-quota-v1` contract and an `AiQuotaStore` interface (still per-process); the durable store and AI-run tables are the AI track's future migration, numbered only through `supabase/migrations/REGISTRY.md`.
 - No vendor DPA, retention review, incident runbook or founder vendor sign-off: those are the G3 items that gate real data, and they are documented in `FEATURE_RELEASE_GATES.md`.
 - No self-hosted adapter: `self_hosted` still resolves to the mock (AI-CORE-005).
 

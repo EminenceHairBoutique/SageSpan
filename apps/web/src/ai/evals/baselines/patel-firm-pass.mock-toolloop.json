@@ -1,0 +1,135 @@
+{
+  "schema_version": "ai-review-v1",
+  "analysis_kind": "RETIREMENT_PLAN_REVIEW",
+  "scope": {
+    "kind": "FIRM_HOUSEHOLD",
+    "org_id": "org_harborpoint",
+    "household_id": "hh_patel",
+    "snapshot_id": "snap_patel_r2"
+  },
+  "status": "DRAFT_FOR_HUMAN_REVIEW",
+  "findings": [
+    {
+      "finding_id": "f_conflict_conf_patel_balance",
+      "category": "CONFLICTING_FACTS",
+      "severity": "HIGH",
+      "title": "Two sources disagree on account.year_end_balance",
+      "explanation": "doc_patel_stmt reports account.year_end_balance as of 2025-12-31; doc_patel_plan reports account.year_end_balance as of 2025-12-31. Neither value is treated as correct until a reviewer resolves the conflict with a rationale.",
+      "fact_refs": [
+        "f_patel_bal_stmt",
+        "f_patel_bal_plan"
+      ],
+      "document_refs": [
+        {
+          "id": "doc_patel_stmt",
+          "locator": "loc_patel_stmt_r6"
+        },
+        {
+          "id": "doc_patel_plan",
+          "locator": "loc_patel_plan_bal"
+        }
+      ],
+      "check_run_refs": [],
+      "cited_amounts": [],
+      "evidence_status": "UNVERIFIED",
+      "suggested_next_action": "Resolve in favour of primary evidence with a recorded rationale before freezing.",
+      "question": "Which source governs account.year_end_balance, and why?"
+    },
+    {
+      "finding_id": "f_conflict_conf_patel_custodian",
+      "category": "CONFLICTING_FACTS",
+      "severity": "LOW",
+      "title": "Two sources disagree on account.custodian_label",
+      "explanation": "doc_patel_profile reports account.custodian_label as of 2026-01-08; doc_patel_plan reports account.custodian_label as of 2025-12-31. Neither value is treated as correct until a reviewer resolves the conflict with a rationale.",
+      "fact_refs": [
+        "f_patel_custodian_stmt",
+        "f_patel_custodian_plan"
+      ],
+      "document_refs": [
+        {
+          "id": "doc_patel_profile",
+          "locator": "loc_patel_profile_r5"
+        },
+        {
+          "id": "doc_patel_plan",
+          "locator": "loc_patel_plan_cust"
+        }
+      ],
+      "check_run_refs": [],
+      "cited_amounts": [],
+      "evidence_status": "UNVERIFIED",
+      "suggested_next_action": "Document an exception under firm policy or resolve.",
+      "question": "Which source governs account.custodian_label, and why?"
+    },
+    {
+      "finding_id": "f_discrepancy_cr_patel_pass_20261105100000",
+      "category": "CHECK_DISCREPANCY",
+      "severity": "HIGH",
+      "title": "Traditional IRA ending 4471: independent RMD $25,098.04 vs imported $24,000.00",
+      "explanation": "The engine reproduced $25,098.04 from the frozen inputs; the plan reported $24,000.00, a difference of $1,098.04 classified as source conflict.",
+      "fact_refs": [],
+      "document_refs": [],
+      "check_run_refs": [
+        "cr_patel_pass_20261105100000"
+      ],
+      "cited_amounts": [
+        {
+          "amount": "25098.04",
+          "currency": "USD",
+          "check_run_ref": "cr_patel_pass_20261105100000",
+          "field": "discrepancy.computed_amount"
+        },
+        {
+          "amount": "24000.00",
+          "currency": "USD",
+          "check_run_ref": "cr_patel_pass_20261105100000",
+          "field": "discrepancy.imported_amount"
+        },
+        {
+          "amount": "1098.04",
+          "currency": "USD",
+          "check_run_ref": "cr_patel_pass_20261105100000",
+          "field": "discrepancy.difference"
+        }
+      ],
+      "evidence_status": "TOOL_BACKED",
+      "suggested_next_action": "Record a disposition explaining the attributed cause.",
+      "question": null
+    },
+    {
+      "finding_id": "f_assumed_f_patel_alive",
+      "category": "ASSUMPTION_RISK",
+      "severity": "LOW",
+      "title": "person.is_alive is an assumption",
+      "explanation": "person.is_alive = true is recorded as assumed (as of 2026-10-15), not evidenced.",
+      "fact_refs": [
+        "f_patel_alive"
+      ],
+      "document_refs": [],
+      "check_run_refs": [],
+      "cited_amounts": [],
+      "evidence_status": "UNVERIFIED",
+      "suggested_next_action": "Confirm with a dated source if material.",
+      "question": null
+    }
+  ],
+  "summary": "4 draft finding(s): 2 conflict(s), 0 evidence gap(s), 1 check discrepancy(ies), 0 unsupported/failed check(s).",
+  "draft_memo": "DRAFT reviewer memo (not approved).\n\n- [CONFLICTING_FACTS] Two sources disagree on account.year_end_balance: Resolve in favour of primary evidence with a recorded rationale before freezing.\n- [CONFLICTING_FACTS] Two sources disagree on account.custodian_label: Document an exception under firm policy or resolve.\n- [CHECK_DISCREPANCY] Traditional IRA ending 4471: independent RMD $25,098.04 vs imported $24,000.00: Record a disposition explaining the attributed cause.\n- [ASSUMPTION_RISK] person.is_alive is an assumption: Confirm with a dated source if material.\n\nLimitations: Draft prepared from the authorised household record only; nothing here is a verification or an approval.",
+  "questions": [
+    "Which source governs account.year_end_balance for this household?",
+    "Which source governs account.custodian_label for this household?"
+  ],
+  "limitations": [
+    "Draft prepared from the authorised household record only; nothing here is a verification or an approval.",
+    "AI-drafted. Not a verification, approval, professional opinion or regulated advice.",
+    "Every amount shown is copied from a receipted deterministic calculation; the assistant performs no arithmetic.",
+    "Scope is the authorised household/workspace only; nothing outside it was read."
+  ],
+  "model_metadata": {
+    "provider": "sagespan-mock",
+    "model": "deterministic-rules-2-toolloop",
+    "prompt_version": "review-v1",
+    "mode": "MOCK_DETERMINISTIC",
+    "estimated_tokens": 2533
+  }
+}
