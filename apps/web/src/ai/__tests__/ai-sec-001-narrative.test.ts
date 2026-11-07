@@ -48,7 +48,7 @@ describe("AI-SEC-001 narrative grounding (summary, memo, questions, limitations)
     const red = redactions(r);
     expect(red).toHaveLength(1);
     expect(red[0]).toMatchObject({ code: "AMOUNT_WITHOUT_TOOL_BACKING", finding_id: null });
-    expect(red[0].detail).toContain("summary");
+    expect(red[0]!.detail).toContain("summary");
   });
 
   it("AI-N02 an invented amount in the draft memo drops the memo, not the report", async () => {
@@ -90,7 +90,7 @@ describe("AI-SEC-001 narrative grounding (summary, memo, questions, limitations)
     expect(claimed.report!.summary).toMatch(/^Summary withheld/);
     expect(claimed.report!.draft_memo).toBe("Nothing here is verified; no check has run.");
     expect(redactions(claimed)).toHaveLength(1);
-    expect(redactions(claimed)[0].code).toBe("UNSUPPORTED_PROMOTED_TO_PASS");
+    expect(redactions(claimed)[0]!.code).toBe("UNSUPPORTED_PROMOTED_TO_PASS");
   });
 
   it("AI-N07 an invented amount in a model limitation drops that line; server limitations are untouched", async () => {
@@ -99,7 +99,7 @@ describe("AI-SEC-001 narrative grounding (summary, memo, questions, limitations)
     expect(r.report!.limitations).toContain("Only one account was reviewed.");
     expect(r.report!.limitations.join(" ")).not.toContain("7,500");
     expect(r.report!.limitations.length).toBeGreaterThan(1); // server limitations still appended
-    expect(redactions(r)[0].detail).toContain("limitation");
+    expect(redactions(r)[0]!.detail).toContain("limitation");
   });
 
   it("AI-N08 a redaction never promotes the run: status stays DRAFT_READY, no finding is approved or verified", async () => {
