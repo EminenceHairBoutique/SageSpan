@@ -98,7 +98,7 @@ class TimeoutError extends Error {
 export async function runToolLoop(initialCtx: GroundingContext, analysisKind: AiAnalysisKind, requestedBy: string, provider: AiProvider, options: ToolLoopOptions = {}): Promise<ToolLoopResult> {
   const now = options.now ?? Date.now;
   const t0 = now();
-  const budget = AiRunBudgetSchema.parse({ ...DEFAULT_AI_RUN_BUDGET, ...(options.budget ?? {}) });
+  const budget = AiRunBudgetSchema.parse({ ...DEFAULT_AI_RUN_BUDGET, ...(provider.budgetHint ?? {}), ...(options.budget ?? {}) });
   const transitions: AiRuntimeState[] = ["AUTHORIZE", "RESOLVE_CONTEXT"];
   const enter = (s: AiRuntimeState) => transitions.push(s);
   const issues: AiValidationIssue[] = [];
