@@ -14,7 +14,7 @@ const stages = [
 
 export default function HowItWorksPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-14 md:px-6">
+    <main id="main" className="mx-auto max-w-6xl px-4 py-14 md:px-6">
       <SectionHeading eyebrow="How it works" title="One lifecycle, two experiences, four layers">
         Individuals and firms move through the same five stages. Underneath, four layers keep the system honest: evidence, deterministic analytics, policy and ranking, and AI interaction.
       </SectionHeading>

@@ -34,7 +34,7 @@ const faq = [
 
 export default function HomePage() {
   return (
-    <main>
+    <main id="main">
       <section className="mx-auto grid max-w-6xl gap-10 px-4 pb-16 pt-14 md:grid-cols-[1.1fr_1fr] md:px-6 md:pt-20">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal">For individuals and households · for advisors and firms</p>

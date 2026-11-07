@@ -2,7 +2,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 create schema if not exists tests;
 \ir 000_helpers.sql
-select plan(20);
+select plan(23);
 
 -- Fixtures: one organisation with an analyst, an advisor, a CCO, an admin and a viewer, and a
 -- complete synthetic household with a material balance conflict (statement vs plan export).

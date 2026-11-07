@@ -39,7 +39,12 @@ export function listPersonalPersonas(state: DataState = getStore().read()): Pers
     }));
 }
 
-export type PersonalActor = Extract<WorkspaceActor, { scope: "PERSONAL" | "HOUSEHOLD" }> & { mode: "DEMO"; actor_type: "SIMULATED_INDIVIDUAL" };
+/**
+ * The actor every personal domain function takes. DEMO actors come from the persona cookie
+ * below; PRODUCTION actors come from the Supabase session (src/auth/actor.ts, DATA-001).
+ * Domain code reads only principal_id / workspace_id / workspace_role / domains.
+ */
+export type PersonalActor = Extract<WorkspaceActor, { scope: "PERSONAL" | "HOUSEHOLD" }> & ({ mode: "DEMO"; actor_type: "SIMULATED_INDIVIDUAL" } | { mode: "PRODUCTION"; actor_type: "USER" });
 
 export async function getPersonalActor(): Promise<PersonalActor> {
   const jar = await cookies();

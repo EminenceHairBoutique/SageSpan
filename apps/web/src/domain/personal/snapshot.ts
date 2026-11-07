@@ -78,16 +78,10 @@ export async function snapshotContentHash(req: PersonalClarityRequest): Promise<
   return canonicalHash({ ...req, input_hash: null });
 }
 
-/**
- * Ensure the CURRENT snapshot matches the live personal records. If the content
- * hash changed, the previous snapshot is marked SUPERSEDED (kept as history) and
- * a new revision is created. Returns the snapshot and whether it is new.
- */
-export async function ensureCurrentSnapshot(b: PersonalBundle, actor: PersonalActor, state: { personal_snapshots: PersonalSnapshot[] }): Promise<{ snapshot: PersonalSnapshot; created: boolean; request: PersonalClarityRequest }> {
-  const request = buildClarityRequest(b);
-  const hash = await snapshotContentHash(request);
+/** Pure, synchronous: given the content hash, make the CURRENT snapshot match the live records in `state`. */
+export function applySnapshot(b: PersonalBundle, actor: PersonalActor, state: { personal_snapshots: PersonalSnapshot[] }, hash: string, asOf: string): { snapshot: PersonalSnapshot; created: boolean } {
   const current = b.currentSnapshot;
-  if (current && current.content_sha256 === hash) return { snapshot: current, created: false, request: { ...request, input_hash: hash } };
+  if (current && current.content_sha256 === hash) return { snapshot: current, created: false };
   if (current) {
     const stored = state.personal_snapshots.find((s) => s.id === current.id);
     if (stored) stored.status = "SUPERSEDED";
@@ -96,12 +90,26 @@ export async function ensureCurrentSnapshot(b: PersonalBundle, actor: PersonalAc
     id: newId("psnap"),
     workspace_id: b.workspace.id,
     revision: (b.snapshots[0]?.revision ?? 0) + 1,
-    as_of_date: request.as_of_date,
+    as_of_date: asOf,
     content_sha256: hash,
     created_at: nowIso(),
     created_by: actor.principal_id,
     status: "CURRENT",
   };
   state.personal_snapshots.push(snapshot);
-  return { snapshot, created: true, request: { ...request, input_hash: hash } };
+  return { snapshot, created: true };
+}
+
+/**
+ * Ensure the CURRENT snapshot matches the live personal records. If the content
+ * hash changed, the previous snapshot is marked SUPERSEDED (kept as history) and
+ * a new revision is created. Returns the snapshot and whether it is new.
+ * (Hashing is async; the state change is the synchronous `applySnapshot`, so a
+ * repository can run it inside its own unit of work.)
+ */
+export async function ensureCurrentSnapshot(b: PersonalBundle, actor: PersonalActor, state: { personal_snapshots: PersonalSnapshot[] }): Promise<{ snapshot: PersonalSnapshot; created: boolean; request: PersonalClarityRequest }> {
+  const request = buildClarityRequest(b);
+  const hash = await snapshotContentHash(request);
+  const { snapshot, created } = applySnapshot(b, actor, state, hash, request.as_of_date);
+  return { snapshot, created, request: { ...request, input_hash: hash } };
 }

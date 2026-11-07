@@ -5,6 +5,7 @@ import { PencilLine, Plus, Archive } from "lucide-react";
 import { CADENCES, CASH_ACCOUNT_KINDS, GOAL_KINDS, INCOME_KINDS, LIABILITY_KINDS, OBLIGATION_CATEGORIES, RATE_TYPES, RELIABILITIES, type CashAccount, type IncomeStream, type Liability, type PersonalRecordType, type RecurringObligation, type SavingsGoal, type VariableSpendingPattern } from "@sagespan/contracts";
 import { retireRecordAction, saveRecordAction } from "@/server/personal-actions";
 import { ActionForm } from "@/ui/ActionForm";
+import { ConfirmDialog } from "@/ui/ConfirmDialog";
 import { buttonClasses, cx, Field, inputClasses } from "@/ui/primitives";
 
 /**
@@ -238,8 +239,11 @@ export function GoalFields({ r, accounts }: { r?: SavingsGoal; accounts: Array<{
   );
 }
 
-/** Collapsible add form. */
-export function AddRecord({ type, title, children }: { type: PersonalRecordType; title: string; children: ReactNode }) {
+type SaveAction = typeof saveRecordAction;
+type RetireAction = typeof retireRecordAction;
+
+/** Collapsible add form. `save` defaults to the demo action; /app/personal passes the production one (same form, same schema). */
+export function AddRecord({ type, title, children, save = saveRecordAction, pendingLabel = "Saving and recomputing…" }: { type: PersonalRecordType; title: string; children: ReactNode; save?: SaveAction; pendingLabel?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-lg border border-dashed border-line p-3">
@@ -248,7 +252,7 @@ export function AddRecord({ type, title, children }: { type: PersonalRecordType;
       </button>
       {open && (
         <div className="mt-3">
-          <ActionForm action={saveRecordAction} hidden={{ record_type: type, record_ref: "" }} submitLabel="Add" pendingLabel="Saving and recomputing…" size="sm">
+          <ActionForm action={save} hidden={{ record_type: type, record_ref: "" }} submitLabel="Add" pendingLabel={pendingLabel} size="sm">
             {children}
           </ActionForm>
         </div>
@@ -258,7 +262,7 @@ export function AddRecord({ type, title, children }: { type: PersonalRecordType;
 }
 
 /** Inline edit + retire controls for one record. */
-export function EditRecord({ type, recordRef, name, children }: { type: PersonalRecordType; recordRef: string; name: string; children: ReactNode }) {
+export function EditRecord({ type, recordRef, name, children, save = saveRecordAction, retire = retireRecordAction, pendingLabel = "Saving and recomputing…" }: { type: PersonalRecordType; recordRef: string; name: string; children: ReactNode; save?: SaveAction; retire?: RetireAction; pendingLabel?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-2">
@@ -266,11 +270,28 @@ export function EditRecord({ type, recordRef, name, children }: { type: Personal
         <button type="button" onClick={() => setOpen((o) => !o)} className={buttonClasses("ghost", "sm")} aria-expanded={open} aria-label={`Edit ${name}`}>
           <PencilLine size={13} aria-hidden /> {open ? "Close" : "Edit"}
         </button>
-        <ActionForm action={retireRecordAction} hidden={{ record_type: type, record_ref: recordRef }} submitLabel={<><Archive size={13} aria-hidden /> Retire</>} pendingLabel="Retiring…" variant="ghost" size="sm" inline className="!gap-0" />
+        <ConfirmDialog
+          trigger={
+            <>
+              <Archive size={13} aria-hidden /> Retire
+            </>
+          }
+          triggerClassName={buttonClasses("ghost", "sm")}
+          title={`Retire ${name}?`}
+          description="The record leaves your current baseline, which recomputes from a new snapshot. It stays in history as a retired revision; nothing is deleted."
+          confirmLabel="Retire"
+          pendingLabel="Retiring…"
+          onConfirm={() => {
+            const fd = new FormData();
+            fd.set("record_type", type);
+            fd.set("record_ref", recordRef);
+            return retire(null, fd);
+          }}
+        />
       </div>
       {open && (
         <div className="mt-3 rounded-lg border border-line bg-surface-muted/40 p-3">
-          <ActionForm action={saveRecordAction} hidden={{ record_type: type, record_ref: recordRef }} submitLabel="Save as new revision" pendingLabel="Saving and recomputing…" size="sm">
+          <ActionForm action={save} hidden={{ record_type: type, record_ref: recordRef }} submitLabel="Save as new revision" pendingLabel={pendingLabel} size="sm">
             {children}
           </ActionForm>
         </div>

@@ -1,22 +1,38 @@
 @import "tailwindcss";
 
+/*
+ * SageSpan design tokens (UI-001a). Three layers, all CSS custom properties:
+ *   primitive  -> raw palette, type scale, radius, shadow, motion
+ *   semantic   -> meaning independent of hue (--color-link, --color-status-*)
+ *   component  -> density-driven hooks read by components (--card-padding, ...)
+ * Specification: docs/design/UI_001_DESIGN_SYSTEM_SPEC.md §1. Nothing here
+ * changes a figure, a status derivation or a permission; it decides only how
+ * server-provided values are presented.
+ */
 @theme {
+  /* ---- 1.1 colour primitives ---- */
   --color-canvas: #f5f7fa;
   --color-surface: #ffffff;
   --color-surface-muted: #eef2f6;
+  --color-surface-sunken: #e9eef4;
   --color-ink: #0b1f3a;
   --color-ink-muted: #4a5b73;
-  --color-ink-faint: #7b8a9e;
+  --color-ink-faint: #5b6c86;
+  --color-ink-ghost: #9aa7b8;
   --color-line: #d9e0e8;
   --color-line-strong: #b9c4d1;
+  --color-line-input: #7f8ea3;
 
   --color-navy: #0b1f3a;
   --color-navy-700: #13305a;
+  --color-navy-500: #1f4a80;
   --color-navy-100: #e3e9f2;
+  --color-navy-50: #f0f4f9;
 
   --color-teal: #0e7c72;
   --color-teal-700: #0a5f58;
   --color-teal-100: #ddf2ef;
+  --color-teal-50: #eef9f7;
 
   --color-amber: #b45309;
   --color-amber-700: #92400e;
@@ -30,17 +46,132 @@
   --color-conflict-700: #8f1d13;
   --color-conflict-100: #fbe4e1;
 
+  /* ---- 1.2 semantic aliases (map once, use everywhere) ---- */
+  --color-link: var(--color-navy-500);
+  --color-link-hover: var(--color-navy-700);
+  --color-focus: var(--color-teal);
+  --color-selection: var(--color-navy-50);
+  --color-status-verified-fg: var(--color-teal-700);
+  --color-status-verified-bg: var(--color-teal-100);
+  --color-status-verified-line: color-mix(in srgb, var(--color-teal) 30%, transparent);
+  --color-status-limitation-fg: var(--color-amber-700);
+  --color-status-limitation-bg: var(--color-amber-100);
+  --color-status-limitation-line: color-mix(in srgb, var(--color-amber) 30%, transparent);
+  --color-status-blocked-fg: var(--color-conflict-700);
+  --color-status-blocked-bg: var(--color-conflict-100);
+  --color-status-blocked-line: color-mix(in srgb, var(--color-conflict) 30%, transparent);
+  --color-status-assumed-fg: var(--color-slate-700);
+  --color-status-assumed-bg: var(--color-slate-100);
+  --color-status-neutral-fg: var(--color-ink-muted);
+  --color-status-neutral-bg: var(--color-surface-muted);
+  --color-status-exceptions-fg: var(--color-navy-700);
+  --color-status-exceptions-bg: var(--color-navy-100);
+  --color-status-history-fg: var(--color-ink-faint);
+  --color-synthetic-fg: var(--color-amber-700);
+  --color-synthetic-bg: var(--color-amber-100);
+
+  /* ---- 1.3 typography ---- */
   --font-heading: "Schibsted Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-body: "Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
+  /* type scale: text-<name> utilities; the caption size (12 px) is the floor */
+  --text-display: 2.75rem;
+  --text-display--line-height: 3rem;
+  --text-display--font-weight: 700;
+  --text-display--letter-spacing: -0.02em;
+  --text-display-lg: 3.25rem;
+  --text-display-lg--line-height: 3.5rem;
+  --text-display-lg--font-weight: 700;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-h1: 1.75rem;
+  --text-h1--line-height: 2.125rem;
+  --text-h1--font-weight: 700;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h2: 1.25rem;
+  --text-h2--line-height: 1.75rem;
+  --text-h2--font-weight: 600;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h3: 1rem;
+  --text-h3--line-height: 1.5rem;
+  --text-h3--font-weight: 600;
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1rem;
+  --text-eyebrow--font-weight: 600;
+  --text-eyebrow--letter-spacing: 0.08em;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.5rem;
+  --text-body-dense: 0.875rem;
+  --text-body-dense--line-height: 1.25rem;
+  --text-support: 0.8125rem;
+  --text-support--line-height: 1.125rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-stat: 1.75rem;
+  --text-stat--line-height: 2rem;
+  --text-stat--font-weight: 700;
+  --text-stat-dense: 1.375rem;
+  --text-stat-dense--line-height: 1.75rem;
+  --text-stat-dense--font-weight: 700;
+  --text-mono: 0.78125rem;
+  --text-mono--line-height: 1.125rem;
+
+  /* ---- 1.5 radius (role names: Tailwind's own xs/sm/md/lg scale stays untouched) ---- */
+  --radius-inline: 4px;
+  --radius-input: 6px;
+  --radius-control: 10px;
   --radius-card: 0.875rem;
+  --radius-dialog: 20px;
+  --radius-pill: 9999px;
+
+  /* ---- 1.6 elevation ---- */
   --shadow-card: 0 1px 2px rgb(11 31 58 / 0.04), 0 10px 28px -14px rgb(11 31 58 / 0.14);
+  --shadow-raised: 0 4px 14px -6px rgb(11 31 58 / 0.18);
   --shadow-pop: 0 20px 50px -20px rgb(11 31 58 / 0.3);
+
+  /* ---- 1.7 motion ---- */
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --default-transition-duration: var(--motion-fast);
+  --default-transition-timing-function: var(--ease-standard);
+}
+
+/* Motion, shell and table tokens: plain custom properties so they are always emitted. */
+:root {
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 240ms;
+  --shell-topbar-height: 3.5rem;
+  --shell-rail-width: 16rem;
+  --shell-rail-width-personal: 15rem;
+  --table-min-sm: 560px;
+  --table-min-md: 720px;
+  --table-min-lg: 840px;
+}
+
+/* 1.4 density: the shell root sets data-density; components read these tokens. */
+:root,
+[data-density="comfortable"] {
+  --card-padding: 1.25rem;
+  --card-padding-y: 1rem;
+  --row-padding-y: 0.75rem;
+  --stack-gap: 1.5rem;
+  --text-body-current: var(--text-body);
+  --text-body-current--line-height: var(--text-body--line-height);
+}
+
+[data-density="compact"] {
+  --card-padding: 1rem;
+  --card-padding-y: 0.75rem;
+  --row-padding-y: 0.5rem;
+  --stack-gap: 1rem;
+  --text-body-current: var(--text-body-dense);
+  --text-body-current--line-height: var(--text-body-dense--line-height);
 }
 
 html {
   scroll-behavior: smooth;
+  /* a focused or anchored element is never hidden under a sticky header (2.4.11) */
+  scroll-padding-top: calc(var(--shell-topbar-height) + 1rem);
 }
 
 body {
@@ -58,17 +189,105 @@ h4 {
   letter-spacing: -0.01em;
 }
 
+/* Focus ring: 2 px teal outline, 2 px offset, plus a surface halo so the ring
+   stays ≥ 3:1 on teal, amber and navy surfaces. */
 :focus-visible {
-  outline: 2px solid var(--color-teal);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-surface);
+}
+
+/* The skip link target: focusable for the skip link, no ring on the whole page body. */
+main#main:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Skip link: first focusable element in the root layout; visible only on focus. */
+.skip-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link:focus {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 100;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  border-radius: var(--radius-control);
+  background: var(--color-navy);
+  color: var(--color-surface);
+  font-size: var(--text-body-dense);
+  font-weight: 600;
+  box-shadow: var(--shadow-raised);
 }
 
 dialog::backdrop {
   background: rgb(11 31 58 / 0.45);
 }
 
+dialog[open] {
+  animation: dialog-in var(--motion-slow) var(--ease-standard);
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Horizontal scroll regions (DataTable): edge fades that appear only when
+   content is scrolled away (background-attachment: local covers the fixed shadows). */
+@utility scroll-x-fade {
+  background:
+    linear-gradient(to right, var(--color-surface) 40%, transparent) left / 24px 100% no-repeat local,
+    linear-gradient(to left, var(--color-surface) 40%, transparent) right / 24px 100% no-repeat local,
+    linear-gradient(to right, color-mix(in srgb, var(--color-ink) 14%, transparent), transparent) left / 12px 100% no-repeat scroll,
+    linear-gradient(to left, color-mix(in srgb, var(--color-ink) 14%, transparent), transparent) right / 12px 100% no-repeat scroll;
+  background-color: var(--color-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 1ms;
+    --motion-base: 1ms;
+    --motion-slow: 1ms;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  ::before,
+  ::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
 }
 
 @media print {

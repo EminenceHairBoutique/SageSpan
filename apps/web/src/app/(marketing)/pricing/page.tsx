@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Proposed pricing (illustrative)" };
 
 export default function PricingPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-14 md:px-6">
+    <main id="main" className="mx-auto max-w-6xl px-4 py-14 md:px-6">
       <SectionHeading eyebrow="Pricing hypothesis" title="Proposed, illustrative, not yet offered">
         Two audiences, two hypotheses to test in interviews and pilots. No live billing exists and nothing here constitutes an offer.
       </SectionHeading>
