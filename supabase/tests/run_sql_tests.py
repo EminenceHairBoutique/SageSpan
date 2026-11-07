@@ -36,6 +36,7 @@ class Cluster:
         self.dir = pathlib.Path(tempfile.mkdtemp(prefix="sagespan-sql-"))
         self.data = self.dir / "data"
         self.runner: list[str] = []
+        self.locale = ""
 
     def __enter__(self) -> "Cluster":
         if hasattr(os, "geteuid") and os.geteuid() == 0:
@@ -43,7 +44,17 @@ class Cluster:
             self.runner = ["runuser", "-u", "nobody", "--"]
         # No pipes: on Windows the postmaster would inherit a captured stdout and the launcher would block forever.
         quiet = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
-        subprocess.run([*self.runner, str(PG_BIN / "initdb"), "-D", str(self.data), "-A", "trust", "-U", "postgres", "--no-sync"], check=True, **quiet)
+        # A non-"C" default collation (Supabase uses en_US.UTF-8) is what exposes implicit-collation
+        # mismatches such as information_schema identifiers vs. text literals; an initdb without a
+        # locale would silently hide them. Fall back to the plain cluster if the locale is absent.
+        locale = os.environ.get("SAGESPAN_TEST_PG_LOCALE", "C.UTF-8")
+        base = [*self.runner, str(PG_BIN / "initdb"), "-D", str(self.data), "-A", "trust", "-U", "postgres", "--no-sync"]
+        if locale and subprocess.run([*base, f"--locale={locale}"], **quiet).returncode == 0:
+            self.locale = locale
+        else:
+            shutil.rmtree(self.data, ignore_errors=True)
+            subprocess.run(base, check=True, **quiet)
+            self.locale = "(initdb default)"
         if os.name == "nt":
             # Windows: loopback TCP (no Unix-socket directory semantics to rely on).
             opts = f"-p {PORT} -c listen_addresses=127.0.0.1"
@@ -118,6 +129,7 @@ def main() -> int:
     if not dsn:
         cluster = Cluster().__enter__()
         dsn = cluster.dsn
+        print(f"embedded cluster locale: {cluster.locale}")
     try:
         ok, out = psql(dsn, (HERE / "shim_supabase.sql").read_text(), "shim")
         if not ok:
@@ -137,7 +149,15 @@ def main() -> int:
             print("pgtap: real extension")
         failed = 0
         for t in TESTS:
-            ok, out = psql(dsn, preprocess(t, use_shim), t.name)
+            text = preprocess(t, use_shim)
+            ok, out = psql(dsn, text, t.name)
+            if ok and use_shim:
+                # Real pgTAP fails a file whose plan(n) disagrees with the tests run; the shim's plan() is a no-op,
+                # so enforce the same contract here (every shim assertion prints exactly one "ok - ..." row).
+                planned = re.search(r"^select plan\((\d+)\);", text, flags=re.M)
+                ran = len(re.findall(r"^\s*ok - ", out, flags=re.M))
+                if planned and int(planned.group(1)) != ran:
+                    ok, out = False, f"plan mismatch: planned {planned.group(1)} tests but ran {ran}"
             print(f"{'PASS' if ok else 'FAIL'} {t.name}")
             if not ok:
                 failed += 1

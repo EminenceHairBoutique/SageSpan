@@ -125,3 +125,44 @@ This matrix is **traceability, not a certification**. It does not mean every pos
 | N-04 inventory after 0007 (`policy_record`, `latest_check_runs`, `coverage_summary` added) | migration 0007 §8 | SQL 005 + 007 inventory assertions |
 | Demo state v4 (payload v2 snapshots, review outcomes) | `DEMO_STATE_VERSION`, `seed.json` | web suites |
 | Not done | real Supabase Auth/JWT/PostgREST/RLS run of 0007; professional sign-off | — |
+
+## G. PR-003a/b evidence (2026-11-06, `feat/pr-003-identity`)
+
+| Requirement (V5 §17.4, §21.1) | Evidence in tree | Suite |
+|---|---|---|
+| Principal = `auth.users`; identity derived from `auth.uid()` only; selectors never authority (S-01) | migration 0008 §2, §7 (`require_principal`), `apps/web/src/auth/identity.ts` (`resolveIdentity` ignores unconfirmed `org_id`/`workspace_id`), `supabase-server.ts` (`auth.getUser()`, never `getSession()`) | SQL 008 (strangers, `my_workspace_access` empty row); web `identity.test.ts` selector cases; realstack §3, §5 |
+| Firm membership never reaches a consumer workspace; only an ACTIVE, unexpired grant to the person or the firm does | `app.can_read_workspace_domain`, RLS on the six record tables + profile, `workspaces_select` | SQL 008 Dee before/after grant, F2 sees nothing; realstack §4 |
+| Shared household with limited permissions (one domain) | `invite_participant(domains[])`, membership `domains`, `can_read_workspace_domain` | SQL 008 Ben SAVINGS_GOALS-only; realstack §3 |
+| Expiration and revocation honoured immediately; revoked grant kept as versioned history | `consent_grants.expires_at/revoked_at/version`, `revoke_consent`, `consent_grants_guard` (scope immutable, no un-revoke) | SQL 008 expired grant inert, revoke → 0 rows, version 2; realstack §4 |
+| Memberships/grants mutate only through entry points (privilege first, sentinel second) | 0008 §6, §8 (`authenticated` SELECT only) | SQL 008 direct insert/update 42501; realstack §2 |
+| Owner-only writes; participants/grantees read-only; no DELETE for end users | RLS insert/update policies, no DELETE grant | SQL 008; realstack §3 |
+| Per-workspace append-only event log, linear and hash-linked (S-04 analogue) | `workspace_events`, `workspace_append_event`, immutability trigger | SQL 008 chain assertions; realstack §6 |
+| N-04 inventory after 0008 | 0008 §8; tests 005/007/008 | SQL inventory assertions (3 files) |
+| Real GoTrue JWT / PostgREST / RLS run with two firms, consumers, shared household, firm grant, expiry/revocation | `supabase/realstack/run.mjs`, CI job `realstack` (also runs real pgTAP via `supabase test db`) | **Green on PR #10 run 3 (`fa2669b`): pgTAP 251/251, harness 50/50.** CI only (no Docker in the sandbox) |
+| Honest production state: no demo data behind a login; store adapter absent and said so | `/app`, `ui/ProductionHome.tsx`, `ProductionGate.tsx` | e2e `pr-003-identity.spec.ts` |
+| Latent pgTAP defect fixed | tests 002/003/005 `plan()` corrected (20→23, 10→11, 58→71); `run_sql_tests.py` enforces plan == tests run | SQL harness 8/8 (negative control verified) |
+| Not done | Supabase store adapter (DATA-001), private storage/document registration, member-management UI, vector search (none exists), professional sign-off | — |
+
+## H. DATA-001 evidence (2026-11-06, `feat/data-001-store-adapter`)
+
+| Requirement | Evidence in tree | Suite |
+|---|---|---|
+| One domain path for demo and production personal records (no second validator, no second ownership rule) | `domain/personal/repository.ts` (`PersonalRepository`: Demo = file store, Production = Supabase); `supabase-repository.ts` runs the unchanged `records.ts` / `mutations.ts` against a view loaded under the user's session | web `supabase-repository.test.ts` (12: diff plan, id remap, FK order, zero-row refusal, partial-write error); existing `personal.test.ts` unchanged |
+| Production writes land only through RLS as the signed-in user; no service-role key in the app | `supabase-server.ts` (anon key + session), `app-personal-actions.ts`, `SupabasePersonalRepository.persist` verifies one row per write | realstack vitest `supabase-repository.realstack.test.ts` (3: owner CRUD round-trip, SAVINGS_GOALS-only participant, stranger NOT_FOUND) — **CI only** |
+| Exact money round-trip, no arithmetic in the web tier | `SELECTS.*::text` casts; `normalizeMoney` on read; no sums anywhere in `/app/personal` | unit tests (row mapping) |
+| Honest state: production shows records only; no computed figures without receipted runs | `/app/personal` banner; `PersonalRepository.supportsRuns = false` for production | e2e `data-001-personal.spec.ts` |
+| Production "Start fresh" via the 0008 entry point (`create_personal_workspace`) | `/app/personal/start`, `appStartFreshAction` | realstack harness §2 (RPC path); e2e gate when unconfigured |
+| Non-atomic multi-row writes over PostgREST are disclosed, not hidden | `DATA_PARTIAL_WRITE` names what landed; atomic RPC planned for DATA-002 | unit test |
+| Parallel-session coordination (AI-CORE track) | `docs/architecture/PARALLEL_SESSIONS_AND_DATA_BOUNDARY.md`: ownership, seams (`PersonalRepository.bundle()` is the AI tools' data source), migration-number reservation | — |
+
+## I. DATA-002 evidence (2026-11-06, `feat/data-002-personal-runs`)
+
+| Requirement | Evidence in tree | Suite |
+|---|---|---|
+| One atomic, server-authorised write path for all personal tables; no direct INSERT/UPDATE privilege for end users (S-02) | 0009 §4 `apply_personal_changes` (owner re-derived, workspace/actor columns forced, table+column allow-lists, zero-row update raises), §6 revokes | SQL 009 (forged columns overwritten, allow-lists, rollback of a half-applied plan, N-04 "no direct write privilege"); realstack harness §2/§4b; realstack vitest |
+| Snapshots immutable except CURRENT→SUPERSEDED; one CURRENT per workspace; runs and decisions append-only (S-04 analogue) | 0009 §1 triggers + partial unique index; column allow-list for updates = `status` only | SQL 009; realstack vitest (supersede + revision 2 in one call) |
+| A stored "successful" run is verified, engine-attributed and receipted; an ERROR run carries no amounts (S-05) | `personal_calc_runs_success_shape` CHECK; web `verifyPersonalReceipt` unchanged | SQL 009 (three refusals + accepted ERROR), realstack vitest (DB refuses an unverified success through the repository) |
+| Computed results readable only with access to every record domain they span | `app.can_read_personal_runs`; RLS on snapshots/runs/decisions | SQL 009 (participant, stranger, 3-of-4-domain grant refused, 4-of-4 allowed, RETIREMENT separate); realstack vitest participant isolation |
+| Same engines/policy for demo and production; no arithmetic in the web tier | `runs.ts` over `PersonalDataSource`; `/app/personal` renders receipted figures via `Money`/`Stat` | web `personal.test.ts` unchanged (28), `supabase-repository.test.ts` (14), Playwright 20/20 |
+| Workspace event per logical change incl. snapshots, runs, decisions, retirement | 0009 §3 allow-list widened; RPC appends events | SQL 009 `results_eq` on the event log |
+
