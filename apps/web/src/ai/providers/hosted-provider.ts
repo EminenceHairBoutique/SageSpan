@@ -70,6 +70,8 @@ export class HostedProvider implements AiProvider {
   readonly name: string;
   readonly model: string;
   readonly mode = "LIVE" as const;
+  /** A hosted model needs a longer run wall clock than the in-process mock's 20 s default. */
+  readonly budgetHint: { max_wall_clock_ms: number };
   private tokensSpent = 0;
   private readonly leases = new Map<string, RunLease>();
   private readonly now: () => number;
@@ -84,6 +86,7 @@ export class HostedProvider implements AiProvider {
     const d = port.describe();
     this.name = d.provider;
     this.model = config.model;
+    this.budgetHint = { max_wall_clock_ms: config.runWallClockMs };
     this.now = options.now ?? Date.now;
     this.quota = options.quota ?? new InMemoryAiQuotaStore();
     this.policy = quotaPolicyFromConfig(config);

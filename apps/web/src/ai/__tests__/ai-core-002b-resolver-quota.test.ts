@@ -156,7 +156,7 @@ describe("AI-CORE-002b async resolver over the repository seam", () => {
 });
 
 const KEY = "sk-test-quota-DO-NOT-LEAK";
-const CONFIG: HostedConfig = { apiKey: KEY, model: "claude-test-model", baseUrl: "https://api.anthropic.com", maxTokens: 4096, timeoutMs: 1000, processTokenCeiling: 250_000, runsPerScopePerHour: 2, tokensPerScopePerHour: 1500 };
+const CONFIG: HostedConfig = { apiKey: KEY, model: "claude-test-model", baseUrl: "https://api.anthropic.com", maxTokens: 4096, timeoutMs: 1000, runWallClockMs: 20_000, processTokenCeiling: 250_000, runsPerScopePerHour: 2, toolChoice: "forced", tokensPerScopePerHour: 1500 };
 const SCOPE = { kind: "PERSONAL_WORKSPACE" as const, workspace_id: "ws_x" };
 
 function fakeVendorDraft() {

@@ -95,6 +95,7 @@ function summarise(r: AiRunRecord) {
     accepted: r.accepted_finding_count,
     rejected: r.rejected_finding_count,
     issue_codes: r.validation_issues.map((i) => i.code),
+    issue_details: r.validation_issues.map((i) => i.detail),
     finding_categories: r.report?.findings.map((f) => f.category) ?? [],
     limitations: r.report?.limitations ?? [],
     estimated_tokens: r.estimated_tokens,
