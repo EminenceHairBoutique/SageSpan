@@ -59,4 +59,10 @@
 
 ## Promotion rule
 
-A model, prompt, tool-schema, validator, runtime or adapter change must (1) pass this suite, AI-C01…C16, AI-H01…H13 **and** AI-N01…N08 unchanged, (2) produce a `diffReports` review on the frozen Patel/Okafor/Reyes/Castillo fixtures that a human accepts, and (3) record the decision here with date and reviewer. No automatic promotion.
+A model, prompt, tool-schema, validator, runtime or adapter change must (1) pass this suite, AI-C01…C16, AI-H01…H14 **and** AI-N01…N08 unchanged, (2) produce a `diffReports` review on the frozen Patel/Okafor/Reyes/Castillo fixtures that a human accepts, and (3) record the decision here with date and reviewer. No automatic promotion.
+
+## Live benchmark reviews
+
+| Date | Model | Reviewer | Result | Record |
+|---|---|---|---|---|
+| 2026-11-06 | `claude-sonnet-5-5` (Anthropic Messages API), synthetic Patel + Alvarez | Integration coordinator for the founder (not independent) | Invariants **pass** (all runs `DRAFT_READY`, 0 denied tools, 0 rejected findings, 0 validation issues). Content **not reviewed** because the report stored categories only and `diffReports` keys on ids. Personal draft diverges from the mock (audit-style categories, no education item). **Not accepted for promotion** | `docs/ai/AI_LIVE_BENCHMARK_REVIEW_2026-11-06.md`; `alignReports` + content capture added (AI-H14) |
