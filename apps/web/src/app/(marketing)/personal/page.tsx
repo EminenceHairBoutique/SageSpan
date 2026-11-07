@@ -20,7 +20,7 @@ const sections = [
 
 export default function PersonalPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-14 md:px-6">
+    <main id="main" className="mx-auto max-w-6xl px-4 py-14 md:px-6">
       <SectionHeading eyebrow="SageSpan Personal" title="Take the pressure out of everyday money decisions">
         Built for individuals and households who want a clear picture, a short list of realistic actions, and the reasons behind them. Manual entry first: no bank login needed to be useful.
       </SectionHeading>

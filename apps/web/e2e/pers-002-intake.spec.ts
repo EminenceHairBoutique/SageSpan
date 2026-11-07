@@ -61,6 +61,9 @@ test("records: add a commitment, then retire it; the baseline recomputes from a 
   // essential commitments rose by exactly 70.00 (engine figure): 3,024.50 -> 3,094.50
   await expect(page.getByRole("button", { name: "$3,094.50" }).first()).toBeVisible({ timeout: 30_000 });
   await page.getByRole("row", { name: /^Internet/ }).getByRole("button", { name: "Retire" }).click();
+  // UI-001a: retiring asks for confirmation in a native dialog that names the record
+  await expect(page.getByRole("dialog", { name: /Retire Internet/ })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Retire" }).click();
   // the row (and its inline form) leave the page once the record is retired; the history keeps it
   await expect(page.getByRole("cell", { name: /^Internet/ })).toHaveCount(0, { timeout: 30_000 });
   await expect(page.getByRole("cell", { name: /-\$70\.00 Internet/ })).toHaveCount(0);

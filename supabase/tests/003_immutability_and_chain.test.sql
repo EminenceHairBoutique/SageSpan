@@ -2,7 +2,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 create schema if not exists tests;
 \ir 000_helpers.sql
-select plan(10);
+select plan(11);
 
 select tests.make_user('30000000-0000-0000-0000-00000000a0a3', 'cco-d@example.test');
 insert into app.organizations (id, name, slug) values ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'Org D (synthetic)', 'org-d');

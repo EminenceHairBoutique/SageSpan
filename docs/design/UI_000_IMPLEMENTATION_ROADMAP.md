@@ -1,6 +1,6 @@
 # SageSpan UI implementation roadmap: UI-001 → UI-005
 
-**Document:** `docs/design/UI_000_IMPLEMENTATION_ROADMAP.md` · **Version:** 1.0 · **Date:** 2026-11-06 · **Status:** plan (UI-000, documentation only)
+**Document:** `docs/design/UI_000_IMPLEMENTATION_ROADMAP.md` · **Version:** 1.1 (founder decisions D1–D7 recorded as accepted) · **Date:** 2026-11-06 · **Status:** plan (UI-000, documentation only)
 **Rules that bind every phase:** presentation only; no financial mathematics, receipts, statuses, permissions, migrations, contracts, calculator, AI validation or workflow code change in a UI PR; synthetic data only; URLs stable; every PR ships before/after screenshots, exact test results, accessibility evidence, files changed, limitations and the next milestone. Complexity bands: **S** ≤ 1 day, **M** 2–4 days, **L** 5–10 days of focused work, each phase split into reviewable sub-PRs as listed.
 
 | Phase | Theme | Band | Sub-PRs | Depends on |
@@ -144,17 +144,19 @@ Rule: a UI PR that changes any of these strings edits the spec in the same PR, s
 
 ---
 
-## Founder decisions requested before UI-001
+## Founder decisions (requested before UI-001; decided 2026-11-06)
 
-| Id | Decision | Recommendation |
-|---|---|---|
-| D1 | Rename public nav "Retirement Planning" → "Retirement Studio" (and Personal rail "Retirement" → "Retirement Studio") | Yes; one name for the pillar |
-| D2 | Personal mobile bottom navigation: four items (Home · Money · Plan · More) | Yes; Assistant lives under More, never the primary path |
-| D3 | One interim brand mark (navy tile) for all three surfaces, pending the real mark | Yes |
-| D4 | Allow `@axe-core/playwright` as a dev-only dependency | Yes; otherwise the built-in check set |
-| D5 | Coverage labels: "Arithmetic PASS · receipt verified" and "Not required (eligibility confirmed)" instead of "Verified (PASS)" / "Verified (not required)" | Yes; reserves "verified" per the vocabulary rule; two e2e regexes update |
-| D6 | Identity lines: "Simulated reviewer: …" / "Demo person: …" in demo; "Signed in as …" only for a real session | Yes |
-| D7 | Calculator request (not UI): per-point `below_floor` marker in `outlook.points` so the UI stops comparing cents for row shading | File for the calculator owner; UI-002 reads flags meanwhile |
+**Record:** on 2026-11-06 the founder accepted every recommendation below ("Accept all recommendations", answered in the UI-000 session). These are now binding for UI-001…UI-005; each row names the phase that acts on it. A copy of this record belongs in `docs/DECISIONS.md` once PR #11 (which edits that file) has merged, to avoid a conflict.
+
+| Id | Decision | Recommendation | Decided | Acts in |
+|---|---|---|---|---|
+| D1 | Rename public nav "Retirement Planning" → "Retirement Studio" (and Personal rail "Retirement" → "Retirement Studio") | Yes; one name for the pillar | **Accepted** (update `dual-market.spec.ts` in the same PR) | UI-001b |
+| D2 | Personal mobile bottom navigation: four items (Home · Money · Plan · More) | Yes; Assistant lives under More, never the primary path | **Accepted** | UI-001b |
+| D3 | One interim brand mark (navy tile) for all three surfaces, pending the real mark | Yes | **Accepted** (a purpose-designed mark remains a separate brand decision) | UI-001b |
+| D4 | Allow `@axe-core/playwright` as a dev-only dependency | Yes; otherwise the built-in check set | **Accepted** | UI-001c |
+| D5 | Coverage labels: "Arithmetic PASS · receipt verified" and "Not required (eligibility confirmed)" instead of "Verified (PASS)" / "Verified (not required)" | Yes; reserves "verified" per the vocabulary rule; two e2e regexes update | **Accepted** (update `assurance-flow.spec.ts` and `pr-002-coverage.spec.ts` in the same PR; `CoveragePanel.tsx` labels only, no contract change) | UI-003b |
+| D6 | Identity lines: "Simulated reviewer: …" / "Demo person: …" in demo; "Signed in as …" only for a real session | Yes | **Accepted** (keep the person's name visible; `pers-002-intake.spec.ts` asserts "Signed in as Jordan" and needs updating) | UI-001b |
+| D7 | Calculator request (not UI): per-point `below_floor` marker in `outlook.points` so the UI stops comparing cents for row shading | File for the calculator owner; UI-002 reads flags meanwhile | **Accepted as a request** to the calculator owner (new method-set version, golden test, contracts mirror); UI-002 reads existing flags until it ships | calculator owner; UI-002 |
 
 ---
 

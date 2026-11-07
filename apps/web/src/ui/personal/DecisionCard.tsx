@@ -13,7 +13,10 @@ import { Chip, cx } from "@/ui/primitives";
  * The feedback buttons record append-only events (Done / Snooze / Not relevant /
  * I disagree); "Ask why" expands the ranking rationale and alternatives.
  */
-export function DecisionCard({ rec, labels, decision, compact }: { rec: Recommendation; labels: Record<string, string>; decision: UserDecisionEvent | undefined; compact?: boolean }) {
+type DecideAction = typeof decideAction;
+
+/** `decide` defaults to the demo action; /app/personal passes the production one (same event shape). */
+export function DecisionCard({ rec, labels, decision, compact, decide = decideAction }: { rec: Recommendation; labels: Record<string, string>; decision: UserDecisionEvent | undefined; compact?: boolean; decide?: DecideAction }) {
   const [why, setWhy] = useState(false);
   const tone = rec.priority === "DO_THIS_NOW" ? "conflict" : rec.priority === "CONSIDER_NEXT" ? "amber" : "slate";
   const settled = decision && ["DONE", "NOT_RELEVANT", "DISMISS"].includes(decision.decision);
@@ -93,7 +96,7 @@ export function DecisionCard({ rec, labels, decision, compact }: { rec: Recommen
         {rec.action_authority !== "READ_ONLY" && (
           <div className="flex flex-wrap gap-2 border-t border-line pt-3">
             {(["DONE", "SNOOZE", "NOT_RELEVANT", "DISAGREE"] as const).map((d) => (
-              <ActionForm key={d} action={decideAction} hidden={{ recommendation_id: rec.recommendation_id, decision: d, note: "" }} submitLabel={d === "DONE" ? "Done" : d === "SNOOZE" ? "Snooze" : d === "NOT_RELEVANT" ? "Not relevant" : "I disagree"} variant={d === "DONE" ? "primary" : "secondary"} size="sm" inline className="!gap-1" />
+              <ActionForm key={d} action={decide} hidden={{ recommendation_id: rec.recommendation_id, decision: d, note: "" }} submitLabel={d === "DONE" ? "Done" : d === "SNOOZE" ? "Snooze" : d === "NOT_RELEVANT" ? "Not relevant" : "I disagree"} variant={d === "DONE" ? "primary" : "secondary"} size="sm" inline className="!gap-1" />
             ))}
           </div>
         )}
