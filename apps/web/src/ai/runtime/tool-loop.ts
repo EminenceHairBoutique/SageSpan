@@ -99,7 +99,6 @@ export async function runToolLoop(initialCtx: GroundingContext, analysisKind: Ai
   const now = options.now ?? Date.now;
   const t0 = now();
   const budget = AiRunBudgetSchema.parse({ ...DEFAULT_AI_RUN_BUDGET, ...(options.budget ?? {}) });
-  const descriptor = describeProvider(provider);
   const transitions: AiRuntimeState[] = ["AUTHORIZE", "RESOLVE_CONTEXT"];
   const enter = (s: AiRuntimeState) => transitions.push(s);
   const issues: AiValidationIssue[] = [];
@@ -318,7 +317,8 @@ export async function runToolLoop(initialCtx: GroundingContext, analysisKind: Ai
 
   // ---- final validation and record. Re-authorise once more before anything is persisted.
   enter("VALIDATE_FINAL_DRAFT");
-  const limitations = [...(options.serverLimitations ?? []), ...(options.providerNote ? [options.providerNote] : [])];
+  // Report limitations are capped at 400 characters by the contract; a long provider note must not reject a valid draft.
+  const limitations = [...(options.serverLimitations ?? []), ...(options.providerNote ? [options.providerNote] : [])].map((l) => l.slice(0, 400));
   metadata.estimated_tokens = estimatedTokens;
   let report: AiRunRecord["report"] = null;
   let accepted = 0;
@@ -349,6 +349,8 @@ export async function runToolLoop(initialCtx: GroundingContext, analysisKind: Ai
   }
   enter("RETURN");
 
+  // Described AFTER the turns so a live adapter reports the model that actually served the run.
+  const descriptor = describeProvider(provider);
   const runtime: AiRuntimeTrace = {
     schema_version: AI_RUNTIME_SCHEMA_VERSION,
     budget,

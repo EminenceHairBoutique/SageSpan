@@ -2,7 +2,7 @@
 
 Classification vocabulary (project instructions): **implemented in synthetic demo**, **implemented and CI-tested**, **independently validated**, **blocked**, **proposed**, **released with real data**. Nothing in the AI programme is independently validated or released with real data.
 
-Baseline verified for this branch: `origin/master` = `5299791` ("AI Checklist"); branch `feat/ai-core-001-runtime` stacked on it. The founder's local `master` carries one unpushed commit (`03df634`, `docs/ai/AI_EVALUATION_PLAN.md`); that file is included on this branch verbatim so references resolve. Open PR #10 (`feat/pr-003-identity`, 6 commits ahead of master) is independent of this branch; both touch `CLAUDE.md` status notes and will need a trivial merge.
+Baseline verified for this branch: `origin/master` = `5299791` ("AI Checklist"); branch `feat/ai-core-001-runtime` stacked on it; `master` has since advanced to `8f7fa22` (#11 PR-002 follow-up, #14 UI-000 docs) and was merged into the branch cleanly. `feat/ai-core-002a-hosted-adapter` is stacked on `feat/ai-core-001-runtime`. The founder's local `master` carries one unpushed commit (`03df634`, `docs/ai/AI_EVALUATION_PLAN.md`); that file is included on this branch verbatim so references resolve. Open PR #10 (`feat/pr-003-identity`, 6 commits ahead of master) is independent of this branch; both touch `CLAUDE.md` status notes and will need a trivial merge.
 
 | Capability | Status | Evidence / dependency |
 |---|---|---|
@@ -12,8 +12,9 @@ Baseline verified for this branch: `origin/master` = `5299791` ("AI Checklist");
 | `ai-runtime-v1` contracts (budget, envelopes, descriptor, trace), `ABSTAINED` outcome, new validation codes | Implemented; contract-tested | `packages/contracts/src/ai/runtime.ts`; `ai-runtime-contracts.test.ts` 4/4 |
 | Runtime trace shown to reviewers / users | Implemented in synthetic demo | `AiReviewPanel` runtime line; firm list chip handles `ABSTAINED` |
 | `SAGESPAN_AI_PROVIDER` = `mock` / `mock_onepass` / `hosted` / `self_hosted` | Implemented (hosted/self_hosted resolve to mock with an explicit note) | AI-C14, AI-E17 |
-| Live provider **port** (types) | Implemented as types only — **no adapter, no network, no key** | `providers/port.ts` |
-| Hosted adapter (AI-CORE-002) | **Proposed**; blocked on G3 vendor DPA + founder vendor decision | `FEATURE_RELEASE_GATES.md` G3 |
+| Live provider **port** (types) | Implemented | `providers/port.ts` (now carries `output_json_schema`) |
+| Hosted adapter (AI-CORE-002a) | **Implemented in synthetic demo, offline-tested, disabled by default**; Anthropic Messages port; enabled only with key + pinned model + synthetic acknowledgement + demo mode; fails closed on ceilings; **no live run executed in-repo** | `providers/{hosted-config,anthropic-messages,hosted-provider}.ts`; `ai-core-hosted.test.ts` 10/10; `docs/ai/AI_CORE_002_HOSTED_ADAPTER.md` |
+| Hosted adapter live benchmark review + founder vendor decision (AI-CORE-002b) | **Proposed / blocked on a key the founder supplies and a recorded vendor decision**; real data remains G3 | `ai-hosted.live.test.ts` (opt-in), `FEATURE_RELEASE_GATES.md` G3 |
 | Knowledge registry + retrieval (AI-CORE-003) | Proposed | — |
 | Benchmark schema, synthetic generator, contamination checks, training manifests (AI-CORE-004) | Proposed (schema sketched in `AI_CORE_EVALUATION_PLAN.md` §6) | — |
 | Open-weight bake-off, private serving spike (AI-CORE-005) | Proposed | licence reverification required |
